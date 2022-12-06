@@ -8,13 +8,21 @@
 
 namespace vsgCesium
 {
+    struct CreateModelOptions
+    {
+    };
+
     class CesiumGltfBuilder
     {
     public:
-        CesiumGltfBuilder(CesiumGltf::Model* model);
+        CesiumGltfBuilder(CesiumGltf::Model* model, const CreateModelOptions& options)
+            : _model(model), _options(options)
+        {
+        }
         vsg::ref_ptr<vsg::Group> load();
     private:
         CesiumGltf::Model* _model;
+        CreateModelOptions _options;
     };
 
     
