@@ -60,13 +60,11 @@ namespace vsgCesium
     SamplerData loadTexture(CesiumGltf::Model& model,
                             const CesiumGltf::Texture& texture,
                             bool sRGB);
-    SamplerData loadTexture(
-        CesiumTextureSource&& imageSource,
-        VkSamplerAddressMode addressX,
-        VkSamplerAddressMode addressY,
-        VkFilter minFilter,
-        VkFilter maxFilter,
-        bool useMipMaps,
-        bool generateMipMaps,
-        bool sRGB);
+    SamplerData loadTexture(CesiumTextureSource&& imageSource,
+                            VkSamplerAddressMode addressX,
+                            VkSamplerAddressMode addressY,
+                            VkFilter minFilter,
+                            VkFilter maxFilter,
+                            bool useMipMaps,
+                            bool sRGB);
 }
