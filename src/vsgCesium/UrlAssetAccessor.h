@@ -4,7 +4,7 @@
 #include "CesiumAsync/IAssetAccessor.h"
 #include <cstddef>
 
-namespace vsgCesium
+namespace vsgCs
 {
 // Simple implementation of AssetAcessor that can make network and local requests
     

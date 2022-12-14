@@ -1,6 +1,6 @@
 #include "OpThreadTaskProcessor.h"
 
-using namespace vsgCesium;
+using namespace vsgCs;
 
 class TaskOperation : public vsg::Inherit<vsg::Operation, TaskOperation>
 {

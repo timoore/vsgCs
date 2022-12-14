@@ -3,7 +3,7 @@
 #include <vsg/all.h>
 #include <Cesium3DTilesSelection/IPrepareRendererResources.h>
 
-namspace vsgCesium
+namspace vsgCs
 {
     class VSGCESIUM_EXPORT vsgResourcePreparer : public Cesium3DTilesSelection::IPrepareRendererResources
     {

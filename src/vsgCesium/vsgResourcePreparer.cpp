@@ -1,7 +1,7 @@
 #include "vsgResourcePreparer.h"
 #include "LoadGltfResult.h"
 
-using namespace vsgCesium;
+using namespace vsgCs;
 using namespace CesiumGltf;
 
 

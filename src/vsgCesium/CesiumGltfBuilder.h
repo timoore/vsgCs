@@ -6,7 +6,7 @@
 
 // Build a VSG scenegraph from a Cesium Gltf Model object.
 
-namespace vsgCesium
+namespace vsgCs
 {
     struct CreateModelOptions
     {

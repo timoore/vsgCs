@@ -4,7 +4,7 @@
 #include <tuple>
 #include <limits>
 
-using namespace vsgCesium;
+using namespace vsgCs;
 using namespace CesiumGltf;
 
 namespace

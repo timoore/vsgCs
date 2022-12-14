@@ -4,7 +4,7 @@
 #include <CesiumAsync/ITaskProcessor.h>
 #include <vsg/all.h>
 
-namespace vsgCesium
+namespace vsgCs
 {
 
     class VSGCESIUM_EXPORT OpThreadTaskProcessor : public CesiumAsync::ITaskProcessor
