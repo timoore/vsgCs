@@ -59,29 +59,19 @@ namespace vsgCesium
         EmbeddedImageSource>
     CesiumTextureSource;
 
+    // Interface from Cesium Native to the VSG scene graph. CesiumGltfBuilder can load Models (glTF
+    // assets) and images that are not part of a model.
+
+    class ModelBuilder;
+
     class CesiumGltfBuilder : public vsg::Inherit<vsg::Object, CesiumGltfBuilder>
     {
     public:
         CesiumGltfBuilder();
-        class ModelBuilder
-        {
-        public:
-            ModelBuilder(CesiumGltf::Model* model, const CreateModelOptions& options)
-                : _model(model), _options(options)
-            {
-            }
-            vsg::ref_ptr<vsg::Group> operator()();
-        protected:
-            vsg::ref_ptr<vsg::Group> loadNode(const CesiumGltf::Node* node);
-        private:
-            CesiumGltf::Model* _model;
 
-        };
         friend class ModelBuilder;
         vsg::ref_ptr<vsg::Group> load(CesiumGltf::Model* model, const CreateModelOptions& options);
-        SamplerData loadTexture(CesiumGltf::Model& model,
-                                const CesiumGltf::Texture& texture,
-                                bool sRGB);
+
         SamplerData loadTexture(CesiumTextureSource&& imageSource,
                                 VkSamplerAddressMode addressX,
                                 VkSamplerAddressMode addressY,
@@ -89,10 +79,76 @@ namespace vsgCesium
                                 VkFilter maxFilter,
                                 bool useMipMaps,
                                 bool sRGB);
+        vsg::ref_ptr<vsg::ShaderSet> getOrCreatePbrShaderSet();
     protected:
         vsg::ref_ptr<vsg::SharedObjects> _sharedObjects;
+        vsg::ref_ptr<vsg::ShaderSet> _pbrShaderSet;
     };
 
+    class ModelBuilder
+    {
+    public:
+        ModelBuilder(CesiumGltfBuilder* builder, CesiumGltf::Model* model, const CreateModelOptions& options);
+        vsg::ref_ptr<vsg::Group> operator()();
+    protected:
+        vsg::ref_ptr<vsg::Group> loadNode(const CesiumGltf::Node* node);
+        vsg::ref_ptr<vsg::Group> loadMesh(const CesiumGltf::Mesh* mesh);
+        vsg::ref_ptr<vsg::StateGroup> loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
+                                                    const CesiumGltf::Mesh* mesh = nullptr);
+        vsg::ref_ptr<vsg::DescriptorConfigurator> loadMaterial(const CesiumGltf::Material* material);
+        vsg::ref_ptr<vsg::DescriptorConfigurator> loadMaterial(int i);
+        vsg::ref_ptr<vsg::Data> loadImage(int i, bool useMipMaps, bool sRGB);
+        SamplerData loadTexture(const CesiumGltf::Texture& texture, bool sRGB);
+        template<typename TI>
+        bool loadMaterialTexture(vsg::ref_ptr<vsg::ConvertedMaterial> cmat,
+                                 const std::string& name,
+                                 const std::optional<TI>& texInfo,
+                                 bool sRGB)
+        {
+            using CesiumGltf;
+            if (!texInfo || texInfo.value().index < 0 || texInfo.value().index >= _model->textures.size())
+            {
+                if (texInfo && texInfo.value().index >= 0)
+                {
+                    vsg::warn("Texture index must be less than ", _model->textures.size(),
+                              " but is ", texInfo.value().index);
+                }
+                return false;
+            }
+            const Texture& texture = model->textures[texInfo.value().index];
+            SamplerData sd = loadTexture(texture, sRGB);
+            if (sd.data)
+            {
+                cmat->descriptorConfig->assignTexture(name, sd.data, sd.sampler);
+                cmat->texInfo.insert(name, TexInfo{texture.texCoord});
+                return true;
+            }
+            return false;
+        }
+        CesiumGltfBuilder* _builder;
+        CesiumGltf::Model* _model;
+        std::string _name;
+        CreateModelOptions _options;
+        struct TexInfo
+        {
+            int coordSet = 0;
+        };
+        struct ConvertedMaterial : public vsg::Inherit<vsg::Object, ConvertedMaterial>
+        {
+            vsg::ref_ptr<vsg::DescriptorConfigurator> descriptorConfig;
+            std::map<std::string, TexInfo> texInfo;
+        };
+        std::vector<vsg::ref_ptr<ConvertedMaterial>> _convertedMaterials;
+        struct ImageData
+        {
+            vsg::ref_ptr<vsg::Data> image;
+            vsg::ref_ptr<vsg::Data> imageWithMipmap;
+            bool sRGB = false;
+        };
+        std::vector<ImageData> _loadedImages;
+        vsg::ref_ptr<vsg::DescriptorConfigurator> _defaultMaterial;
+
+    };
     
     inline void setdmat4(vsg::dmat4& vmat, const glm::dmat4x4& glmmat)
     {
