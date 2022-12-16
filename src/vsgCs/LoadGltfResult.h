@@ -17,7 +17,7 @@
 // Cesium Unreal has all sorts of extra cruft in model results, primitive results, etc., but I think
 // that's needed because of the strong load thread / game thread split in Unreal.
 
-namespace LoadGltfResult
+namespace vsgCs
 {
 
     struct LoadModelResult {

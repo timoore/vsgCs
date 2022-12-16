@@ -64,18 +64,14 @@ namespace
 }
 
 CesiumGltfBuilder::CesiumGltfBuilder()
-    : _sharedObjects(vsg::SharedObjects::create())
+    : _sharedObjects(vsg::SharedObjects::create()),
+      _pbrShaderSet(vsg::createPhysicsBasedRenderingShaderSet())
 {
 }
 
 vsg::ref_ptr<vsg::ShaderSet> CesiumGltfBuilder::getOrCreatePbrShaderSet()
 {
-    if (!_pbrShaderSet)
-    {
-        pbrShaderSet = vsg::createPhysicsBasedRenderingShaderSet();
-        if (_sharedObjects) sharedObjects->share(pbrShaderSet);
-    }
-    return pbrShaderSet;
+    return _pbrShaderSet;
 }
 
 ModelBuilder::ModelBuilder(CesiumGltfBuilder* builder, CesiumGltf::Model* model,

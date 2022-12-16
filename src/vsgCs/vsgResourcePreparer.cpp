@@ -1,13 +1,16 @@
 #include "vsgResourcePreparer.h"
-#include "LoadGltfResult.h"
 
 using namespace vsgCs;
 using namespace CesiumGltf;
 
 
-LoadModelResult* readAndCompile(const glm::dmat4& transform, CreateModelOptions& options)
+LoadModelResult*
+vsgResourcePreparer::readAndCompile(const glm::dmat4& transform, Model* pModel)
 {
-    const Model& model = *options.pModel;
+    vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
+    if (!ref_viewer)
+        return nullptr;
+    const Model& model = *pModel;
     vsg::ref_ptr<vsg::Group> resultNode = vsg::Group::create();
     glm::dmat4x4 rootTransform = transform;
     
@@ -15,10 +18,13 @@ LoadModelResult* readAndCompile(const glm::dmat4& transform, CreateModelOptions&
         = Cesium3DTilesSelection::GltfUtilities::applyRtcCenter(model, rootTransform);
     applyGltfUpAxisTransform(model, rootTransform);
     auto transformNode = vsg::MatrixTransform::create(glm2vsg(rootTransform));
-    CesiumGltfBuilder builder(options.pModel);
-    resultNode = builder::load();
+    CesiumGltfBuilder builder(pModel);
+    resultNode = _builder->load(pModel, CreateModelOptions());
     transformNode->addChild(resultNode);
-    // Compile
+    LoadModelResult* result = new LoadModelResult;
+    result->modelResult = transformNode;
+    result->compileResult = ref_viewer->compile(transformNode);
+    return result;
 }
 
 RenderResources* merge(vsgResourcePreparer* preparer, LoadGltfResult::LoadModelResult& result)
@@ -47,7 +53,7 @@ vsgResourcePreparer::prepareInLoadThread(const CesiumAsync::AsyncSystem& asyncSy
     }
 
     CreateModelOptions options{pModel};
-    LoadModelResult* result = readAndCompile(transform, options);
+    LoadModelResult* result = readAndCompile(transform, pModel);
     return asyncSystem.createResolvedFuture(
         Cesium3DTilesSelection::TileLoadResultAndRenderResources{
             std::move(tileLoadResult),
@@ -80,7 +86,7 @@ void vsgResourcePreparer::free(Cesium3DTilesSelection::Tile& tile,
     else if (pMainThreadResult)
     {
         RenderResources* renderResources = renderResources<RenderResources>(pMainThreadResult);
-        delete pMainThreadResult;
+        delete renderResources;
     }
 }
 

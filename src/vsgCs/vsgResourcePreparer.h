@@ -3,13 +3,16 @@
 #include <vsg/all.h>
 #include <Cesium3DTilesSelection/IPrepareRendererResources.h>
 
+#include "LoadGltfResult.h"
+#include "CesiumGltfBuilder.h"
+
 namspace vsgCs
 {
     class VSGCESIUM_EXPORT vsgResourcePreparer : public Cesium3DTilesSelection::IPrepareRendererResources
     {
     public:
-    vsgResourcePreparer(vsg::ref_ptr<vsg::Viewer> viewer)
-    : viewer(viewer)
+    vsgResourcePreparer(vsg::ref_ptr<vsg::Viewer> viewer = {})
+    : viewer(viewer), _builder(CesiumGltfBuilder::create())
     {
     }
     
@@ -47,6 +50,8 @@ namspace vsgCs
                                   const RasterOverlayTile& rasterTile,
                                   void* pMainThreadRendererResources) noexcept override;
     vsg::observer_ptr<vsg::Viewer> viewer;
-    
+    protected:
+    LoadModelResult* readAndCompile(const glm::dmat4& transform, CreateModelOptions& options);
+    vsg::ref_ptr<CesiumGltfBuilder> _builder;
     };
 }
