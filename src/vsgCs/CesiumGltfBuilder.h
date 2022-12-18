@@ -64,7 +64,7 @@ namespace vsgCs
 
     class ModelBuilder;
 
-    class CesiumGltfBuilder : public vsg::Inherit<vsg::Object, CesiumGltfBuilder>
+    class VSGCS_EXPORT CesiumGltfBuilder : public vsg::Inherit<vsg::Object, CesiumGltfBuilder>
     {
     public:
         CesiumGltfBuilder();
@@ -85,7 +85,7 @@ namespace vsgCs
         vsg::ref_ptr<vsg::ShaderSet> _pbrShaderSet;
     };
 
-    class ModelBuilder
+    class VSGCS_EXPORT ModelBuilder
     {
     public:
         ModelBuilder(CesiumGltfBuilder* builder, CesiumGltf::Model* model, const CreateModelOptions& options);

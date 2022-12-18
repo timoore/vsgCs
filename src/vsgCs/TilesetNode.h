@@ -14,7 +14,7 @@ namespace vsgCs
     static vsg::dmat4 zUp2yUp;
     static vsg::dmat4 yUp2zUp;
     
-    struct TilesetDeviceFeatures
+    struct VSGCS_EXPORT TilesetDeviceFeatures
     {
         bool indexTypeUint8 = false;
         bool textureCompressionETC2 = false;
@@ -23,7 +23,7 @@ namespace vsgCs
         bool textureCompressionPVRTC = false;
     };
 
-    struct TilesetSource
+    struct VSGCS_EXPORT TilesetSource
     {
         std::optional<std::string> url;
         std::optional<int64_t> ionAssetID;
@@ -31,7 +31,7 @@ namespace vsgCs
         std::optional<std::string> ionAssetEndpointUrl;
     };
     
-    class TilesetNode : public vsg::Inherit<vsg::Node, TilesetNode>
+    class VSGCS_EXPORT TilesetNode : public vsg::Inherit<vsg::Node, TilesetNode>
     {
     public:
         TilesetNode(const TilesetDeviceFeatures& deviceFeatures, const TilesetSource& source,
