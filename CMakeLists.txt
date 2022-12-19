@@ -29,7 +29,7 @@ find_package(vsgXchange REQUIRED)
 # for generated cmake support files
 set(FIND_DEPENDENCY ${FIND_DEPENDENCY} "find_dependency(vsg ${VSG_MIN_VERSION} REQUIRED)")
 
-find_package(CesiumNative)
+find_package(Cesium REQUIRED)
 
 vsg_setup_build_vars()
 # This does include(GNUInstallDirs), which sets up all the correct install directories.
@@ -37,10 +37,10 @@ vsg_setup_dir_vars()
 
 set(GENERATED_HEADERS_DIR "${PROJECT_BINARY_DIR}/include")
 
-set(VSGCS_DATA_DIR "${CMAKE_INSTALL_DATADIR}/vsgcs")
-set(VSGCS_FULL_DATA_DIR "${CMAKE_INSTALL_FULL_DATADIR}/vsgcs")
+set(VSGCS_DATA_DIR "${CMAKE_INSTALL_DATADIR}/vsgCs")
+set(VSGCS_FULL_DATA_DIR "${CMAKE_INSTALL_FULL_DATADIR}/vsgCs")
 
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/vsgcs/Config.h.in"
+configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/vsgCs/Config.h.in"
   "${GENERATED_HEADERS_DIR}/vsgcs/Config.h")
 
 vsg_add_target_clang_format(

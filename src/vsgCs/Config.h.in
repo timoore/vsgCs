@@ -1,0 +1,3 @@
+#pragma once
+
+#define VSGCS_FULL_DATA_DIR "@VSGCS_FULL_DATA_DIR@"

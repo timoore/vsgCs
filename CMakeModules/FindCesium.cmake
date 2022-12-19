@@ -12,9 +12,10 @@ if( EXISTS "$ENV{CESIUM_ROOT_DIR}" )
   set( CESIUM_ROOT_DIR "${CESIUM_ROOT_DIR}" CACHE PATH "Prefix for Cesium Native installation." )
 endif()
 
+
 find_path(SPDLOG_INCLUDE_DIR
   NAMES spdlog/logger.h
-  HINTS ${CESIUMNATIVE_ROOT_DIR}/include ${SPDLOG_INCLUDE_DIR}
+  HINTS ${CESIUM_ROOT_DIR}/include ${SPDLOG_INCLUDE_DIR}
 )
 
 find_library(SPDLOG_LIBRARY
@@ -24,7 +25,7 @@ find_library(SPDLOG_LIBRARY
 
 find_path(ASYNCPLUSPLUS_INCLUDE_DIR
   NAMES async++/ref_count.h
-  HINTS ${CESIUMNATIVE_ROOT_DIR}/include ${ASYNCPLUSPLUS_INCLUDE_DIR}
+  HINTS ${CESIUM_ROOT_DIR}/include ${ASYNCPLUSPLUS_INCLUDE_DIR}
 )
 
 find_library(ASYNCPLUSPLUS_LIBRARY
@@ -118,9 +119,9 @@ find_library(URIPARSER_LIBRARY_DEBUG
   PATH_SUFFIXES Debug)
 
 
-find_path(CESIUMNATIVE_INCLUDE_DIR
+find_path(CESIUM_INCLUDE_DIR
   NAMES Cesium3DTilesSelection/Tileset.h
-  HINTS ${CESIUMNATIVE_ROOT_DIR}/include ${CESIUMNATIVE_INCLUDEDIR}
+  HINTS ${CESIUM_ROOT_DIR}/include ${CESIUM_INCLUDEDIR}
 )
 
 find_library(CESIUM_UTILITY_LIBRARY
@@ -208,7 +209,7 @@ set( CESIUM_INCLUDE_DIRS ${CESIUM_INCLUDE_DIR} )
 #=============================================================================
 # handle the QUIETLY and REQUIRED arguments and set CESIUM_FOUND to TRUE if all
 # listed variables are TRUE
-find_package_handle_standard_args( CESIUM
+find_package_handle_standard_args(Cesium
   FOUND_VAR
   CESIUM_FOUND
   REQUIRED_VARS
@@ -272,7 +273,7 @@ set_target_properties(uriparser PROPERTIES
 set_target_properties(cesium::Utility PROPERTIES
   IMPORTED_LOCATION "${CESIUM_UTILITY_LIBRARY}"
   INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}"
-  INTERFACE_LINK_LIBRARIES glm uriparser)
+  INTERFACE_LINK_LIBRARIES uriparser)
 
 set_target_properties(cesium::JsonReader PROPERTIES
   IMPORTED_LOCATION "${CESIUM_JSONREADER_LIBRARY}"
@@ -281,15 +282,13 @@ set_target_properties(cesium::JsonReader PROPERTIES
   # GSL
   cesium::Utility)
 
+message("async: ${CESIUM_ASYNC_LIBRARY} ${CESIUM_INCLUDE_DIR}")
+
 set_target_properties(cesium::Async PROPERTIES
-  IMPORTED_LOCATION "${CESIUM_JSONREADER_LIBRARY}"
+  IMPORTED_LOCATION "${CESIUM_ASYNC_LIBRARY}"
   INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}"
   INTERFACE_LINK_LIBRARIES
-  cesium::Utility
-  # GSL
-  Async++
-  sqlite3
-  spdlog)
+  "cesium::Utility;async++;sqlite3;spdlog")
 
 set_target_properties(cesium::JsonReader PROPERTIES
   IMPORTED_LOCATION "${CESIUM_JSONREADER_LIBRARY}"
