@@ -222,7 +222,7 @@ namespace
     template<typename T, typename TSC>
     vsg::ref_ptr<vsg::Array<T>> createArray(const AccessorView<AccessorTypes::SCALAR<TSC>>& accessorView)
     {
-        auto result = vsg::Array<T>::create();
+        auto result = vsg::Array<T>::create(accessorView.size());
         for (int i = 0; i < accessorView.size(); ++i)
         {
             (*result)[i] = accessorView[i].value[0];
@@ -235,25 +235,13 @@ namespace
     vsg::ref_ptr<vsg::Array<T>> createArray(const AccessorView<TA>& accessorView)
     {
         static_assert(sizeof(T) == sizeof(TA), "element sizes don't match");
-        auto result = vsg::Array<T>::create();
+        auto result = vsg::Array<T>::create(accessorView.size());
         for (int i = 0; i < accessorView.size(); ++i)
         {
             (*result)[i] = *reinterpret_cast<const T*>(&accessorView[i]);
         }
         return result;
     }
-#if 0
-    template<typename T>
-    vsg::ref_ptr<vsg::Array<T>> createArray(const AccessorView<T>& accessorView)
-    {
-        auto result = vsg::Array<T>::create();
-        for (int i = 0; i < accessorView.size(); ++i)
-        {
-            result[i] = accessorView[i];
-        }
-        return result;
-    }
-#endif
 
     struct ColorVisitor
     {
