@@ -318,8 +318,8 @@ namespace
         vsg::dmat4 PcsInv = TilesetNode::yUp2zUp * view->camera->viewMatrix->transform() * Pw;
         vsg::dmat4 Pcs = vsg::inverse(PcsInv);
         glm::dvec3 position(Pcs[3][0], Pcs[3][1], Pcs[3][2]);
-        glm::dvec3 direction(-Pcs[1][0], -Pcs[1][1], -Pcs[1][2]);
-        glm::dvec3 up(Pcs[2][0], Pcs[2][1], Pcs[2][3]);
+        glm::dvec3 direction(Pcs[1][0], Pcs[1][1], Pcs[1][2]);
+        glm::dvec3 up(Pcs[2][0], Pcs[2][1], Pcs[2][2]);
         // Have to assume that we have a perspective projection
         double fovy = 0.0;
         double fovx = 0.0;

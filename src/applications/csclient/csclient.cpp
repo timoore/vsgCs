@@ -170,7 +170,7 @@ int main(int argc, char** argv)
             }
             else
             {
-                lookAt = vsg::LookAt::create(centre + vsg::dvec3(-radius * 3.5, 0.0, 0.0), centre, vsg::dvec3(0.0, 1.0, 0.0));
+                lookAt = vsg::LookAt::create(centre + vsg::dvec3(radius * 3.5, 0.0, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
             }
 
             if (useEllipsoidPerspective)
