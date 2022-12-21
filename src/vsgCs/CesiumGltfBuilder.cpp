@@ -507,19 +507,16 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     // store the the position min / max, or just not bother?
 
     auto colorAccessorIt = primitive->attributes.find("COLOR_0");
-    if (colorAccessorIt != primitive->attributes.end())
+    vsg::ref_ptr<vsg::Data> colorData;
+    if (colorAccessorIt != primitive->attributes.end()
+        && (colorData = createAccessorView(*_model, colorAccessorIt->second, ColorVisitor())).valid())
     {
-        int colorAccessorID = colorAccessorIt->second;
-        auto colorData = createAccessorView(*_model, colorAccessorID, ColorVisitor());
-        if (colorData.valid())
-        {
-            config->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colorData);
-        }
-        else
-        {
-            auto color = vsg::vec4Value::create(vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-            config->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, color);
-        }
+        config->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colorData);
+    }
+    else
+    {
+        auto color = vsg::vec4Value::create(vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        config->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, color);
     }
 
     // Textures...
