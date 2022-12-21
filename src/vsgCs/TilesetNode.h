@@ -11,9 +11,6 @@
 
 namespace vsgCs
 {
-    static vsg::dmat4 zUp2yUp;
-    static vsg::dmat4 yUp2zUp;
-    
     struct VSGCS_EXPORT TilesetDeviceFeatures
     {
         bool indexTypeUint8 = false;
@@ -34,8 +31,11 @@ namespace vsgCs
     class VSGCS_EXPORT TilesetNode : public vsg::Inherit<vsg::Node, TilesetNode>
     {
     public:
+        static vsg::dmat4 zUp2yUp;
+        static vsg::dmat4 yUp2zUp;
+    
         TilesetNode(const TilesetDeviceFeatures& deviceFeatures, const TilesetSource& source,
-                const Cesium3DTilesSelction::TilesetOptions& options);
+                const Cesium3DTilesSelection::TilesetOptions& options);
         ~TilesetNode() override;
         /**
          * @brief Set up the window traits to create the Vulkan Device with the desired features, etc.,
@@ -55,9 +55,9 @@ namespace vsgCs
          */
         void updateViews(vsg::ref_ptr<vsg::Viewer> viewer);
         // void attachToViewer(vsg::ref_ptr<vsg::Viewer> viewer, vsg::ref_ptr<vsg::Group> attachment);
-        void traverse(Visitor& visitor) override;
-        void traverse(ConstVisitor& visitor) const override;
-        void traverse(RecordTraversal& visitor) const override;
+        void traverse(vsg::Visitor& visitor) override;
+        void traverse(vsg::ConstVisitor& visitor) const override;
+        void traverse(vsg::RecordTraversal& visitor) const override;
         struct UpdateTileset : public vsg::Inherit<vsg::Operation, UpdateTileset>
         {
             UpdateTileset(vsg::ref_ptr<TilesetNode> in_tilesetNode, vsg::ref_ptr<vsg::Viewer> in_viewer)
@@ -69,12 +69,12 @@ namespace vsgCs
         };
         friend class UpdateTileset;
     protected:
-        const ViewUpdateResult* _viewUpdateResult;
+        const Cesium3DTilesSelection::ViewUpdateResult* _viewUpdateResult;
         std::unique_ptr<Cesium3DTilesSelection::Tileset> _tileset;
         std::shared_ptr<vsgResourcePreparer> _resourcePreparer;
     private:
         template<class V> void t_traverse(V& visitor) const;
         int32_t _tilesetsBeingDestroyed;
         
-    }
+    };
 }

@@ -78,13 +78,13 @@ find_library(DRACO_LIBRARY_DEBUG
   HINTS ${CESIUM_ROOT_DIR}/lib ${CESIUM_LIBDIR}
   PATH_SUFFIXES Debug)
 
-find_library(KTX_READER_LIBRARY
-  NAME ktx_reader
+find_library(KTX_READ_LIBRARY
+  NAME ktx_read
   HINTS ${CESIUM_ROOT_DIR}/lib ${CESIUM_LIBDIR}
   PATH_SUFFIXES Release Debug)
 
-find_library(KTX_READER_LIBRARY_DEBUG
-  NAME ktx_readerd ktx_reader
+find_library(KTX_READ_LIBRARY_DEBUG
+  NAME ktx_readd ktx_read
   HINTS ${CESIUM_ROOT_DIR}/lib ${CESIUM_LIBDIR}
   PATH_SUFFIXES Debug)
 
@@ -224,7 +224,7 @@ add_library(s2geometry UNKNOWN IMPORTED)
 add_library(modp_b64 UNKNOWN IMPORTED)
 # XXX to avoid another installed version of draco
 add_library(draco STATIC IMPORTED)
-add_library(ktx_reader UNKNOWN IMPORTED)
+add_library(ktx_read UNKNOWN IMPORTED)
 add_library(webpdecoder UNKNOWN IMPORTED)
 add_library(tinyxml2 UNKNOWN IMPORTED)
 add_library(uriparser UNKNOWN IMPORTED)
@@ -258,8 +258,8 @@ set_target_properties(modp_b64 PROPERTIES
 set_target_properties(draco PROPERTIES
   IMPORTED_LOCATION "${DRACO_LIBRARY}")
 
-set_target_properties(ktx_reader PROPERTIES
-  IMPORTED_LOCATION "${KTX_READER_LIBRARY}")
+set_target_properties(ktx_read PROPERTIES
+  IMPORTED_LOCATION "${KTX_READ_LIBRARY}")
 
 set_target_properties(webpdecoder PROPERTIES
   IMPORTED_LOCATION "${WEBPDECODER_LIBRARY}")
@@ -275,25 +275,29 @@ set_target_properties(cesium::Utility PROPERTIES
   INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}"
   INTERFACE_LINK_LIBRARIES uriparser)
 
-set_target_properties(cesium::JsonReader PROPERTIES
-  IMPORTED_LOCATION "${CESIUM_JSONREADER_LIBRARY}"
-  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}"
-  INTERFACE_LINK_LIBRARIES
-  # GSL
+target_link_libraries(cesium::JsonReader
+  INTERFACE
   cesium::Utility)
 
-message("async: ${CESIUM_ASYNC_LIBRARY} ${CESIUM_INCLUDE_DIR}")
+set_target_properties(cesium::JsonReader PROPERTIES
+  IMPORTED_LOCATION "${CESIUM_JSONREADER_LIBRARY}"
+  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}")
+
+target_link_libraries(cesium::Async
+  INTERFACE
+  "cesium::Utility;async++;sqlite3;spdlog")
 
 set_target_properties(cesium::Async PROPERTIES
   IMPORTED_LOCATION "${CESIUM_ASYNC_LIBRARY}"
-  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}"
-  INTERFACE_LINK_LIBRARIES
-  "cesium::Utility;async++;sqlite3;spdlog")
+  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}")
 
 set_target_properties(cesium::JsonReader PROPERTIES
   IMPORTED_LOCATION "${CESIUM_JSONREADER_LIBRARY}"
-  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}"
-  INTERFACE_LINK_LIBRARIES cesium::Utility)
+  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}")
+
+target_link_libraries(cesium::Geometry
+  INTERFACE
+  cesium::Utility)
 
 set_target_properties(cesium::Geometry PROPERTIES
   IMPORTED_LOCATION "${CESIUM_GEOMETRY_LIBRARY}"
@@ -301,19 +305,18 @@ set_target_properties(cesium::Geometry PROPERTIES
   INTERFACE_LINK_LIBRARIES
   cesium::Utility)
 
-set_target_properties(cesium::Geospatial PROPERTIES
-  IMPORTED_LOCATION "${CESIUM_GEOSPATIAL_LIBRARY}"
-  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}"
-  INTERFACE_LINK_LIBRARIES
+target_link_libraries(cesium::Geospatial
+  INTERFACE
   cesium::Geometry
   cesium::Utility
-  s2geometry
-)
+  s2geometry)
 
-set_target_properties(cesium::GltfReader PROPERTIES
-  IMPORTED_LOCATION "${CESIUM_GLTFREADER_LIBRARY_LIBRARY}"
-  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}"
-  INTERFACE_LINK_LIBRARIES
+set_target_properties(cesium::Geospatial PROPERTIES
+  IMPORTED_LOCATION "${CESIUM_GEOSPATIAL_LIBRARY}"
+  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}")
+
+target_link_libraries(cesium::GltfReader
+  INTERFACE
   cesium::Async
   cesium::Gltf
   cesium::JsonReader
@@ -322,19 +325,20 @@ set_target_properties(cesium::GltfReader PROPERTIES
   ktx_read
   webpdecoder)
 
+set_target_properties(cesium::GltfReader PROPERTIES
+  IMPORTED_LOCATION "${CESIUM_GLTFREADER_LIBRARY}"
+  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}")
+
+target_link_libraries(cesium::Gltf
+  INTERFACE
+  cesium::Utility)
+
 set_target_properties(cesium::Gltf PROPERTIES
   IMPORTED_LOCATION "${CESIUM_GLTF_LIBRARY}"
-  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}"
-  INTERFACE_LINK_LIBRARIES
-  cesium::Utility
-  # GSL
-)
+  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}")
 
-set_target_properties(cesium::3DTilesSelection
-  PROPERTIES
-  IMPORTED_LOCATION "${CESIUM_3DTILESSELECTION_LIBRARY}"
-  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}"
-  INTERFACE_LINK_LIBRARIES
+target_link_libraries(cesium::3DTilesSelection
+  INTERFACE
   cesium::Async
   cesium::Geospatial
   cesium::Geometry
@@ -344,5 +348,18 @@ set_target_properties(cesium::3DTilesSelection
   spdlog
 
   tinyxml2
-  uriparser
+  uriparser)
+
+target_compile_definitions(cesium::3DTilesSelection
+  INTERFACE
+            GLM_FORCE_XYZW_ONLY # Disable .rgba and .stpq to make it easier to view values from debugger
+            GLM_FORCE_EXPLICIT_CTOR # Disallow implicit conversions between dvec3 <-> dvec4, dvec3 <-> fvec3, etc
+            GLM_FORCE_SIZE_T_LENGTH # Make vec.length() and vec[idx] use size_t instead of int
+          )
+          
+set_target_properties(cesium::3DTilesSelection
+  PROPERTIES
+  IMPORTED_LOCATION "${CESIUM_3DTILESSELECTION_LIBRARY}"
+  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}"
 )
+

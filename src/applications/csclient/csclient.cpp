@@ -61,10 +61,23 @@ int main(int argc, char** argv)
         int64_t ionAsset = arguments.value<int64_t>(-1L, "--ionAsset");
         auto ionToken = arguments.value(std::string(), "--ion-token");
         auto tilesetUrl = arguments.value(std::string(), "--tileset-url");
-        auto ionEndpointUrl = arguments.value.(std::string(), --ion-endpoint-url);
+        auto ionEndpointUrl = arguments.value(std::string(), "--ion-endpoint-url");
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
-        auto group = vsg::Group::create();
+        auto vsg_scene = vsg::Group::create();
+
+        auto ambientLight = vsg::AmbientLight::create();
+        ambientLight->name = "ambient";
+        ambientLight->color.set(1.0, 1.0, 1.0);
+        ambientLight->intensity = 0.2;
+        vsg_scene->addChild(ambientLight);
+        auto directionalLight = vsg::DirectionalLight::create();
+        directionalLight->name = "directional";
+        directionalLight->color.set(1.0, 1.0, 1.0);
+        directionalLight->intensity = 0.8;
+        directionalLight->direction.set(0.0, -1.0, -1.0);
+        vsg_scene->addChild(directionalLight);
+
         vsg::Path path;
 
         // read any vsg files
@@ -76,14 +89,7 @@ int main(int argc, char** argv)
             auto object = vsg::read(filename, options);
             if (auto node = object.cast<vsg::Node>(); node)
             {
-                group->addChild(node);
-            }
-            else if (auto data = object.cast<vsg::Data>(); data)
-            {
-                if (auto textureGeometry = createTextureQuad(data, mipmapLevelsHint); textureGeometry)
-                {
-                    group->addChild(textureGeometry);
-                }
+                vsg_scene->addChild(node);
             }
             else if (object)
             {
@@ -94,8 +100,6 @@ int main(int argc, char** argv)
                 std::cout << "Unable to load file " << filename << std::endl;
             }
         }
-        vsg::ref_ptr<vsg::Node> vsg_scene = group;
-        
         auto window = vsg::Window::create(windowTraits);
         auto deviceFeatures = vsgCs::TilesetNode::prepareDeviceFeatures(window);
         vsgCs::TilesetSource source;
@@ -126,8 +130,8 @@ int main(int argc, char** argv)
             std::cout << "Could not create windows." << std::endl;
             return 1;
         }
-        Cesium3DTilesSelction::TilesetOptions& options;
-        auto tilesetNode = vsgCs::TilesetNode::create(deviceFeatures, source, options);
+        Cesium3DTilesSelection::TilesetOptions tileOptions;
+        auto tilesetNode = vsgCs::TilesetNode::create(deviceFeatures, source, tileOptions);
         auto ellipsoidModel = vsg::EllipsoidModel::create();
         tilesetNode->setObject("EllipsoidModel", ellipsoidModel);
         vsg_scene->addChild(tilesetNode);
@@ -246,13 +250,6 @@ int main(int argc, char** argv)
             viewer->recordAndSubmit();
 
             viewer->present();
-        }
-
-        {
-            std::scoped_lock<std::mutex> lock(tileReader->statsMutex);
-            std::cout << "numOperationThreads = " << numOperationThreads << std::endl;
-            std::cout << "numTilesRead = " << tileReader->numTilesRead << std::endl;
-            std::cout << "average TimeReadingTiles = " << (tileReader->totalTimeReadingTiles / static_cast<double>(tileReader->numTilesRead)) << std::endl;
         }
     }
     catch (const vsg::Exception& ve)

@@ -15,13 +15,13 @@ public:
         _f();
     }
 private:
-    std::std::function<void()> _f;
+    std::function<void()> _f;
 
 };
 
 OpThreadTaskProcessor::OpThreadTaskProcessor(uint32_t numThreads)
 {
-    _opthreads = vsgOperationThreads::create(numThreads);
+    _opthreads = vsg::OperationThreads::create(numThreads);
 }
 
 OpThreadTaskProcessor::~OpThreadTaskProcessor()

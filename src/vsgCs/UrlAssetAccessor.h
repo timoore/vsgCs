@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Export.h"
+
 #include "CesiumAsync/AsyncSystem.h"
 #include "CesiumAsync/IAssetAccessor.h"
 #include <cstddef>
@@ -8,10 +10,11 @@ namespace vsgCs
 {
 // Simple implementation of AssetAcessor that can make network and local requests
     
-    class VSGCESIUM_EXPORT UrlAssetAccessor
+    class VSGCS_EXPORT UrlAssetAccessor
         : public CesiumAsync::IAssetAccessor {
     public:
         UrlAssetAccessor();
+        ~UrlAssetAccessor() override;
 
         virtual CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>>
             get(const CesiumAsync::AsyncSystem& asyncSystem,

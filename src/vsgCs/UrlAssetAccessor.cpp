@@ -1,13 +1,24 @@
 #include "UrlAssetAccessor.h"
 
+#include <CesiumAsync/IAssetResponse.h>
+
 #include <curl/curl.h>
 #include <cstring>
+
+using namespace vsgCs;
 
 class UrlAssetResponse : public CesiumAsync::IAssetResponse
 {
 public:
-    virtual uint16_t statusCode() const override {}
-    virtual std::string contentType() const override {}
+    virtual uint16_t statusCode() const override
+    {
+        return _statusCode;
+    }
+    
+    virtual std::string contentType() const override
+    {
+        return _contentType;
+    }
 
     virtual const CesiumAsync::HttpHeaders& headers() const override
     {
@@ -16,7 +27,7 @@ public:
     
     virtual gsl::span<const std::byte> data() const override
     {
-        return gsl::span(const_cast<const std::byte*>(&result[0]), result.size());
+        return gsl::span(const_cast<const std::byte*>(&_result[0]), _result.size());
     }
 
     static size_t headerCallback(char* buffer, size_t size, size_t nitems, void *userData);
@@ -38,6 +49,14 @@ public:
         
     }
 
+    UrlAssetRequest(const std::string& method, const std::string& url,
+                    const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers)
+        : _method(method), _url(url)
+    {
+        _headers.insert(headers.begin(), headers.end());
+    }
+
+    
     virtual const std::string& method() const
     {
         return this->_method;
@@ -55,7 +74,7 @@ public:
 
     virtual const CesiumAsync::IAssetResponse* response() const override
     {
-        return this->_pResponse.get();
+        return this->_response.get();
     }
 
     void setResponse(std::unique_ptr<UrlAssetResponse> response)
@@ -73,22 +92,27 @@ size_t UrlAssetResponse::headerCallback(char* buffer, size_t size, size_t nitems
 {
     // size is supposed to always be 1, but who knows
     const size_t cnt = size * nitems;
-    UrlAssetResponse* response = static_cast<UrlAssetResponse*>userData;
+    UrlAssetResponse* response = static_cast<UrlAssetResponse*>(userData);
     if (!response)
         return cnt;
-    char* colon = std::memchr(buffer, ':', nitems);
+    char* colon = static_cast<char*>(std::memchr(buffer, ':', nitems));
     if (colon)
     {
         char* value = colon + 1;
         char* end = buffer + cnt;
         while (value < end && *value == ' ')
             ++value;
-        response->_headers.insert(std::string(buffer, colon), std::string(value, end));
+        response->_headers.insert({std::string(buffer, colon), std::string(value, end)});
+        auto contentTypeItr = response->_headers.find("content-type");
+        if (contentTypeItr != response->_headers.end())
+        {
+            response->_contentType = contentTypeItr->second;
+        }
     }
     return cnt;
 }
 
-extern "C" static size_t headerCallback(char* buffer, size_t size, size_t nitems, void *userData)
+extern "C" size_t headerCallback(char* buffer, size_t size, size_t nitems, void *userData)
 {
     return UrlAssetResponse::headerCallback(buffer, size, nitems, userData);
 }
@@ -96,14 +120,18 @@ extern "C" static size_t headerCallback(char* buffer, size_t size, size_t nitems
 size_t UrlAssetResponse::dataCallback(char* buffer, size_t size, size_t nitems, void *userData)
 {
     const size_t cnt = size * nitems;
-    UrlAssetResponse* response = static_cast<UrlAssetResponse*>userData;
+    UrlAssetResponse* response = static_cast<UrlAssetResponse*>(userData);
     if (!response)
         return cnt;
-    response->_result.insert(response->_result.end(), buffer, buffer + cnt);
+    std::transform(buffer, buffer + cnt, std::back_inserter(response->_result),
+                   [](char c)
+                   {
+                       return std::byte{static_cast<unsigned char>(c)};
+                   });
     return cnt;
 }
 
-extern "C" static size_t dataCallback(char* buffer, size_t size, size_t nitems, void *userData)
+extern "C" size_t dataCallback(char* buffer, size_t size, size_t nitems, void *userData)
 {
     return UrlAssetResponse::dataCallback(buffer, size, nitems, userData);
 }
@@ -148,14 +176,13 @@ static curl_slist* setCommonOptions(CURL* curl, const std::string& url, const st
 }
     
 CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>>
-UnrealAssetAccessor::get(
-    const CesiumAsync::AsyncSystem& asyncSystem,
-    const std::string& url,
-    const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers)
+UrlAssetAccessor::get(const CesiumAsync::AsyncSystem& asyncSystem,
+                      const std::string& url,
+                      const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers)
 {
     const auto& userAgent = _userAgent;
     return asyncSystem.createFuture<std::shared_ptr<CesiumAsync::IAssetRequest>>(
-      [&url, &headers, &userAgent](const auto& promise)
+        [&url, &headers, &userAgent, &asyncSystem](const auto& promise)
       {
           std::shared_ptr<UrlAssetRequest> request
               = std::make_shared<UrlAssetRequest>("GET", url, headers);
@@ -171,14 +198,14 @@ UnrealAssetAccessor::get(
               {
                   long httpResponseCode = 0;
                   curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpResponseCode);
-                  response->_statusCode = reinterpret_cast<uint16_t>(httpResponseCode);
+                  response->_statusCode = static_cast<uint16_t>(httpResponseCode);
                   char *ct = nullptr;
                   curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &ct);
                   if (ct)
                   {
                       response->_contentType = ct;
                   }
-                  request->_response = std::move(response);
+                  request->setResponse(std::move(response));
                   promise.resolve(request);
               }
               else
@@ -201,7 +228,7 @@ UrlAssetAccessor::request(const CesiumAsync::AsyncSystem& asyncSystem,
 {
     const auto& userAgent = _userAgent;
     return asyncSystem.createFuture<std::shared_ptr<CesiumAsync::IAssetRequest>>(
-        [&url, &headers, &userAgent, &verb, &contentPayload](const auto& promise)
+        [&url, &headers, &userAgent, &verb, &contentPayload, &asyncSystem](const auto& promise)
         {
             std::shared_ptr<UrlAssetRequest> request
                 = std::make_shared<UrlAssetRequest>(verb, url, headers);
@@ -215,7 +242,7 @@ UrlAssetAccessor::request(const CesiumAsync::AsyncSystem& asyncSystem,
             {
                 curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, contentPayload.size());
             }
-            curl_easy_setopt(curl, CURLOPT_COPYPOSTFIELDS, reinterpret_cast<char*>(contentPayload.data()));
+            curl_easy_setopt(curl, CURLOPT_COPYPOSTFIELDS, reinterpret_cast<const char*>(contentPayload.data()));
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, verb.c_str());
             asyncSystem.runInWorkerThread([curl, list, promise, request]()
             {
@@ -227,14 +254,14 @@ UrlAssetAccessor::request(const CesiumAsync::AsyncSystem& asyncSystem,
                 {
                     long httpResponseCode = 0;
                     curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpResponseCode);
-                    response->_statusCode = reinterpret_cast<uint16_t>(httpResponseCode);
+                    response->_statusCode = static_cast<uint16_t>(httpResponseCode);
                     char *ct = nullptr;
                     curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &ct);
                     if (ct)
                     {
                         response->_contentType = ct;
                     }
-                    request->_response = std::move(response);
+                    request->setResponse(std::move(response));
                     promise.resolve(request);
                 }
                 else
@@ -244,4 +271,8 @@ UrlAssetAccessor::request(const CesiumAsync::AsyncSystem& asyncSystem,
                 curl_easy_cleanup(curl);
             });
         });
+}
+
+void UrlAssetAccessor::tick() noexcept
+{
 }

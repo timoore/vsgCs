@@ -1,4 +1,5 @@
 cmake_minimum_required(VERSION 3.7)
+cmake_policy(SET CMP0022 NEW)
 
 project(vsgcs
     VERSION 0.0.1

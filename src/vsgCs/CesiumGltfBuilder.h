@@ -3,6 +3,9 @@
 #include <vsg/all.h>
 
 #include <CesiumGltf/Model.h>
+#include <glm/gtc/type_ptr.hpp>
+
+#include "Export.h"
 
 // Build a VSG scenegraph from a Cesium Gltf Model object.
 
@@ -93,20 +96,22 @@ namespace vsgCs
     protected:
         vsg::ref_ptr<vsg::Group> loadNode(const CesiumGltf::Node* node);
         vsg::ref_ptr<vsg::Group> loadMesh(const CesiumGltf::Mesh* mesh);
-        vsg::ref_ptr<vsg::StateGroup> loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
-                                                    const CesiumGltf::Mesh* mesh = nullptr);
-        vsg::ref_ptr<vsg::DescriptorConfigurator> loadMaterial(const CesiumGltf::Material* material);
-        vsg::ref_ptr<vsg::DescriptorConfigurator> loadMaterial(int i);
+        vsg::ref_ptr<vsg::Node> loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
+                                              const CesiumGltf::Mesh* mesh = nullptr);
+        struct ConvertedMaterial;
+        vsg::ref_ptr<ConvertedMaterial> loadMaterial(const CesiumGltf::Material* material);
+        vsg::ref_ptr<ConvertedMaterial> loadMaterial(int i);
         vsg::ref_ptr<vsg::Data> loadImage(int i, bool useMipMaps, bool sRGB);
         SamplerData loadTexture(const CesiumGltf::Texture& texture, bool sRGB);
         template<typename TI>
-        bool loadMaterialTexture(vsg::ref_ptr<vsg::ConvertedMaterial> cmat,
+        bool loadMaterialTexture(vsg::ref_ptr<ConvertedMaterial> cmat,
                                  const std::string& name,
                                  const std::optional<TI>& texInfo,
                                  bool sRGB)
         {
-            using CesiumGltf;
-            if (!texInfo || texInfo.value().index < 0 || texInfo.value().index >= _model->textures.size())
+            using namespace CesiumGltf;
+            if (!texInfo || texInfo.value().index < 0
+                || static_cast<unsigned>(texInfo.value().index) >= _model->textures.size())
             {
                 if (texInfo && texInfo.value().index >= 0)
                 {
@@ -115,12 +120,12 @@ namespace vsgCs
                 }
                 return false;
             }
-            const Texture& texture = model->textures[texInfo.value().index];
+            const Texture& texture = _model->textures[texInfo.value().index];
             SamplerData sd = loadTexture(texture, sRGB);
             if (sd.data)
             {
                 cmat->descriptorConfig->assignTexture(name, sd.data, sd.sampler);
-                cmat->texInfo.insert(name, TexInfo{texture.texCoord});
+                cmat->texInfo.insert({name, TexInfo{static_cast<int>(texInfo.value().texCoord)}});
                 return true;
             }
             return false;
@@ -146,7 +151,7 @@ namespace vsgCs
             bool sRGB = false;
         };
         std::vector<ImageData> _loadedImages;
-        vsg::ref_ptr<vsg::DescriptorConfigurator> _defaultMaterial;
+        vsg::ref_ptr<ConvertedMaterial> _defaultMaterial;
 
     };
     
@@ -159,6 +164,7 @@ namespace vsgCs
     {
         vsg::dmat4 result;
         setdmat4(result, glmmat);
+        return result;
     }
     
     inline bool isIdentity(const glm::dmat4x4& mat)

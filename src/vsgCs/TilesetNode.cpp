@@ -1,28 +1,29 @@
 #include "TilesetNode.h"
 #include "UrlAssetAccessor.h"
+#include "OpThreadTaskProcessor.h"
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
 
 #include <optional>
-#include <math>
+#include <cmath>
 
 using namespace vsgCs;
 using namespace CesiumGltf;
 
 template<typename F>
-void for_each_view(vsg::ref_ptr<vsg::Viewer viewer, F f)
+void for_each_view(vsg::ref_ptr<vsg::Viewer> viewer, const F& f)
 {
-    for (auto rsTasksItr = viewer->RecordAndSubmitTasks.begin();
-         rsTasksItr != viewer->RecordAndSubmitTasks.end();
+    for (auto rsTasksItr = viewer->recordAndSubmitTasks.begin();
+         rsTasksItr != viewer->recordAndSubmitTasks.end();
          ++rsTasksItr)
     {
-        for (auto cgItr = rsTasks->commandGraphs.begin();
-             cgItr != rsTasks->commandGraphs.end();
+        for (auto cgItr = (*rsTasksItr)->commandGraphs.begin();
+             cgItr != (*rsTasksItr)->commandGraphs.end();
              ++cgItr)
         {
-            for (auto childItr = cgItr->children.begin();
-                 childItr != cgItr->children.end()
+            for (auto childItr = (*cgItr)->children.begin();
+                 childItr != (*cgItr)->children.end();
                 ++childItr)
             {
                 vsg::ref_ptr<vsg::RenderGraph> rg(dynamic_cast<vsg::RenderGraph*>(childItr->get()));
@@ -43,19 +44,8 @@ void for_each_view(vsg::ref_ptr<vsg::Viewer viewer, F f)
         }
     }
 }
-void Tileset::addFeaturesAndExtensions(vsg::WindowTraits& traits)
-{
-    traits->deviceExtensionNames.push_back(VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME);
-    if (!traits->deviceFeatures)
-    {
-        traits->deviceFeatures = vsg::DeviceFeatures::create();
-    }
-    auto& indexFeatures
-        = traits->deviceFeatures->get<VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT>();
-    indexFeatures.indexTypeUint8 = 1;
-}
 
-TilesetDeviceFeatures Tileset::prepareDeviceFeatures(vsg::ref_ptr<vsg::Window> window)
+TilesetDeviceFeatures TilesetNode::prepareDeviceFeatures(vsg::ref_ptr<vsg::Window> window)
 {
     TilesetDeviceFeatures features;
     if (window->getDevice())
@@ -69,8 +59,8 @@ TilesetDeviceFeatures Tileset::prepareDeviceFeatures(vsg::ref_ptr<vsg::Window> w
     }
     auto physDevice = window->getOrCreatePhysicalDevice();
     auto indexFeature
-        = physDevice->getFeatures->get<VkPhysicalDeviceIndexTypeUint8FeaturesEXT,
-                                       VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT>();
+        = physDevice->getFeatures<VkPhysicalDeviceIndexTypeUint8FeaturesEXT,
+        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT>();
     if (indexFeature.indexTypeUint8 == 1)
     {
         traits->deviceExtensionNames.push_back(VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME);
@@ -101,7 +91,7 @@ TilesetDeviceFeatures Tileset::prepareDeviceFeatures(vsg::ref_ptr<vsg::Window> w
         traits->deviceFeatures->get().textureCompressionBC = 1;
     }
     auto extensionProperties = physDevice->enumerateDeviceExtensionProperties();
-    for (VkExtensionProperties extension : extensions)
+    for (VkExtensionProperties extension : extensionProperties)
     {
         if (strcmp(extension.extensionName, VK_IMG_FORMAT_PVRTC_EXTENSION_NAME))
         {
@@ -119,11 +109,11 @@ CesiumAsync::AsyncSystem& getAsyncSystem() noexcept
     return asyncSystem;
 }
 
-Tileset::Tileset(const TilesetDeviceFeatures& deviceFeatures, const TilesetSource& source,
-                 const Cesium3DTilesSelction::TilesetOptions& in_options)
+TilesetNode::TilesetNode(const TilesetDeviceFeatures& deviceFeatures, const TilesetSource& source,
+                         const Cesium3DTilesSelection::TilesetOptions& in_options)
     : _viewUpdateResult(nullptr), _tilesetsBeingDestroyed(0)
 {
-    Cesium3DTilesSelction::TilesetOptions options(in_options);
+    Cesium3DTilesSelection::TilesetOptions options(in_options);
     // turn off all the unsupported stuff
     options.enableOcclusionCulling = false;
     // Generous per-frame time limits for loading / unloading on main thread.
@@ -133,7 +123,7 @@ Tileset::Tileset(const TilesetDeviceFeatures& deviceFeatures, const TilesetSourc
     options.loadErrorCallback =
         [this](const Cesium3DTilesSelection::TilesetLoadFailureDetails& details)
         {
-            assert(this->tileset.get() == details.pTileset);
+            assert(this->_tileset.get() == details.pTileset);
             vsg::warn(details.message);
         };
     std::shared_ptr<CesiumAsync::IAssetAccessor> assetAccessor = std::make_shared<UrlAssetAccessor>();
@@ -165,7 +155,7 @@ Tileset::Tileset(const TilesetDeviceFeatures& deviceFeatures, const TilesetSourc
     {
         supportedFormats.PVRTC2_4_RGBA = true;
     }
-    options.contentOptions.Ktx2TranscodeTargets = CesiumGltf::Ktx2TranscodeTargets(supportedFormats, false);
+    options.contentOptions.ktx2TranscodeTargets = CesiumGltf::Ktx2TranscodeTargets(supportedFormats, false);
     if (source.url)
     {
         _tileset = std::make_unique<Cesium3DTilesSelection::Tileset>(externals, source.url.value(), options);
@@ -176,16 +166,18 @@ Tileset::Tileset(const TilesetDeviceFeatures& deviceFeatures, const TilesetSourc
         {
             _tileset
                 = std::make_unique<Cesium3DTilesSelection::Tileset>(externals,
-                                                                    source.ionAssetID.get(),
-                                                                    source.ionAccessToken.get(),
-                                                                    source.ionAssetEndpointUrl.get());
+                                                                    source.ionAssetID.value(),
+                                                                    source.ionAccessToken.value(),
+                                                                    options,
+                                                                    source.ionAssetEndpointUrl.value());
         }
         else
         {
             _tileset
                 = std::make_unique<Cesium3DTilesSelection::Tileset>(externals,
-                                                                    source.ionAssetID.get(),
-                                                                    source.ionAccessToken.get())
+                                                                    source.ionAssetID.value(),
+                                                                    source.ionAccessToken.value(),
+                                                                    options);
         }
     }
 }
@@ -201,15 +193,7 @@ TilesetNode::~TilesetNode()
     ++_tilesetsBeingDestroyed;
     _tileset->getAsyncDestructionCompleteEvent().thenInMainThread(
         [this]() { --this->_tilesetsBeingDestroyed; });
-    _tileset.Reset();
-}
-void TilesetNode::attachToViewer(vsg::ref_ptr<vsg::Viewer> viewer, vsg::ref_ptr<vsg::Group> attachment)
-{
-    _resourcePreparer->viewer = viewer;
-
-
-
-    attachment->addChild(this);
+    _tileset.reset();
 }
 
 template<class V>
@@ -221,14 +205,19 @@ void TilesetNode::t_traverse(V& visitor) const
              itr != _viewUpdateResult->tilesToRenderThisFrame.end();
              ++itr)
         {
-            const RenderResources *renderResources
-                = reinterpret_cast<const RenderResources*>(itr->getContent().getRenderResources());
-            renderResources->model->accept(visitor);
+            const auto& tileContent = (*itr)->getContent();
+            if (tileContent.isRenderContent())
+            {
+                const RenderResources *renderResources
+                    = reinterpret_cast<const RenderResources*>(tileContent.getRenderContent()
+                                                               ->getRenderResources());
+                renderResources->model->accept(visitor);
+            }
         }
     }
 }
 
-void TilesetNode::traverse(Visitor& visitor)
+void TilesetNode::traverse(vsg::Visitor& visitor)
 {
     if (_viewUpdateResult)
     {
@@ -237,18 +226,18 @@ void TilesetNode::traverse(Visitor& visitor)
              ++itr)
         {
             RenderResources *renderResources
-                = const_cast<RenderResources*>(reinterpret_cast<const RenderResources*>(itr->getContent().getRenderResources()));
+                = const_cast<RenderResources*>(reinterpret_cast<const RenderResources*>((*itr)->getContent().getRenderContent()));
             renderResources->model->accept(visitor);
         }
     }
 }
 
-void TilesetNode::traverse(ConstVisitor& visitor) const
+void TilesetNode::traverse(vsg::ConstVisitor& visitor) const
 {
     t_traverse(visitor);
 }
 
-void TilesetNode::traverse(RecordTraversal& visitor) const
+void TilesetNode::traverse(vsg::RecordTraversal& visitor) const
 {
     t_traverse(visitor);
 }
@@ -276,10 +265,10 @@ vsg::dmat4 TilesetNode::yUp2zUp(1.0, 0.0, 0.0, 0.0,
 class FindNodeVisitor : public vsg::Inherit<vsg::Visitor, FindNodeVisitor>
 {
 public:
-    FindNodeVisitor(vsg:ref_ptr<vsg::Node> node)
+    FindNodeVisitor(vsg::ref_ptr<vsg::Node> node)
         : _node(node)
     {}
-    FindNodeVisitor(Node* node)
+    FindNodeVisitor(vsg::Node* node)
         : _node(vsg::ref_ptr<vsg::Node>(node))
     {}
     void apply(vsg::Node& node) override
@@ -308,21 +297,24 @@ private:
 
 struct ViewData : public vsg::Inherit<vsg::Object, ViewData>
 {
+    ViewData(vsg::RefObjectPath& in_tilesetPath)
+        : tilesetPath(in_tilesetPath)
+    {}
     vsg::RefObjectPath tilesetPath;
 };
 
 namespace
 {
     std::optional<Cesium3DTilesSelection::ViewState>
-    createViewState(vsg::ref_ptr<vsg::View> view, vsg::ref_ptr<vsg::Rendergraph> renderGraph)
+    createViewState(vsg::ref_ptr<vsg::View> view, vsg::ref_ptr<vsg::RenderGraph> renderGraph)
     {
-        ViewData* viewData = view->getObject("vsgCsViewData");
+        ViewData* viewData = dynamic_cast<ViewData*>(view->getObject("vsgCsViewData"));
         if (!viewData)
         {
             return {};
         }
         vsg::dmat4 Pw = vsg::computeTransform(viewData->tilesetPath);
-        vsg::dmat4 PcsInv = yUp2zUp * view->camera->viewMatrix.transform() * Pw;
+        vsg::dmat4 PcsInv = TilesetNode::yUp2zUp * view->camera->viewMatrix->transform() * Pw;
         vsg::dmat4 Pcs = vsg::inverse(PcsInv);
         glm::dvec3 position(Pcs[3][0], Pcs[3][1], Pcs[3][2]);
         glm::dvec3 direction(-Pcs[1][0], -Pcs[1][1], -Pcs[1][2]);
@@ -352,17 +344,19 @@ namespace
         }
         else
         {
-            viewportSize[0] = renderGraph->renderArea.width;
-            viewportSize[1] = renderGraph->renderArea.height;
+            viewportSize[0] = renderGraph->renderArea.extent.width;
+            viewportSize[1] = renderGraph->renderArea.extent.height;
         }
-        return Cesium3DTilesSelection::ViewState::create(position, direction, up, viewportSize,
-                                                         fovx, fovy);
+        Cesium3DTilesSelection::ViewState result =
+            Cesium3DTilesSelection::ViewState::create(position, direction, up, viewportSize,
+                                                      fovx, fovy);
+        return std::optional<Cesium3DTilesSelection::ViewState>(result);
     }
 }
 
 
     
-void Tileset::updateViews(vsg::ref_ptr<vsg::Viewer> viewer)
+void TilesetNode::updateViews(vsg::ref_ptr<vsg::Viewer> viewer)
 {
     for_each_view(viewer,
                   [this](vsg::ref_ptr<vsg::View> view, vsg::ref_ptr<vsg::RenderGraph>)
@@ -375,12 +369,12 @@ void Tileset::updateViews(vsg::ref_ptr<vsg::Viewer> viewer)
                       }
                       else
                       {
-                          view->setObject("vsgCsViewData", ViewData{visitor.resultPath});
+                          view->setObject("vsgCsViewData", ViewData::create(visitor.resultPath));
                       }
                   });
 }
 
-void Tileset::UpdateTileset::run()
+void TilesetNode::UpdateTileset::run()
 {
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     vsg::ref_ptr<TilesetNode> ref_tileset = tilesetNode;
@@ -402,9 +396,16 @@ void Tileset::UpdateTileset::run()
     ref_tileset->_viewUpdateResult = &ref_tileset->_tileset->updateView(viewStates);
 }
 
-bool tilesetNode::initialize(vsg::ref_ptr<vsg::Viewer> viewer)
+bool TilesetNode::initialize(vsg::ref_ptr<vsg::Viewer> viewer)
 {
+    if (!viewer->compileManager)
+    {
+        vsg::warn("TilesetNode::initialize(): installing compile manager");
+        viewer->compileManager = vsg::CompileManager::create(*viewer.get(),
+                                                             vsg::ref_ptr<vsg::ResourceHints>());
+    }
     updateViews(viewer);
     viewer->addUpdateOperation(UpdateTileset::create(vsg::ref_ptr<TilesetNode>(this), viewer),
                                vsg::UpdateOperations::ALL_FRAMES);
+    return true;
 }

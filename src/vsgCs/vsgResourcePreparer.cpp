@@ -1,11 +1,16 @@
 #include "vsgResourcePreparer.h"
 
+#include <Cesium3DTilesSelection/GltfUtilities.h>
+#include <Cesium3DTilesSelection/Tile.h>
+#include <CesiumAsync/AsyncSystem.h>
+
+
 using namespace vsgCs;
 using namespace CesiumGltf;
 
 
 LoadModelResult*
-vsgResourcePreparer::readAndCompile(const glm::dmat4& transform, Model* pModel)
+vsgResourcePreparer::readAndCompile(const glm::dmat4& transform, Model* pModel, const CreateModelOptions&)
 {
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     if (!ref_viewer)
@@ -16,18 +21,17 @@ vsgResourcePreparer::readAndCompile(const glm::dmat4& transform, Model* pModel)
     
     rootTransform
         = Cesium3DTilesSelection::GltfUtilities::applyRtcCenter(model, rootTransform);
-    applyGltfUpAxisTransform(model, rootTransform);
+    Cesium3DTilesSelection::GltfUtilities::applyGltfUpAxisTransform(model, rootTransform);
     auto transformNode = vsg::MatrixTransform::create(glm2vsg(rootTransform));
-    CesiumGltfBuilder builder(pModel);
     resultNode = _builder->load(pModel, CreateModelOptions());
     transformNode->addChild(resultNode);
     LoadModelResult* result = new LoadModelResult;
     result->modelResult = transformNode;
-    result->compileResult = ref_viewer->compile(transformNode);
+    result->compileResult = ref_viewer->compileManager->compile(transformNode);
     return result;
 }
 
-RenderResources* merge(vsgResourcePreparer* preparer, LoadGltfResult::LoadModelResult& result)
+RenderResources* merge(vsgResourcePreparer* preparer, LoadModelResult& result)
 {
     vsg::ref_ptr<vsg::Viewer> ref_viewer = preparer->viewer;
     if (ref_viewer)
@@ -35,13 +39,14 @@ RenderResources* merge(vsgResourcePreparer* preparer, LoadGltfResult::LoadModelR
         updateViewer(*ref_viewer, result.compileResult);
         return new RenderResources{result.modelResult};
     }
+    return nullptr;
 }
 
-CesiumAsync::Future<TileLoadResultAndRenderResources>
+CesiumAsync::Future<Cesium3DTilesSelection::TileLoadResultAndRenderResources>
 vsgResourcePreparer::prepareInLoadThread(const CesiumAsync::AsyncSystem& asyncSystem,
-                                         TileLoadResult&& tileLoadResult,
+                                         Cesium3DTilesSelection::TileLoadResult&& tileLoadResult,
                                          const glm::dmat4& transform,
-                                         const std::any& rendererOptions)
+                                         const std::any&)
 {
     CesiumGltf::Model* pModel = std::get_if<CesiumGltf::Model>(&tileLoadResult.contentKind);
     if (!pModel)
@@ -52,15 +57,15 @@ vsgResourcePreparer::prepareInLoadThread(const CesiumAsync::AsyncSystem& asyncSy
                 nullptr});
     }
 
-    CreateModelOptions options{pModel};
-    LoadModelResult* result = readAndCompile(transform, pModel);
+    CreateModelOptions options;
+    LoadModelResult* result = readAndCompile(transform, pModel, options);
     return asyncSystem.createResolvedFuture(
         Cesium3DTilesSelection::TileLoadResultAndRenderResources{
             std::move(tileLoadResult),
             result});
 }
 
-virtual void*
+void*
 vsgResourcePreparer::prepareInMainThread(Cesium3DTilesSelection::Tile& tile,
                                          void* pLoadThreadResult)
 {
@@ -68,15 +73,14 @@ vsgResourcePreparer::prepareInMainThread(Cesium3DTilesSelection::Tile& tile,
     if (content.isRenderContent())
     {
         LoadModelResult* loadModelResult = reinterpret_cast<LoadModelResult*>(pLoadThreadResult);
-        const Cesium3DTilesSelection::TileRenderContent& renderContent = *content.getRenderContent();
         return merge(this, *loadModelResult);
     }
     return nullptr;
 }
 
-void vsgResourcePreparer::free(Cesium3DTilesSelection::Tile& tile,
+void vsgResourcePreparer::free(Cesium3DTilesSelection::Tile&,
                                void* pLoadThreadResult,
-                               void* pMainThreadResult)
+                               void* pMainThreadResult) noexcept
 {
     if (pLoadThreadResult)
     {
@@ -85,47 +89,47 @@ void vsgResourcePreparer::free(Cesium3DTilesSelection::Tile& tile,
     }
     else if (pMainThreadResult)
     {
-        RenderResources* renderResources = renderResources<RenderResources>(pMainThreadResult);
+        RenderResources* renderResources = reinterpret_cast<RenderResources*>(pMainThreadResult);
         delete renderResources;
     }
 }
 
 void*
-vsgResourcePreparer::prepareRasterInLoadThread(CesiumGltf::ImageCesium& image,
-                                               const std::any& rendererOptions)
+vsgResourcePreparer::prepareRasterInLoadThread(CesiumGltf::ImageCesium&,
+                                               const std::any&)
 {
     return nullptr;
 }
 
 void*
-vsgResourcePreparer::prepareRasterInMainThread(Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
-                                               void* pLoadThreadResult)
+vsgResourcePreparer::prepareRasterInMainThread(Cesium3DTilesSelection::RasterOverlayTile&,
+                                               void*)
 {
     return nullptr;
 }
 
 void
-vsgResourcePreparer::freeRaster(const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
-                                void* pLoadThreadResult,
-                                void* pMainThreadResult)
+vsgResourcePreparer::freeRaster(const Cesium3DTilesSelection::RasterOverlayTile&,
+                                void*,
+                                void*) noexcept
 {
 }
 
 void
-vsgResourcePreparer::attachRasterInMainThread(const Cesium3DTilesSelection::Tile& tile,
-                                              int32_t overlayTextureCoordinateID,
-                                              const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
-                                              void* pMainThreadRendererResources,
-                                              const glm::dvec2& translation,
-                                              const glm::dvec2& scale)
+vsgResourcePreparer::attachRasterInMainThread(const Cesium3DTilesSelection::Tile&,
+                                              int32_t,
+                                              const Cesium3DTilesSelection::RasterOverlayTile&,
+                                              void*,
+                                              const glm::dvec2&,
+                                              const glm::dvec2&)
 {
 }
 
 void
-vsgResourcePreparer::detachRasterInMainThread(const Cesium3DTilesSelection::Tile& tile,
-                                              int32_t overlayTextureCoordinateID,
-                                              const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
-                                              void* pMainThreadRendererResources)
+vsgResourcePreparer::detachRasterInMainThread(const Cesium3DTilesSelection::Tile&,
+                                              int32_t,
+                                              const Cesium3DTilesSelection::RasterOverlayTile&,
+                                              void*) noexcept
 {
 }
 

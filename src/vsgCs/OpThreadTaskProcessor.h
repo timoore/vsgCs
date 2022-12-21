@@ -7,7 +7,7 @@
 namespace vsgCs
 {
 
-    class VSGCESIUM_EXPORT OpThreadTaskProcessor : public CesiumAsync::ITaskProcessor
+    class VSGCS_EXPORT OpThreadTaskProcessor : public CesiumAsync::ITaskProcessor
     {
     public:
         OpThreadTaskProcessor(uint32_t numThreads);
