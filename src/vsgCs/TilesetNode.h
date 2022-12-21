@@ -67,11 +67,12 @@ namespace vsgCs
             vsg::observer_ptr<TilesetNode> tilesetNode;
             vsg::observer_ptr<vsg::Viewer> viewer;
         };
-        friend class UpdateTileset;
+        friend struct UpdateTileset;
     protected:
         const Cesium3DTilesSelection::ViewUpdateResult* _viewUpdateResult;
         std::unique_ptr<Cesium3DTilesSelection::Tileset> _tileset;
         std::shared_ptr<vsgResourcePreparer> _resourcePreparer;
+        std::shared_ptr<Cesium3DTilesSelection::CreditSystem> _creditSystem;
     private:
         template<class V> void t_traverse(V& visitor) const;
         int32_t _tilesetsBeingDestroyed;

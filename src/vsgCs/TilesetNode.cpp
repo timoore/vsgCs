@@ -129,8 +129,9 @@ TilesetNode::TilesetNode(const TilesetDeviceFeatures& deviceFeatures, const Tile
     std::shared_ptr<CesiumAsync::IAssetAccessor> assetAccessor = std::make_shared<UrlAssetAccessor>();
     const CesiumAsync::AsyncSystem& asyncSystem = getAsyncSystem();
     _resourcePreparer = std::make_shared<vsgResourcePreparer>();
+    _creditSystem = std::make_shared<Cesium3DTilesSelection::CreditSystem>();
     Cesium3DTilesSelection::TilesetExternals externals{assetAccessor, _resourcePreparer, asyncSystem,
-        nullptr, spdlog::default_logger(), nullptr};
+        _creditSystem, spdlog::default_logger(), nullptr};
     CesiumGltf::SupportedGpuCompressedPixelFormats supportedFormats;
     if (deviceFeatures.textureCompressionETC2)
     {
@@ -393,11 +394,15 @@ void TilesetNode::UpdateTileset::run()
                           viewStates.push_back(viewState.value());
                       }
                   });
+    ref_tileset->_creditSystem->startNextFrame();
     ref_tileset->_viewUpdateResult = &ref_tileset->_tileset->updateView(viewStates);
 }
 
 bool TilesetNode::initialize(vsg::ref_ptr<vsg::Viewer> viewer)
 {
+    // XXX A bit gross initializing this here, but I think we want to allow creation of TilesetNode
+    // before the viewer.
+    _resourcePreparer->viewer = viewer;
     if (!viewer->compileManager)
     {
         vsg::warn("TilesetNode::initialize(): installing compile manager");
