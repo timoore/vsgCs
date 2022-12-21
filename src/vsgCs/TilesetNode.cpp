@@ -93,7 +93,7 @@ TilesetDeviceFeatures TilesetNode::prepareDeviceFeatures(vsg::ref_ptr<vsg::Windo
     auto extensionProperties = physDevice->enumerateDeviceExtensionProperties();
     for (VkExtensionProperties extension : extensionProperties)
     {
-        if (strcmp(extension.extensionName, VK_IMG_FORMAT_PVRTC_EXTENSION_NAME))
+        if (!strcmp(extension.extensionName, VK_IMG_FORMAT_PVRTC_EXTENSION_NAME))
         {
             features.textureCompressionPVRTC = true;
             traits->deviceExtensionNames.push_back(VK_IMG_FORMAT_PVRTC_EXTENSION_NAME);
