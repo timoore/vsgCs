@@ -276,7 +276,7 @@ vec3 BRDF(vec3 u_LightColor, vec3 v, vec3 n, vec3 l, vec3 h, float perceptualRou
     color *= ao;
 
 #ifdef VSG_EMISSIVE_MAP
-    vec3 emissive = SRGBtoLINEAR(texture(emissiveMap, texCoord0)).rgb * pbr.emissiveFactor.rgb;
+    vec3 emissive = texture(emissiveMap, texCoord0).rgb * pbr.emissiveFactor.rgb;
 #else
     vec3 emissive = pbr.emissiveFactor.rgb;
 #endif
@@ -318,7 +318,7 @@ void main()
         float v = texture(diffuseMap, texCoord0.st).s * pbr.baseColorFactor;
         baseColor = vertexColor * vec4(v, v, v, 1.0);
     #else
-        baseColor = vertexColor * SRGBtoLINEAR(texture(diffuseMap, texCoord0)) * pbr.baseColorFactor;
+        baseColor = vertexColor * texture(diffuseMap, texCoord0) * pbr.baseColorFactor;
     #endif
 #else
     baseColor = vertexColor * pbr.baseColorFactor;
@@ -332,13 +332,13 @@ void main()
 
 #ifdef VSG_WORKFLOW_SPECGLOSS
     #ifdef VSG_DIFFUSE_MAP
-        vec4 diffuse = SRGBtoLINEAR(texture(diffuseMap, texCoord0));
+        vec4 diffuse = texture(diffuseMap, texCoord0);
     #else
         vec4 diffuse = vec4(1.0);
     #endif
 
     #ifdef VSG_SPECULAR_MAP
-        vec3 specular = SRGBtoLINEAR(texture(specularMap, texCoord0)).rgb;
+        vec3 specular = texture(specularMap, texCoord0).rgb;
         perceptualRoughness = 1.0 - texture(specularMap, texCoord0).a;
     #else
         vec3 specular = vec3(0.0);
@@ -465,5 +465,5 @@ void main()
         }
     }
 
-    outColor = LINEARtoSRGB(vec4(color, baseColor.a));
+    outColor = vec4(color, baseColor.a);
 }
