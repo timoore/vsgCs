@@ -19,7 +19,8 @@ set(SOURCES
   OpThreadTaskProcessor.cpp
   TilesetNode.cpp
   UrlAssetAccessor.cpp
-  vsgResourcePreparer.cpp)
+  vsgResourcePreparer.cpp
+  pbr.cpp)
 
 add_library(
     ${LIB_NAME}

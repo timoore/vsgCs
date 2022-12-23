@@ -1,4 +1,5 @@
 #include "CesiumGltfBuilder.h"
+#include "pbr.h"
 
 #include <CesiumGltf/AccessorView.h>
 #include <CesiumGltf/ExtensionKhrTextureBasisu.h>
@@ -69,9 +70,10 @@ namespace
     }
 }
 
-CesiumGltfBuilder::CesiumGltfBuilder()
+CesiumGltfBuilder::CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions)
     : _sharedObjects(vsg::SharedObjects::create()),
-      _pbrShaderSet(vsg::createPhysicsBasedRenderingShaderSet())
+      _pbrShaderSet(pbr_ShaderSet(vsgOptions)),
+      _vsgOptions(vsgOptions)
 {
 }
 

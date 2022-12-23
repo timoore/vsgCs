@@ -4,6 +4,8 @@
 
 #include <CesiumGltf/Model.h>
 #include <glm/gtc/type_ptr.hpp>
+#include <vsg/core/ref_ptr.h>
+#include <vsg/io/Options.h>
 
 #include "Export.h"
 
@@ -70,7 +72,7 @@ namespace vsgCs
     class VSGCS_EXPORT CesiumGltfBuilder : public vsg::Inherit<vsg::Object, CesiumGltfBuilder>
     {
     public:
-        CesiumGltfBuilder();
+        CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions);
 
         friend class ModelBuilder;
         vsg::ref_ptr<vsg::Group> load(CesiumGltf::Model* model, const CreateModelOptions& options);
@@ -86,6 +88,7 @@ namespace vsgCs
     protected:
         vsg::ref_ptr<vsg::SharedObjects> _sharedObjects;
         vsg::ref_ptr<vsg::ShaderSet> _pbrShaderSet;
+        vsg::ref_ptr<vsg::Options> _vsgOptions;
     };
 
     class VSGCS_EXPORT ModelBuilder

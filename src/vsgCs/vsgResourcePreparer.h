@@ -2,6 +2,8 @@
 
 #include <vsg/all.h>
 #include <Cesium3DTilesSelection/IPrepareRendererResources.h>
+#include <vsg/core/ref_ptr.h>
+#include <vsg/io/Options.h>
 
 #include "LoadGltfResult.h"
 #include "CesiumGltfBuilder.h"
@@ -11,8 +13,8 @@ namespace vsgCs
     class VSGCS_EXPORT vsgResourcePreparer : public Cesium3DTilesSelection::IPrepareRendererResources
     {
     public:
-    vsgResourcePreparer(vsg::ref_ptr<vsg::Viewer> viewer = {})
-    : viewer(viewer), _builder(CesiumGltfBuilder::create())
+        vsgResourcePreparer(vsg::ref_ptr<vsg::Options> vsgOptions, vsg::ref_ptr<vsg::Viewer> viewer = {})
+    : viewer(viewer), _builder(CesiumGltfBuilder::create(vsgOptions))
     {
     }
     

@@ -135,7 +135,7 @@ int main(int argc, char** argv)
         // XXX Need this to avoid random missing tiles. Why? Bug in Cesium, or something wrong with
         // our camera?
         tileOptions.enableFrustumCulling = false;
-        auto tilesetNode = vsgCs::TilesetNode::create(deviceFeatures, source, tileOptions);
+        auto tilesetNode = vsgCs::TilesetNode::create(deviceFeatures, source, tileOptions, options);
         auto ellipsoidModel = vsg::EllipsoidModel::create();
         tilesetNode->setObject("EllipsoidModel", ellipsoidModel);
         vsg_scene->addChild(tilesetNode);

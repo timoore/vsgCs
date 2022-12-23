@@ -7,6 +7,8 @@
 
 #include <optional>
 #include <cmath>
+#include <vsg/core/ref_ptr.h>
+#include <vsg/io/Options.h>
 
 using namespace vsgCs;
 using namespace CesiumGltf;
@@ -110,7 +112,8 @@ CesiumAsync::AsyncSystem& getAsyncSystem() noexcept
 }
 
 TilesetNode::TilesetNode(const TilesetDeviceFeatures& deviceFeatures, const TilesetSource& source,
-                         const Cesium3DTilesSelection::TilesetOptions& in_options)
+                         const Cesium3DTilesSelection::TilesetOptions& in_options,
+                         vsg::ref_ptr<vsg::Options> vsgOptions)
     : _viewUpdateResult(nullptr), _tilesetsBeingDestroyed(0)
 {
     Cesium3DTilesSelection::TilesetOptions options(in_options);
@@ -128,7 +131,7 @@ TilesetNode::TilesetNode(const TilesetDeviceFeatures& deviceFeatures, const Tile
         };
     std::shared_ptr<CesiumAsync::IAssetAccessor> assetAccessor = std::make_shared<UrlAssetAccessor>();
     const CesiumAsync::AsyncSystem& asyncSystem = getAsyncSystem();
-    _resourcePreparer = std::make_shared<vsgResourcePreparer>();
+    _resourcePreparer = std::make_shared<vsgResourcePreparer>(vsgOptions);
     _creditSystem = std::make_shared<Cesium3DTilesSelection::CreditSystem>();
     Cesium3DTilesSelection::TilesetExternals externals{assetAccessor, _resourcePreparer, asyncSystem,
         _creditSystem, spdlog::default_logger(), nullptr};

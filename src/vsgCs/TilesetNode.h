@@ -8,6 +8,8 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <vsg/core/ref_ptr.h>
+#include <vsg/io/Options.h>
 
 namespace vsgCs
 {
@@ -35,7 +37,8 @@ namespace vsgCs
         static vsg::dmat4 yUp2zUp;
     
         TilesetNode(const TilesetDeviceFeatures& deviceFeatures, const TilesetSource& source,
-                const Cesium3DTilesSelection::TilesetOptions& options);
+                    const Cesium3DTilesSelection::TilesetOptions& tilesetOptions,
+                    vsg::ref_ptr<vsg::Options> options);
         ~TilesetNode() override;
         /**
          * @brief Set up the window traits to create the Vulkan Device with the desired features, etc.,
