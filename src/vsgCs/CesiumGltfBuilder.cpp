@@ -8,6 +8,7 @@
 #include <CesiumGltfReader/GltfReader.h>
 
 #include <algorithm>
+#include <string>
 #include <tuple>
 #include <limits>
 
@@ -522,48 +523,40 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     }
 
     // Textures...
-    std::map<int32_t, int32_t> texAccessors = findTextureCoordAccessors("TEXCOORD_", primitive->attributes);
-    vsg::ref_ptr<vsg::Data> tex0data;
-    if (!texAccessors.empty())
+    const auto& assignTexCoord = [&](std::string texPrefix, int baseLocation)
     {
-        auto texcoordItr = texAccessors.find(0);
-        if (texcoordItr != texAccessors.end())
+        std::map<int32_t, int32_t> texAccessors = findTextureCoordAccessors(texPrefix, primitive->attributes);
+        for (int i = 0; i < 2; ++i)
         {
-            tex0data = createAccessorView(*_model, texcoordItr->second, TextureVisitor());
-        }
-    }
-    if (tex0data.valid())
-    {
-        vsg::vec2Array *tex0array = dynamic_cast<vsg::vec2Array*>(tex0data.get());
-        if (tex0array)
-        {
-            // XXX move this into the fragment shader ASAP!
-            for (unsigned i = 0; i < tex0array->size(); ++i)
+            std::string arrayName = "vsg_TexCoord" + std::to_string(i + baseLocation);
+            vsg::ref_ptr<vsg::Data> texdata;
+            auto texcoordItr = texAccessors.find(i);
+            if (texcoordItr != texAccessors.end())
             {
-                (*tex0array)[i].y = 1.0f - (*tex0array)[i].y;
+                texdata = createAccessorView(*_model, texcoordItr->second, TextureVisitor());
+            }
+            if (texdata.valid())
+            {
+                vsg::vec2Array *texarray = dynamic_cast<vsg::vec2Array*>(texdata.get());
+                if (texarray)
+                {
+                    // XXX move this into the fragment shader ASAP!
+                    for (unsigned i = 0; i < texarray->size(); ++i)
+                    {
+                        (*texarray)[i].y = 1.0f - (*texarray)[i].y;
+                    }
+                }
+                config->assignArray(vertexArrays, arrayName, VK_VERTEX_INPUT_RATE_VERTEX, texdata);
+            }
+            else
+            {
+                auto texcoord = vsg::vec2Value::create(vsg::vec2(0.0f, 0.0f));
+                config->assignArray(vertexArrays, arrayName, VK_VERTEX_INPUT_RATE_INSTANCE, texcoord);
             }
         }
-        config->assignArray(vertexArrays, "vsg_texCoord0", VK_VERTEX_INPUT_RATE_VERTEX, tex0data);
-    }
-    else
-    {
-        auto texcoord = vsg::vec2Value::create(vsg::vec2(0.0f, 0.0f));
-        config->assignArray(vertexArrays, "vsg_TexCoord0", VK_VERTEX_INPUT_RATE_INSTANCE, texcoord);
-    }
-    // For educational purposes: figure what other texture coordinates are included.
-    if (texAccessors.size() > 1 || texAccessors.find(0) == texAccessors.end())
-    {
-        for (auto itr = texAccessors.begin(); itr != texAccessors.end(); ++itr)
-        {
-            vsg::info(name, ": TEXCOORD_", itr->first);
-        }
-    }
-    std::map<int32_t, int32_t> overlayAccessors
-        = findTextureCoordAccessors("_CESIUMOVERLAY_", primitive->attributes);
-    for (auto itr = overlayAccessors.begin(); itr != overlayAccessors.end(); ++itr)
-    {
-        vsg::info(name, ": _CESIUM_OVERLAY_", itr->first);
-    }
+    };
+    assignTexCoord("TEXCOORD_", 0);
+    assignTexCoord("_CESIUM_OVERLAY_", 2);
     vsg::ref_ptr<vsg::Command> drawCommand;
     if (primitive->indices >= 0 && static_cast<unsigned>(primitive->indices) < _model->accessors.size())
     {

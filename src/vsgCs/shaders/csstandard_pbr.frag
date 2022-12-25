@@ -78,13 +78,13 @@ struct PBRInfo
     vec3 specularColor;           // color contribution from specular lighting
 };
 
-
+// unused
 vec4 SRGBtoLINEAR(vec4 srgbIn)
 {
     vec3 linOut = pow(srgbIn.xyz, vec3(2.2));
     return vec4(linOut,srgbIn.w);
 }
-
+// unused
 vec4 LINEARtoSRGB(vec4 srgbIn)
 {
     vec3 linOut = pow(srgbIn.xyz, vec3(1.0 / 2.2));
