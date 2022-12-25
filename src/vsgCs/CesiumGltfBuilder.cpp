@@ -537,15 +537,6 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
             }
             if (texdata.valid())
             {
-                vsg::vec2Array *texarray = dynamic_cast<vsg::vec2Array*>(texdata.get());
-                if (texarray)
-                {
-                    // XXX move this into the fragment shader ASAP!
-                    for (unsigned i = 0; i < texarray->size(); ++i)
-                    {
-                        (*texarray)[i].y = 1.0f - (*texarray)[i].y;
-                    }
-                }
                 config->assignArray(vertexArrays, arrayName, VK_VERTEX_INPUT_RATE_VERTEX, texdata);
             }
             else

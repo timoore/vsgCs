@@ -23,11 +23,17 @@ layout(location = 4) in vec2 vsg_TexCoord[4];
 layout(location = 0) out vec3 eyePos;
 layout(location = 1) out vec3 normalDir;
 layout(location = 2) out vec4 vertexColor;
-layout(location = 3) out vec2 texCoord0;
+layout(location = 3) out vec3 viewDir;
+layout(location = 4) out vec2 texCoord[4];
 
-layout(location = 5) out vec3 viewDir;
 
 out gl_PerVertex{ vec4 gl_Position; };
+
+// Texture coordinates are assumed to have the OpenGL / glTF origin i.e., lower left.
+vec4 cstexture(sampler2D texmap, vec2 coords)
+{
+    return texture(texmap, vec2(coords.s, 1.0 - coords.t));
+}
 
 void main()
 {
@@ -38,7 +44,7 @@ void main()
     // TODO need to pass as as uniform or per instance attributes
     vec3 scale = vec3(1.0, 1.0, 1.0);
 
-    vertex.xyz = vertex.xyz + vsg_Normal * (texture(displacementMap, vsg_TexCoord[0].st).s * scale.z);
+    vertex.xyz = vertex.xyz + vsg_Normal * (cstexture(displacementMap, vsg_TexCoord[0]).s * scale.z);
 
     float s_delta = 0.01;
     float width = 0.0;
@@ -47,7 +53,7 @@ void main()
     float s_right = min(vsg_TexCoord[0].s + s_delta, 1.0);
     float t_center = vsg_TexCoord[0].t;
     float delta_left_right = (s_right - s_left) * scale.x;
-    float dz_left_right = (texture(displacementMap, vec2(s_right, t_center)).s - texture(displacementMap, vec2(s_left, t_center)).s) * scale.z;
+    float dz_left_right = (cstexture(displacementMap, vec2(s_right, t_center)).s - cstexture(displacementMap, vec2(s_left, t_center)).s) * scale.z;
 
     // TODO need to handle different origins of displacementMap vs diffuseMap etc,
     float t_delta = s_delta;
@@ -55,7 +61,7 @@ void main()
     float t_top = min(vsg_TexCoord[0].t + t_delta, 1.0);
     float s_center = vsg_TexCoord[0].s;
     float delta_bottom_top = (t_top - t_bottom) * scale.y;
-    float dz_bottom_top = (texture(displacementMap, vec2(s_center, t_top)).s - texture(displacementMap, vec2(s_center, t_bottom)).s) * scale.z;
+    float dz_bottom_top = (cstexture(displacementMap, vec2(s_center, t_top)).s - cstexture(displacementMap, vec2(s_center, t_bottom)).s) * scale.z;
 
     vec3 dx = normalize(vec3(delta_left_right, 0.0, dz_left_right));
     vec3 dy = normalize(vec3(0.0, delta_bottom_top, -dz_bottom_top));
@@ -78,5 +84,8 @@ void main()
     normalDir = (pc.modelView * normal).xyz;
 
     vertexColor = vsg_Color;
-    texCoord0 = vsg_TexCoord[0];
+    for (int i = 0; i < 4; i++)
+    {
+        texCoord[i] = vsg_TexCoord[i];
+    }
 }
