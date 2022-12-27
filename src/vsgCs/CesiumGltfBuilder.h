@@ -7,6 +7,7 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <vsg/core/ref_ptr.h>
 #include <vsg/io/Options.h>
+#include <vsg/state/DescriptorSetLayout.h>
 
 #include "Export.h"
 
@@ -93,6 +94,7 @@ namespace vsgCs
         vsg::ref_ptr<vsg::SharedObjects> _sharedObjects;
         vsg::ref_ptr<vsg::ShaderSet> _pbrShaderSet;
         vsg::ref_ptr<vsg::Options> _vsgOptions;
+        vsg::ref_ptr<vsg::DescriptorSetLayout> _overlaySetLayout;
     };
 
     class VSGCS_EXPORT ModelBuilder

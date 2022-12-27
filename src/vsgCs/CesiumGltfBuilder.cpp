@@ -12,6 +12,7 @@
 #include <string>
 #include <tuple>
 #include <limits>
+#include <vsg/utils/ShaderSet.h>
 
 using namespace vsgCs;
 using namespace CesiumGltf;
@@ -72,11 +73,21 @@ namespace
     }
 }
 
+inline VkDescriptorSetLayoutBinding getVk(const vsg::UniformBinding& binding)
+{
+    return VkDescriptorSetLayoutBinding{binding.binding, binding.descriptorType, binding.descriptorCount,
+                                        binding.stageFlags, nullptr};
+}
+
 CesiumGltfBuilder::CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions)
     : _sharedObjects(vsg::SharedObjects::create()),
       _pbrShaderSet(pbr_ShaderSet(vsgOptions)),
       _vsgOptions(vsgOptions)
 {
+    vsg::DescriptorSetLayoutBindings overlayDescriptorBindings;
+    overlayDescriptorBindings.emplace_back(getVk(_pbrShaderSet->getUniformBinding("overlayParams")));
+    overlayDescriptorBindings.emplace_back(getVk(_pbrShaderSet->getUniformBinding("overlayTextures")));
+    _overlaySetLayout = vsg::DescriptorSetLayout::create(overlayDescriptorBindings);
 }
 
 vsg::ref_ptr<vsg::ShaderSet> CesiumGltfBuilder::getOrCreatePbrShaderSet()
@@ -590,6 +601,13 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     config->additionalDescriptorSetLayout = vdsl;
 
     config->init();
+    // Gross workaround for GraphicsPipelineConfigurator only supporting two descriptor sets,
+    // one of them being the view dependent descriptor set.
+    auto graphicsPipeline = config->bindGraphicsPipeline->pipeline;
+    auto& pipelineLayout = graphicsPipeline->layout;
+    auto& setLayouts = pipelineLayout->setLayouts;
+    setLayouts.push_back(_builder->_overlaySetLayout);
+
     _builder->_sharedObjects->share(config->bindGraphicsPipeline);
 
     auto stateGroup = vsg::StateGroup::create();
