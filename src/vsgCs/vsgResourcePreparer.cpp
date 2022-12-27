@@ -10,24 +10,17 @@ using namespace CesiumGltf;
 
 
 LoadModelResult*
-vsgResourcePreparer::readAndCompile(const glm::dmat4& transform, Model* pModel, const CreateModelOptions&)
+vsgResourcePreparer::readAndCompile(Cesium3DTilesSelection::TileLoadResult &&tileLoadResult,
+                                    const glm::dmat4& transform,
+                                    const CreateModelOptions& options)
 {
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     if (!ref_viewer)
         return nullptr;
-    const Model& model = *pModel;
-    vsg::ref_ptr<vsg::Group> resultNode = vsg::Group::create();
-    glm::dmat4x4 rootTransform = transform;
-    
-    rootTransform
-        = Cesium3DTilesSelection::GltfUtilities::applyRtcCenter(model, rootTransform);
-    Cesium3DTilesSelection::GltfUtilities::applyGltfUpAxisTransform(model, rootTransform);
-    auto transformNode = vsg::MatrixTransform::create(glm2vsg(rootTransform));
-    resultNode = _builder->load(pModel, CreateModelOptions());
-    transformNode->addChild(resultNode);
+    auto resultNode = _builder->loadTile(std::move(tileLoadResult), transform, options);
     LoadModelResult* result = new LoadModelResult;
-    result->modelResult = transformNode;
-    result->compileResult = ref_viewer->compileManager->compile(transformNode);
+    result->modelResult = resultNode;
+    result->compileResult = ref_viewer->compileManager->compile(resultNode);
     return result;
 }
 
@@ -58,7 +51,7 @@ vsgResourcePreparer::prepareInLoadThread(const CesiumAsync::AsyncSystem& asyncSy
     }
 
     CreateModelOptions options;
-    LoadModelResult* result = readAndCompile(transform, pModel, options);
+    LoadModelResult* result = readAndCompile(std::move(tileLoadResult), transform, options);
     return asyncSystem.createResolvedFuture(
         Cesium3DTilesSelection::TileLoadResultAndRenderResources{
             std::move(tileLoadResult),

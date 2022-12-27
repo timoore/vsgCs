@@ -6,6 +6,7 @@
 #include <CesiumGltf/ExtensionTextureWebp.h>
 
 #include <CesiumGltfReader/GltfReader.h>
+#include <Cesium3DTilesSelection/GltfUtilities.h>
 
 #include <algorithm>
 #include <string>
@@ -750,6 +751,27 @@ CesiumGltfBuilder::load(CesiumGltf::Model* model, const CreateModelOptions& opti
 {
     ModelBuilder builder(this, model, options);
     return builder();
+}
+
+vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::TileLoadResult&& tileLoadResult,
+                                                    const glm::dmat4 &transform,
+                                                    const CreateModelOptions& modelOptions)
+{
+    CesiumGltf::Model* pModel = std::get_if<CesiumGltf::Model>(&tileLoadResult.contentKind);
+    if (!pModel)
+    {
+        return {};
+    }
+    Model& model = *pModel;
+    glm::dmat4x4 rootTransform = transform;
+
+    rootTransform
+        = Cesium3DTilesSelection::GltfUtilities::applyRtcCenter(model, rootTransform);
+    Cesium3DTilesSelection::GltfUtilities::applyGltfUpAxisTransform(model, rootTransform);
+    auto transformNode = vsg::MatrixTransform::create(glm2vsg(rootTransform));
+    auto modelNode = load(pModel, modelOptions);
+    transformNode->addChild(modelNode);
+    return transformNode;
 }
 
 namespace

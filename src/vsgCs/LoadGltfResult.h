@@ -19,9 +19,8 @@
 
 namespace vsgCs
 {
-
     struct LoadModelResult {
-        vsg::ref_ptr<vsg::Group> modelResult;
+        vsg::ref_ptr<vsg::Node> modelResult;
         vsg::CompileResult compileResult;
     };
 
@@ -29,6 +28,6 @@ namespace vsgCs
 
     struct RenderResources
     {
-        vsg::ref_ptr<vsg::Group> model;
+        vsg::ref_ptr<vsg::Node> model;
     };
 }

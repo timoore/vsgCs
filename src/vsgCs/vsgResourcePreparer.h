@@ -53,7 +53,8 @@ namespace vsgCs
                                   void* pMainThreadRendererResources) noexcept override;
     vsg::observer_ptr<vsg::Viewer> viewer;
     protected:
-    LoadModelResult* readAndCompile(const glm::dmat4& transform, CesiumGltf::Model* pModel,
+    LoadModelResult* readAndCompile(Cesium3DTilesSelection::TileLoadResult &&tileLoadResult,
+                                    const glm::dmat4& transform,
                                     const CreateModelOptions& options);
     vsg::ref_ptr<CesiumGltfBuilder> _builder;
     };

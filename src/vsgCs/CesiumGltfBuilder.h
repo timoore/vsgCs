@@ -3,6 +3,7 @@
 #include <vsg/all.h>
 
 #include <CesiumGltf/Model.h>
+#include <Cesium3DTilesSelection/Tile.h>
 #include <glm/gtc/type_ptr.hpp>
 #include <vsg/core/ref_ptr.h>
 #include <vsg/io/Options.h>
@@ -76,6 +77,9 @@ namespace vsgCs
 
         friend class ModelBuilder;
         vsg::ref_ptr<vsg::Group> load(CesiumGltf::Model* model, const CreateModelOptions& options);
+        vsg::ref_ptr<vsg::Node> loadTile(Cesium3DTilesSelection::TileLoadResult&& tileLoadResult,
+                                         const glm::dmat4& transform,
+                                         const CreateModelOptions& options);
 
         SamplerData loadTexture(CesiumTextureSource&& imageSource,
                                 VkSamplerAddressMode addressX,
