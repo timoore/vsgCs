@@ -81,7 +81,7 @@ inline VkDescriptorSetLayoutBinding getVk(const vsg::UniformBinding& binding)
 
 CesiumGltfBuilder::CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions)
     : _sharedObjects(vsg::SharedObjects::create()),
-      _pbrShaderSet(pbr_ShaderSet(vsgOptions)),
+      _pbrShaderSet(pbr::makeShaderSet(vsgOptions)),
       _vsgOptions(vsgOptions)
 {
     vsg::DescriptorSetLayoutBindings overlayDescriptorBindings;

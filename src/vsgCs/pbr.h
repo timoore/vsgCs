@@ -6,5 +6,8 @@
 
 namespace vsgCs
 {
-    vsg::ref_ptr<vsg::ShaderSet> pbr_ShaderSet(vsg::ref_ptr<const vsg::Options> options = {});
+    namespace pbr
+    {
+        vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(vsg::ref_ptr<const vsg::Options> options = {});
+    }
 }
