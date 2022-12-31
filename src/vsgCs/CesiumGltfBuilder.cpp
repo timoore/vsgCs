@@ -1,5 +1,7 @@
 #include "CesiumGltfBuilder.h"
 #include "pbr.h"
+#include "DescriptorSetConfigurator.h"
+#include "MultisetPipelineConfigurator.h"
 
 #include <CesiumGltf/AccessorView.h>
 #include <CesiumGltf/ExtensionKhrTextureBasisu.h>
@@ -479,7 +481,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     int materialID = primitive->material;
     auto convertedMaterial = loadMaterial(materialID);
     auto mat = convertedMaterial->descriptorConfig;
-    auto config = vsg::GraphicsPipelineConfigurator::create(mat->shaderSet);
+    auto config = MultisetPipelineConfigurator::create(mat->shaderSet);
     config->shaderHints->defines = mat->defines;
 
     if (!gltfToVk(primitive->mode, config->inputAssemblyState->topology))
@@ -600,14 +602,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     vdsl = _builder->_sharedObjects->shared_default<vsg::ViewDescriptorSetLayout>();
     config->additionalDescriptorSetLayout = vdsl;
 
-    config->init();
-    // Gross workaround for GraphicsPipelineConfigurator only supporting two descriptor sets,
-    // one of them being the view dependent descriptor set.
-    auto graphicsPipeline = config->bindGraphicsPipeline->pipeline;
-    auto& pipelineLayout = graphicsPipeline->layout;
-    auto& setLayouts = pipelineLayout->setLayouts;
-    setLayouts.push_back(_builder->_overlaySetLayout);
-
+    config->init(mat->defines);
     _builder->_sharedObjects->share(config->bindGraphicsPipeline);
 
     auto stateGroup = vsg::StateGroup::create();
@@ -656,7 +651,7 @@ vsg::ref_ptr<ModelBuilder::ConvertedMaterial>
 ModelBuilder::loadMaterial(const CesiumGltf::Material* material)
 {
     auto convertedMat = ConvertedMaterial::create();
-    convertedMat->descriptorConfig = vsg::DescriptorConfigurator::create();
+    convertedMat->descriptorConfig = DescriptorSetConfigurator::create();
     // XXX Cesium Unreal always enables two-sided, but it should come from the material...
     convertedMat->descriptorConfig->two_sided = true;
     convertedMat->descriptorConfig->defines.insert("VSG_TWO_SIDED_LIGHTING");
