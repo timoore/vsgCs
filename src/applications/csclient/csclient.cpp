@@ -58,7 +58,7 @@ int main(int argc, char** argv)
         {
             vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
         }
-        int64_t ionAsset = arguments.value<int64_t>(-1L, "--ionAsset");
+        int64_t ionAsset = arguments.value<int64_t>(-1L, "--ion-asset");
         auto ionToken = arguments.value(std::string(), "--ion-token");
         auto tilesetUrl = arguments.value(std::string(), "--tileset-url");
         auto ionEndpointUrl = arguments.value(std::string(), "--ion-endpoint-url");
