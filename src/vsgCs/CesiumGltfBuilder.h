@@ -10,6 +10,7 @@
 #include <vsg/state/DescriptorSetLayout.h>
 
 #include "Export.h"
+#include "DescriptorSetConfigurator.h"
 
 // Build a VSG scenegraph from a Cesium Gltf Model object.
 
@@ -149,7 +150,7 @@ namespace vsgCs
         };
         struct ConvertedMaterial : public vsg::Inherit<vsg::Object, ConvertedMaterial>
         {
-            vsg::ref_ptr<vsg::DescriptorConfigurator> descriptorConfig;
+            vsg::ref_ptr<DescriptorSetConfigurator> descriptorConfig;
             std::map<std::string, TexInfo> texInfo;
         };
         std::vector<vsg::ref_ptr<ConvertedMaterial>> _convertedMaterials;

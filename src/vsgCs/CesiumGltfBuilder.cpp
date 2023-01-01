@@ -611,12 +611,12 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     if (mat->descriptorSet)
     {
         auto bindDescriptorSet
-            = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, config->layout, 0,
+            = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, config->layout, 2,
                                              mat->descriptorSet);
         stateGroup->add(bindDescriptorSet);
     }
 
-    auto bindViewDescriptorSets = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, config->layout, 1);
+    auto bindViewDescriptorSets = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, config->layout, 0);
     stateGroup->add(bindViewDescriptorSets);
 
 
@@ -704,7 +704,7 @@ ModelBuilder::loadMaterial(int i)
         if (!_defaultMaterial)
         {
             _defaultMaterial = ConvertedMaterial::create();
-            _defaultMaterial->descriptorConfig = vsg::DescriptorConfigurator::create();
+            _defaultMaterial->descriptorConfig = DescriptorSetConfigurator::create();
             _defaultMaterial->descriptorConfig->shaderSet = _builder->getOrCreatePbrShaderSet();
             vsg::PbrMaterial pbr;
             _defaultMaterial->descriptorConfig->assignUniform("material",

@@ -9,27 +9,27 @@ const float EPSILON = 1e-6;
 const float c_MinRoughness = 0.04;
 
 #ifdef VSG_DIFFUSE_MAP
-layout(binding = 0) uniform sampler2D diffuseMap;
+layout(set = 2, binding = 0) uniform sampler2D diffuseMap;
 #endif
 
 #ifdef VSG_METALLROUGHNESS_MAP
-layout(binding = 1) uniform sampler2D mrMap;
+layout(set = 2, binding = 1) uniform sampler2D mrMap;
 #endif
 
 #ifdef VSG_NORMAL_MAP
-layout(binding = 2) uniform sampler2D normalMap;
+layout(set = 2, binding = 2) uniform sampler2D normalMap;
 #endif
 
 #ifdef VSG_LIGHTMAP_MAP
-layout(binding = 3) uniform sampler2D aoMap;
+layout(set = 2, binding = 3) uniform sampler2D aoMap;
 #endif
 
 #ifdef VSG_EMISSIVE_MAP
-layout(binding = 4) uniform sampler2D emissiveMap;
+layout(set = 2, binding = 4) uniform sampler2D emissiveMap;
 #endif
 
 #ifdef VSG_SPECULAR_MAP
-layout(binding = 5) uniform sampler2D specularMap;
+layout(set = 2, binding = 5) uniform sampler2D specularMap;
 #endif
 
 // Texture coordinates are assumed to have the OpenGL / glTF origin i.e., lower left.
@@ -38,7 +38,7 @@ vec4 cstexture(sampler2D texmap, vec2 coords)
     return texture(texmap, vec2(coords.s, 1.0 - coords.t));
 }
 
-layout(binding = 10) uniform PbrData
+layout(set = 2, binding = 10) uniform PbrData
 {
     vec4 baseColorFactor;
     vec4 emissiveFactor;
@@ -50,7 +50,7 @@ layout(binding = 10) uniform PbrData
     float alphaMaskCutoff;
 } pbr;
 
-layout(set = 1, binding = 0) uniform LightData
+layout(set = 0, binding = 0) uniform LightData
 {
     vec4 values[64];
 } lightData;
