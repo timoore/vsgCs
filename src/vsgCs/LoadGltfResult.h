@@ -19,7 +19,8 @@
 
 namespace vsgCs
 {
-    struct LoadModelResult {
+    struct LoadModelResult
+    {
         vsg::ref_ptr<vsg::Node> modelResult;
         vsg::CompileResult compileResult;
     };
@@ -29,5 +30,10 @@ namespace vsgCs
     struct RenderResources
     {
         vsg::ref_ptr<vsg::Node> model;
+    };
+
+    struct LoadRasterResult
+    {
+        vsg::ref_ptr<vsg::ImageInfo> rasterResult;
     };
 }

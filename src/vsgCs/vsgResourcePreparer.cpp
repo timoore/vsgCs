@@ -88,10 +88,17 @@ void vsgResourcePreparer::free(Cesium3DTilesSelection::Tile&,
 }
 
 void*
-vsgResourcePreparer::prepareRasterInLoadThread(CesiumGltf::ImageCesium&,
+vsgResourcePreparer::prepareRasterInLoadThread(CesiumGltf::ImageCesium& image,
                                                const std::any&)
 {
-    return nullptr;
+    auto result = _builder->loadTexture(image,
+                                        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+                                        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+                                        VK_FILTER_LINEAR,
+                                        VK_FILTER_LINEAR,
+                                        true,
+                                        true);
+    return new LoadRasterResult{result};
 }
 
 void*

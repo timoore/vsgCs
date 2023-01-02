@@ -26,7 +26,7 @@ namespace vsgCs
         vsg::ref_ptr<vsg::Data> data;
     };
 
-    // Alot of hair in Cesium Unreal to support these variants, and it's unclear if any are actually
+    // A lot of hair in Cesium Unreal to support these variants, and it's unclear if any are actually
     // used other than GltfImagePtr
 
 
@@ -82,14 +82,20 @@ namespace vsgCs
         vsg::ref_ptr<vsg::Node> loadTile(Cesium3DTilesSelection::TileLoadResult&& tileLoadResult,
                                          const glm::dmat4& transform,
                                          const CreateModelOptions& options);
-
-        SamplerData loadTexture(CesiumTextureSource&& imageSource,
-                                VkSamplerAddressMode addressX,
-                                VkSamplerAddressMode addressY,
-                                VkFilter minFilter,
-                                VkFilter maxFilter,
-                                bool useMipMaps,
-                                bool sRGB);
+        vsg::ref_ptr<vsg::ImageInfo> loadTexture(CesiumGltf::ImageCesium& image,
+                                                 VkSamplerAddressMode addressX,
+                                                 VkSamplerAddressMode addressY,
+                                                 VkFilter minFilter,
+                                                 VkFilter maxFilter,
+                                                 bool useMipMaps,
+                                                 bool sRGB);
+    vsg::ref_ptr<vsg::ImageInfo> loadTexture(CesiumTextureSource&& imageSource,
+                                             VkSamplerAddressMode addressX,
+                                             VkSamplerAddressMode addressY,
+                                             VkFilter minFilter,
+                                             VkFilter maxFilter,
+                                             bool useMipMaps,
+                                             bool sRGB);
         vsg::ref_ptr<vsg::ShaderSet> getOrCreatePbrShaderSet();
     protected:
         vsg::ref_ptr<vsg::SharedObjects> _sharedObjects;
@@ -112,7 +118,7 @@ namespace vsgCs
         vsg::ref_ptr<ConvertedMaterial> loadMaterial(const CesiumGltf::Material* material);
         vsg::ref_ptr<ConvertedMaterial> loadMaterial(int i);
         vsg::ref_ptr<vsg::Data> loadImage(int i, bool useMipMaps, bool sRGB);
-        SamplerData loadTexture(const CesiumGltf::Texture& texture, bool sRGB);
+        vsg::ref_ptr<vsg::ImageInfo> loadTexture(const CesiumGltf::Texture& texture, bool sRGB);
         template<typename TI>
         bool loadMaterialTexture(vsg::ref_ptr<ConvertedMaterial> cmat,
                                  const std::string& name,
@@ -131,10 +137,10 @@ namespace vsgCs
                 return false;
             }
             const Texture& texture = _model->textures[texInfo.value().index];
-            SamplerData sd = loadTexture(texture, sRGB);
-            if (sd.data)
+            auto imageInfo = loadTexture(texture, sRGB);
+            if (imageInfo)
             {
-                cmat->descriptorConfig->assignTexture(name, sd.data, sd.sampler);
+                cmat->descriptorConfig->assignTexture(name, imageInfo->imageView->image->data, imageInfo->sampler);
                 cmat->texInfo.insert({name, TexInfo{static_cast<int>(texInfo.value().texCoord)}});
                 return true;
             }

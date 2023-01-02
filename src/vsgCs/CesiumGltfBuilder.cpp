@@ -1068,34 +1068,39 @@ vsg::ref_ptr<vsg::Sampler> makeSampler(VkSamplerAddressMode addressX,
     return result;
 }
 
-SamplerData CesiumGltfBuilder::loadTexture(CesiumTextureSource&& imageSource,
-                                           VkSamplerAddressMode addressX,
-                                           VkSamplerAddressMode addressY,
-                                           VkFilter minFilter,
-                                           VkFilter maxFilter,
-                                           bool useMipMaps,
-                                           bool sRGB)
+vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumTextureSource&& imageSource,
+                                                            VkSamplerAddressMode addressX,
+                                                            VkSamplerAddressMode addressY,
+                                                            VkFilter minFilter,
+                                                            VkFilter maxFilter,
+                                                            bool useMipMaps,
+                                                            bool sRGB)
 {
     CesiumGltf::ImageCesium* pImage =
         std::visit(GetImageFromSource{}, imageSource);
+    return loadTexture(*pImage, addressX, addressY, minFilter, maxFilter, useMipMaps, sRGB);
+}
 
-    assert(pImage != nullptr);
-    CesiumGltf::ImageCesium& image = *pImage;
-
+vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumGltf::ImageCesium& image,
+                                                            VkSamplerAddressMode addressX,
+                                                            VkSamplerAddressMode addressY,
+                                                            VkFilter minFilter,
+                                                            VkFilter maxFilter,
+                                                            bool useMipMaps,
+                                                            bool sRGB)
+{
     auto data = loadImage(image, useMipMaps, sRGB);
     if (!data)
     {
         return {};
     }
-    SamplerData result;
-    result.data = data;
-    result.sampler = makeSampler(addressX, addressY, minFilter, maxFilter,
+    auto sampler = makeSampler(addressX, addressY, minFilter, maxFilter,
                                  data->properties.maxNumMipmaps);
-    _sharedObjects->share(result.sampler);
-    return result;
+    _sharedObjects->share(sampler);
+    return vsg::ImageInfo::create(sampler, data);
 }
 
-SamplerData ModelBuilder::loadTexture(const CesiumGltf::Texture& texture,
+vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture& texture,
                                       bool sRGB)
 {
     const CesiumGltf::ExtensionKhrTextureBasisu* pKtxExtension =
@@ -1138,7 +1143,7 @@ SamplerData ModelBuilder::loadTexture(const CesiumGltf::Texture& texture,
                       _model->images.size(),
                       " but is ",
                       texture.source);
-            return SamplerData{};
+            return {};
         }
         source = texture.source;
     }
@@ -1212,10 +1217,8 @@ SamplerData ModelBuilder::loadTexture(const CesiumGltf::Texture& texture,
         }
     }
     auto data = loadImage(source, useMipMaps, sRGB);
-    SamplerData result;
-    result.data = data;
-    result.sampler = makeSampler(addressX, addressY, minFilter, magFilter,
-                                 data->properties.maxNumMipmaps);
-    _builder->_sharedObjects->share(result.sampler);
-    return result;
+    auto sampler = makeSampler(addressX, addressY, minFilter, magFilter,
+                               data->properties.maxNumMipmaps);
+    _builder->_sharedObjects->share(sampler);
+    return vsg::ImageInfo::create(sampler, data);
 }
