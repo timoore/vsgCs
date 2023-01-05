@@ -20,6 +20,7 @@ namespace vsgCs
             uint32_t pad[2];
         };
         typedef OverlayParams OverlayUniformMem[2];
+        vsg::ref_ptr<vsg::Data> makeOverlayData(const OverlayUniformMem& overlayUniformMem);
         vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(vsg::ref_ptr<const vsg::Options> options = {});
     }
 

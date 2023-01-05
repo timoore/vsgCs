@@ -21,7 +21,9 @@ namespace vsgCs {
         }
         bool assignTexture(const std::string& name, vsg::ref_ptr<vsg::Data> textureData = {},
                            vsg::ref_ptr<vsg::Sampler> sampler = {});
+        bool assignTexture(const std::string& name, const vsg::ImageInfoList& imageInfoList, uint32_t arrayElement = 0);
         bool assignUniform(const std::string& name, vsg::ref_ptr<vsg::Data> data = {});
+        bool assignUniform(const std::string& name, const vsg::BufferInfoList& bufferInfoList, uint32_t arrayElement = 0);
         std::optional<uint32_t> setNumber;
     };
 }

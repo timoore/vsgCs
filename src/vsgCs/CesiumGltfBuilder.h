@@ -89,19 +89,45 @@ namespace vsgCs
                                                  VkFilter maxFilter,
                                                  bool useMipMaps,
                                                  bool sRGB);
-    vsg::ref_ptr<vsg::ImageInfo> loadTexture(CesiumTextureSource&& imageSource,
-                                             VkSamplerAddressMode addressX,
-                                             VkSamplerAddressMode addressY,
-                                             VkFilter minFilter,
-                                             VkFilter maxFilter,
-                                             bool useMipMaps,
-                                             bool sRGB);
+        vsg::ref_ptr<vsg::ImageInfo> loadTexture(CesiumTextureSource&& imageSource,
+                                                 VkSamplerAddressMode addressX,
+                                                 VkSamplerAddressMode addressY,
+                                                 VkFilter minFilter,
+                                                 VkFilter maxFilter,
+                                                 bool useMipMaps,
+                                                 bool sRGB);
         vsg::ref_ptr<vsg::ShaderSet> getOrCreatePbrShaderSet();
+        vsg::ref_ptr<vsg::Command> attachRaster(const Cesium3DTilesSelection::Tile& tile,
+                                                vsg::ref_ptr<vsg::Node> node,
+                                                int32_t overlayTextureCoordinateID,
+                                                const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
+                                                void* pMainThreadRendererResources,
+                                                const glm::dvec2& translation,
+                                                const glm::dvec2& scale);
+        vsg::ref_ptr<vsg::Command> detachRaster(const Cesium3DTilesSelection::Tile& tile,
+                                                vsg::ref_ptr<vsg::Node> node,
+                                                int32_t overlayTextureCoordinateID,
+                                                const Cesium3DTilesSelection::RasterOverlayTile& rasterTile);
+        vsg::ref_ptr<vsg::ImageInfo> getDefaultTexture()
+        {
+            return _defaultTexture;
+        }
+        vsg::ref_ptr<vsg::PipelineLayout> getViewParamsPipelineLayout()
+        {
+            return _viewParamsPipelineLayout;
+        }
+        vsg::ref_ptr<vsg::PipelineLayout> getOverlayPipelineLayout()
+        {
+            return _overlayPipelineLayout;
+        }
     protected:
+        static vsg::ref_ptr<vsg::ImageInfo> makeDefaultTexture();
         vsg::ref_ptr<vsg::SharedObjects> _sharedObjects;
         vsg::ref_ptr<vsg::ShaderSet> _pbrShaderSet;
         vsg::ref_ptr<vsg::Options> _vsgOptions;
-        vsg::ref_ptr<vsg::DescriptorSetLayout> _overlaySetLayout;
+        vsg::ref_ptr<vsg::PipelineLayout> _viewParamsPipelineLayout;
+        vsg::ref_ptr<vsg::PipelineLayout> _overlayPipelineLayout;
+        vsg::ref_ptr<vsg::ImageInfo> _defaultTexture;
     };
 
     class VSGCS_EXPORT ModelBuilder
@@ -181,6 +207,11 @@ namespace vsgCs
         vsg::dmat4 result;
         setdmat4(result, glmmat);
         return result;
+    }
+
+    inline vsg::vec2 glm2vsg(const glm::dvec2& vec2)
+    {
+        return vsg::vec2(vec2.x, vec2.y);
     }
     
     inline bool isIdentity(const glm::dmat4x4& mat)

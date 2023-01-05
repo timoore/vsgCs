@@ -16,6 +16,7 @@ set(LIB_PUBLIC_HEADERS
 set(SOURCES
   ${LIB_PUBLIC_HEADERS}
   CesiumGltfBuilder.cpp
+  CompilableImage.cpp
   DescriptorSetConfigurator.cpp
   MultisetPipelineConfigurator.cpp
   OpThreadTaskProcessor.cpp

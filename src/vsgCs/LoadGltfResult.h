@@ -35,5 +35,11 @@ namespace vsgCs
     struct LoadRasterResult
     {
         vsg::ref_ptr<vsg::ImageInfo> rasterResult;
+        vsg::CompileResult compileResult;
+    };
+
+    struct RasterResources
+    {
+        vsg::ref_ptr<vsg::ImageInfo> raster;
     };
 }

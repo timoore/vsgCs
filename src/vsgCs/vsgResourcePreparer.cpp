@@ -1,4 +1,5 @@
 #include "vsgResourcePreparer.h"
+#include "CompilableImage.h"
 
 #include <Cesium3DTilesSelection/GltfUtilities.h>
 #include <Cesium3DTilesSelection/Tile.h>
@@ -91,45 +92,94 @@ void*
 vsgResourcePreparer::prepareRasterInLoadThread(CesiumGltf::ImageCesium& image,
                                                const std::any&)
 {
+    vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
+    if (!ref_viewer)
+        return nullptr;
     auto result = _builder->loadTexture(image,
-                                        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
-                                        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_BORDER,
+                                        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+                                        VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
                                         VK_FILTER_LINEAR,
                                         VK_FILTER_LINEAR,
                                         true,
                                         true);
-    return new LoadRasterResult{result};
+    auto compilable = CompilableImage::create(result);
+    return new LoadRasterResult{compilable->imageInfo, ref_viewer->compileManager->compile(compilable)};
 }
 
 void*
 vsgResourcePreparer::prepareRasterInMainThread(Cesium3DTilesSelection::RasterOverlayTile&,
-                                               void*)
+                                               void* rawLoadResult)
 {
-    return nullptr;
+    LoadRasterResult* loadRasterResult = static_cast<LoadRasterResult*>(rawLoadResult);
+    vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
+    if (ref_viewer)
+    {
+        vsg::updateViewer(*ref_viewer, loadRasterResult->compileResult);
+    }
+
+    return new RasterResources{loadRasterResult->rasterResult};
 }
 
 void
 vsgResourcePreparer::freeRaster(const Cesium3DTilesSelection::RasterOverlayTile&,
-                                void*,
-                                void*) noexcept
+                                void* loadThreadResult,
+                                void* mainThreadResult) noexcept
 {
+
+    LoadRasterResult* loadRasterResult = static_cast<LoadRasterResult*>(loadThreadResult);
+    delete loadRasterResult;
+    RasterResources* rasterResources = static_cast<RasterResources*>(mainThreadResult);
+    delete rasterResources;
 }
 
 void
-vsgResourcePreparer::attachRasterInMainThread(const Cesium3DTilesSelection::Tile&,
-                                              int32_t,
-                                              const Cesium3DTilesSelection::RasterOverlayTile&,
-                                              void*,
-                                              const glm::dvec2&,
-                                              const glm::dvec2&)
+vsgResourcePreparer::attachRasterInMainThread(const Cesium3DTilesSelection::Tile& tile,
+                                  int32_t overlayTextureCoordinateID,
+                                  const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
+                                  void* pMainThreadRendererResources,
+                                  const glm::dvec2& translation,
+                                  const glm::dvec2& scale)
 {
+    vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
+    if (!ref_viewer)
+        return;
+    const Cesium3DTilesSelection::TileContent& content = tile.getContent();
+    const Cesium3DTilesSelection::TileRenderContent* renderContent = content.getRenderContent();
+    if (renderContent)
+    {
+        RenderResources* resources = static_cast<RenderResources*>(renderContent->getRenderResources());
+
+        auto object = _builder->attachRaster(tile, resources->model,
+                                             overlayTextureCoordinateID, rasterTile,
+                                             pMainThreadRendererResources, translation, scale);
+        if (object.valid())
+        {
+            auto compileResult = ref_viewer->compileManager->compile(object);
+            vsg::updateViewer(*ref_viewer, compileResult);
+        }
+    }
 }
 
 void
-vsgResourcePreparer::detachRasterInMainThread(const Cesium3DTilesSelection::Tile&,
-                                              int32_t,
-                                              const Cesium3DTilesSelection::RasterOverlayTile&,
+vsgResourcePreparer::detachRasterInMainThread(const Cesium3DTilesSelection::Tile& tile,
+                                              int32_t overlayTextureCoordinateID,
+                                              const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
                                               void*) noexcept
 {
-}
+    vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
+    if (!ref_viewer)
+        return;
 
+    const Cesium3DTilesSelection::TileContent& content = tile.getContent();
+    const Cesium3DTilesSelection::TileRenderContent* renderContent = content.getRenderContent();
+    if (renderContent)
+    {
+        RenderResources* resources = static_cast<RenderResources*>(renderContent->getRenderResources());
+        auto object = _builder->detachRaster(tile, resources->model, overlayTextureCoordinateID, rasterTile);
+        if (object.valid())
+        {
+            auto compileResult = ref_viewer->compileManager->compile(object);
+            vsg::updateViewer(*ref_viewer, compileResult);
+        }
+    }
+}

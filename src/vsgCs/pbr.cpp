@@ -10,6 +10,8 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 </editor-fold> */
 
+#include "pbr.h"
+
 #include <vsg/core/Array.h>
 #include <vsg/core/Array2D.h>
 #include <vsg/io/Logger.h>
@@ -29,6 +31,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace vsgCs {
     namespace pbr
     {
+        vsg::ref_ptr<vsg::Data> makeOverlayData(const OverlayUniformMem& overlayUniformMem)
+        {
+            auto result = vsg::ubyteArray::create(sizeof(OverlayUniformMem));
+            memcpy(&(*result)[0], &overlayUniformMem, sizeof(overlayUniformMem));
+            return result;
+        }
+
         vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(vsg::ref_ptr<const vsg::Options> options)
         {
             auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard.vert", options);

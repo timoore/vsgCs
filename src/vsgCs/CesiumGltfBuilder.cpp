@@ -2,6 +2,7 @@
 #include "pbr.h"
 #include "DescriptorSetConfigurator.h"
 #include "MultisetPipelineConfigurator.h"
+#include "LoadGltfResult.h"
 
 #include <CesiumGltf/AccessorView.h>
 #include <CesiumGltf/ExtensionKhrTextureBasisu.h>
@@ -9,6 +10,8 @@
 
 #include <CesiumGltfReader/GltfReader.h>
 #include <Cesium3DTilesSelection/GltfUtilities.h>
+#include <Cesium3DTilesSelection/RasterOverlayTile.h>
+#include <Cesium3DTilesSelection/RasterOverlay.h>
 
 #include <algorithm>
 #include <string>
@@ -86,10 +89,11 @@ CesiumGltfBuilder::CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions)
       _pbrShaderSet(pbr::makeShaderSet(vsgOptions)),
       _vsgOptions(vsgOptions)
 {
-    vsg::DescriptorSetLayoutBindings overlayDescriptorBindings;
-    overlayDescriptorBindings.emplace_back(getVk(_pbrShaderSet->getUniformBinding("overlayParams")));
-    overlayDescriptorBindings.emplace_back(getVk(_pbrShaderSet->getUniformBinding("overlayTextures")));
-    _overlaySetLayout = vsg::DescriptorSetLayout::create(overlayDescriptorBindings);
+    std::set<std::string> shaderDefines;
+    shaderDefines.insert("VSG_TWO_SIDED_LIGHTING");
+    _viewParamsPipelineLayout = makePipelineLayout(_pbrShaderSet, shaderDefines, 0);
+    _overlayPipelineLayout = makePipelineLayout(_pbrShaderSet, shaderDefines, 1);
+    _defaultTexture = makeDefaultTexture();
 }
 
 vsg::ref_ptr<vsg::ShaderSet> CesiumGltfBuilder::getOrCreatePbrShaderSet()
@@ -783,7 +787,12 @@ vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::Tile
     Cesium3DTilesSelection::GltfUtilities::applyGltfUpAxisTransform(model, rootTransform);
     auto transformNode = vsg::MatrixTransform::create(glm2vsg(rootTransform));
     auto modelNode = load(pModel, modelOptions);
-    transformNode->addChild(modelNode);
+    auto tileStateGroup = vsg::StateGroup::create();
+    auto bindViewDescriptorSets = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                                                      _overlayPipelineLayout, 0);
+    tileStateGroup->add(bindViewDescriptorSets);
+    tileStateGroup->addChild(modelNode);
+    transformNode->addChild(tileStateGroup);
     return transformNode;
 }
 
@@ -1221,4 +1230,158 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
                                data->properties.maxNumMipmaps);
     _builder->_sharedObjects->share(sampler);
     return vsg::ImageInfo::create(sampler, data);
+}
+
+// Hold Raster data that we can attach to the VSG tile in order to easily find it later.
+
+struct RasterData
+{
+    vsg::ref_ptr<vsg::ImageInfo> rasterImage;
+    pbr::OverlayParams overlayParams;
+    // Index in texture descriptor array. This could probably be assigned once per overlay.
+    uint32_t element;
+    RasterData()
+        : element(0)
+    {
+        overlayParams.enabled = 0;
+    }
+};
+
+struct Rasters : public vsg::Inherit<vsg::Object, Rasters>
+{
+    std::map<std::string, RasterData> overlayRasters;
+    vsg::ref_ptr<vsg::StateCommand> makeRastersCommand(CesiumGltfBuilder& builder);
+};
+
+vsg::ref_ptr<vsg::StateCommand> Rasters::makeRastersCommand(CesiumGltfBuilder& builder)
+{
+    vsg::ImageInfoList rasterImages(2);
+    vsg::ref_ptr<DescriptorSetConfigurator> descriptorBuilder
+        = DescriptorSetConfigurator::create(1, builder.getOrCreatePbrShaderSet());
+    pbr::OverlayUniformMem overlayParams;
+    for (int i = 0; i < 2; ++i)
+    {
+        overlayParams[i].enabled = 0;
+    }
+    for (auto& overlayRaster : overlayRasters)
+    {
+        auto& rasterData = overlayRaster.second;
+        rasterImages[rasterData.element] = rasterData.rasterImage;
+        overlayParams[rasterData.element] = rasterData.overlayParams;
+    }
+    for (int i = 0; i < 2; ++i)
+    {
+        if (!rasterImages[i])
+        {
+            rasterImages[i] = builder.getDefaultTexture();
+        }
+    }
+    descriptorBuilder->assignTexture("overlayTextures", rasterImages);
+    auto ubo = pbr::makeOverlayData(overlayParams);
+    descriptorBuilder->assignUniform("overlayParams", ubo);
+    descriptorBuilder->init();
+    auto bindDescriptorSet
+            = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                             builder.getOverlayPipelineLayout(), 1,
+                                             descriptorBuilder->descriptorSet);
+    return bindDescriptorSet;
+ }
+
+vsg::ref_ptr<vsg::Command> CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection::Tile& tile,
+                                                           vsg::ref_ptr<vsg::Node> node,
+                                                           int32_t overlayTextureCoordinateID,
+                                                           const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
+                                                           void* pMainThreadRendererResources,
+                                                           const glm::dvec2& translation,
+                                                           const glm::dvec2& scale)
+{
+    vsg::ref_ptr<vsg::MatrixTransform> matrixTransform = node.cast<vsg::MatrixTransform>();
+    if (!matrixTransform)
+        return {};                 // uhhhh
+    vsg::ref_ptr<Rasters> rasters(matrixTransform->getObject<Rasters>("vsgCs_rasterData"));
+    if (!rasters)
+    {
+        rasters = Rasters::create();
+        matrixTransform->setObject("vsgCs_rasterData", rasters);
+    }
+
+    vsg::ref_ptr<vsg::StateGroup> stateGroup = matrixTransform->children[0].cast<vsg::StateGroup>();
+    if (!stateGroup)
+        return {};
+    RasterResources *resource = static_cast<RasterResources*>(pMainThreadRendererResources);
+    auto raster = resource->raster;
+    auto& overlayName = rasterTile.getOverlay().getName();
+    // Should it be an error if there is already an entry for this overlay?
+    auto orItr = rasters->overlayRasters.find(overlayName);
+    if (orItr == rasters->overlayRasters.end())
+    {
+        auto insertResult = rasters->overlayRasters.insert({overlayName, RasterData()});
+        orItr = insertResult.first;
+    }
+    auto& rasterData = orItr->second;
+    rasterData.rasterImage = raster;
+    rasterData.overlayParams.translation = glm2vsg(translation);
+    rasterData.overlayParams.scale = glm2vsg(scale);
+    rasterData.overlayParams.coordIndex = overlayTextureCoordinateID;
+    rasterData.overlayParams.enabled = 1;
+    auto command = rasters->makeRastersCommand(*this);
+    // XXX Should check data or something in the state command instead of relying on the number of
+    // commands in the group.
+    auto& stateCommands = stateGroup->stateCommands;
+    if (stateCommands.size() > 1)
+    {
+        stateCommands.erase(stateCommands.begin() + 1);
+    }
+    stateCommands.push_back(command);
+    return command;
+}
+
+vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::makeDefaultTexture()
+{
+    vsg::ubvec4 pixel(255, 255, 255, 255);
+    vsg::Data::Properties props;
+    props.format = VK_FORMAT_R8G8B8A8_UNORM;
+    props.maxNumMipmaps = 1;
+    auto arrayData = makeArray(1, 1, &pixel, props);
+    auto sampler = makeSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+                               VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE, VK_FILTER_NEAREST, VK_FILTER_NEAREST, 1);
+    return vsg::ImageInfo::create(sampler, arrayData);
+}
+
+vsg::ref_ptr<vsg::Command> CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile& tile,
+                                                           vsg::ref_ptr<vsg::Node> node,
+                                                           int32_t overlayTextureCoordinateID,
+                                                           const Cesium3DTilesSelection::RasterOverlayTile& rasterTile)
+{
+    vsg::ref_ptr<vsg::MatrixTransform> matrixTransform = node.cast<vsg::MatrixTransform>();
+    if (!matrixTransform)
+        return {};                 // uhhhh
+    vsg::ref_ptr<Rasters> rasters(matrixTransform->getObject<Rasters>("vsgCs_rasterData"));
+    if (!rasters)
+    {
+        return {};
+    }
+    vsg::ref_ptr<vsg::StateGroup> stateGroup = matrixTransform->children[0].cast<vsg::StateGroup>();
+    if (!stateGroup)
+        return {};
+    auto& overlayName = rasterTile.getOverlay().getName();
+    auto orItr = rasters->overlayRasters.find(overlayName);
+    if (orItr != rasters->overlayRasters.end())
+    {
+        rasters->overlayRasters.erase(orItr);
+        auto command = rasters->makeRastersCommand(*this);
+        // XXX Should check data or something in the state command instead of relying on the number of
+        // commands in the group.
+        auto& stateCommands = stateGroup->stateCommands;
+        if (stateCommands.size() > 1)
+        {
+            stateCommands.erase(stateCommands.begin() + 1);
+        }
+        stateCommands.push_back(command);
+        return command;
+    }
+    else
+    {
+        return {};
+    }
 }
