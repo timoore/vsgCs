@@ -10,6 +10,7 @@
 #include <thread>
 
 #include "vsgCs/TilesetNode.h"
+#include "vsgCs/CSOverlay.h"
 
 int main(int argc, char** argv)
 {
@@ -59,6 +60,7 @@ int main(int argc, char** argv)
             vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
         }
         int64_t ionAsset = arguments.value<int64_t>(-1L, "--ion-asset");
+        int64_t ionOverlay = arguments.value<int64_t>(-1L, "--ion-overlay");
         auto ionToken = arguments.value(std::string(), "--ion-token");
         auto tilesetUrl = arguments.value(std::string(), "--tileset-url");
         auto ionEndpointUrl = arguments.value(std::string(), "--ion-endpoint-url");
@@ -121,7 +123,6 @@ int main(int argc, char** argv)
                 source.ionAssetEndpointUrl = ionEndpointUrl;
             }
         }
-        
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
 
@@ -138,6 +139,14 @@ int main(int argc, char** argv)
         auto tilesetNode = vsgCs::TilesetNode::create(deviceFeatures, source, tileOptions, options);
         auto ellipsoidModel = vsg::EllipsoidModel::create();
         tilesetNode->setObject("EllipsoidModel", ellipsoidModel);
+        // XXX need to detach this from the tileset before the program exits
+        vsg::ref_ptr<vsgCs::CSIonRasterOverlay> csoverlay;
+        if (ionOverlay > 0)
+        {
+            csoverlay = vsgCs::CSIonRasterOverlay::create(ionOverlay, ionToken);
+            csoverlay->addToTileset(tilesetNode);
+        }
+
         vsg_scene->addChild(tilesetNode);
         viewer->addWindow(window);
 

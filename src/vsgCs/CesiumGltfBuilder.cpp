@@ -565,7 +565,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         }
     };
     assignTexCoord("TEXCOORD_", 0);
-    assignTexCoord("_CESIUM_OVERLAY_", 2);
+    assignTexCoord("_CESIUMOVERLAY_", 2);
     vsg::ref_ptr<vsg::Command> drawCommand;
     if (primitive->indices >= 0 && static_cast<unsigned>(primitive->indices) < _model->accessors.size())
     {
@@ -1344,7 +1344,7 @@ vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::makeDefaultTexture()
     props.maxNumMipmaps = 1;
     auto arrayData = makeArray(1, 1, &pixel, props);
     auto sampler = makeSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-                               VK_SAMPLER_ADDRESS_MODE_MIRROR_CLAMP_TO_EDGE, VK_FILTER_NEAREST, VK_FILTER_NEAREST, 1);
+                               VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_NEAREST, VK_FILTER_NEAREST, 1);
     return vsg::ImageInfo::create(sampler, arrayData);
 }
 

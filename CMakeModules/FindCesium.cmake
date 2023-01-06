@@ -355,6 +355,7 @@ target_compile_definitions(cesium::3DTilesSelection
             GLM_FORCE_XYZW_ONLY # Disable .rgba and .stpq to make it easier to view values from debugger
             GLM_FORCE_EXPLICIT_CTOR # Disallow implicit conversions between dvec3 <-> dvec4, dvec3 <-> fvec3, etc
             GLM_FORCE_SIZE_T_LENGTH # Make vec.length() and vec[idx] use size_t instead of int
+            NDEBUG # Cesium is compiled with this
           )
           
 set_target_properties(cesium::3DTilesSelection

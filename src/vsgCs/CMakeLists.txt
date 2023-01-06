@@ -15,6 +15,7 @@ set(LIB_PUBLIC_HEADERS
 
 set(SOURCES
   ${LIB_PUBLIC_HEADERS}
+  CSOverlay.cpp
   CesiumGltfBuilder.cpp
   CompilableImage.cpp
   DescriptorSetConfigurator.cpp
