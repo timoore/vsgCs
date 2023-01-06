@@ -71,6 +71,7 @@ namespace vsgCs
             vsg::observer_ptr<vsg::Viewer> viewer;
         };
         friend struct UpdateTileset;
+        void shutdown();
     protected:
         const Cesium3DTilesSelection::ViewUpdateResult* _viewUpdateResult;
         std::unique_ptr<Cesium3DTilesSelection::Tileset> _tileset;

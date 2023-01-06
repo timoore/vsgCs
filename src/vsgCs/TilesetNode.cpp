@@ -192,12 +192,23 @@ TilesetNode::TilesetNode(const TilesetDeviceFeatures& deviceFeatures, const Tile
 // operations in progress and have been fully destroyed.
 // See IsReadyForFinishDestroy.
 
+void TilesetNode::shutdown()
+{
+    if (_tileset)
+    {
+        ++_tilesetsBeingDestroyed;
+        _tileset->getAsyncDestructionCompleteEvent().thenInMainThread(
+            [this]()
+            {
+                --this->_tilesetsBeingDestroyed;
+            });
+        _tileset.reset();
+    }
+}
+
 TilesetNode::~TilesetNode()
 {
-    ++_tilesetsBeingDestroyed;
-    _tileset->getAsyncDestructionCompleteEvent().thenInMainThread(
-        [this]() { --this->_tilesetsBeingDestroyed; });
-    _tileset.reset();
+    shutdown();
 }
 
 template<class V>
@@ -384,6 +395,10 @@ void TilesetNode::UpdateTileset::run()
     vsg::ref_ptr<TilesetNode> ref_tileset = tilesetNode;
 
     if (!(ref_viewer && ref_tileset))
+    {
+        return;
+    }
+    if (!ref_tileset->_tileset)
     {
         return;
     }
