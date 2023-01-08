@@ -133,9 +133,7 @@ int main(int argc, char** argv)
         }
         Cesium3DTilesSelection::TilesetOptions tileOptions;
         tileOptions.enableOcclusionCulling = false;
-        // XXX Need this to avoid random missing tiles. Why? Bug in Cesium, or something wrong with
-        // our camera?
-        tileOptions.enableFrustumCulling = false;
+        tileOptions.forbidHoles = true;
         auto tilesetNode = vsgCs::TilesetNode::create(deviceFeatures, source, tileOptions, options);
         auto ellipsoidModel = vsg::EllipsoidModel::create();
         tilesetNode->setObject("EllipsoidModel", ellipsoidModel);

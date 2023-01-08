@@ -782,9 +782,8 @@ vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::Tile
     Model& model = *pModel;
     glm::dmat4x4 rootTransform = transform;
 
-    rootTransform
-        = Cesium3DTilesSelection::GltfUtilities::applyRtcCenter(model, rootTransform);
-    Cesium3DTilesSelection::GltfUtilities::applyGltfUpAxisTransform(model, rootTransform);
+    rootTransform = Cesium3DTilesSelection::GltfUtilities::applyRtcCenter(model, rootTransform);
+    rootTransform = Cesium3DTilesSelection::GltfUtilities::applyGltfUpAxisTransform(model, rootTransform);
     auto transformNode = vsg::MatrixTransform::create(glm2vsg(rootTransform));
     auto modelNode = load(pModel, modelOptions);
     auto tileStateGroup = vsg::StateGroup::create();
