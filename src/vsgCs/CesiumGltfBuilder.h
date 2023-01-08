@@ -104,10 +104,11 @@ namespace vsgCs
                                                 void* pMainThreadRendererResources,
                                                 const glm::dvec2& translation,
                                                 const glm::dvec2& scale);
-        vsg::ref_ptr<vsg::Command> detachRaster(const Cesium3DTilesSelection::Tile& tile,
-                                                vsg::ref_ptr<vsg::Node> node,
-                                                int32_t overlayTextureCoordinateID,
-                                                const Cesium3DTilesSelection::RasterOverlayTile& rasterTile);
+        std::pair<vsg::ref_ptr<vsg::Command>, vsg::ref_ptr<vsg::Command>>
+            detachRaster(const Cesium3DTilesSelection::Tile& tile,
+                         vsg::ref_ptr<vsg::Node> node,
+                         int32_t overlayTextureCoordinateID,
+                         const Cesium3DTilesSelection::RasterOverlayTile& rasterTile);
         vsg::ref_ptr<vsg::ImageInfo> getDefaultTexture()
         {
             return _defaultTexture;

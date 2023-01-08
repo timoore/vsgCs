@@ -8,8 +8,30 @@
 #include "LoadGltfResult.h"
 #include "CesiumGltfBuilder.h"
 
+#include <deque>
+
 namespace vsgCs
 {
+    // Sort of a hack to delay deletion of vsg::Objects for 2 frames, in order to not delete Vulkan
+    // objects that are still referenced by active command buffers.
+    class DeletionQueue
+    {
+        public:
+        DeletionQueue();
+        struct Deletion
+        {
+            uint64_t frameRemoved;
+            vsg::ref_ptr<vsg::Object> object;
+        };
+        void add(vsg::ref_ptr<vsg::Viewer>, vsg::ref_ptr<vsg::Object> object);
+        // Remove everything from queue.
+        void run();
+        // Run at this frame
+        void run(vsg::ref_ptr<vsg::Viewer> frameStamp);
+        uint64_t lastFrameRun;
+        std::deque<Deletion> queue;
+    };
+
     class VSGCS_EXPORT vsgResourcePreparer : public Cesium3DTilesSelection::IPrepareRendererResources
     {
     public:
@@ -57,5 +79,6 @@ namespace vsgCs
                                     const glm::dmat4& transform,
                                     const CreateModelOptions& options);
     vsg::ref_ptr<CesiumGltfBuilder> _builder;
+    DeletionQueue _deletionQueue;
     };
 }

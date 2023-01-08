@@ -1347,10 +1347,11 @@ vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::makeDefaultTexture()
     return vsg::ImageInfo::create(sampler, arrayData);
 }
 
-vsg::ref_ptr<vsg::Command> CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile& tile,
-                                                           vsg::ref_ptr<vsg::Node> node,
-                                                           int32_t overlayTextureCoordinateID,
-                                                           const Cesium3DTilesSelection::RasterOverlayTile& rasterTile)
+std::pair<vsg::ref_ptr<vsg::Command>, vsg::ref_ptr<vsg::Command>>
+CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile& tile,
+                                vsg::ref_ptr<vsg::Node> node,
+                                int32_t overlayTextureCoordinateID,
+                                const Cesium3DTilesSelection::RasterOverlayTile& rasterTile)
 {
     vsg::ref_ptr<vsg::MatrixTransform> matrixTransform = node.cast<vsg::MatrixTransform>();
     if (!matrixTransform)
@@ -1368,16 +1369,18 @@ vsg::ref_ptr<vsg::Command> CesiumGltfBuilder::detachRaster(const Cesium3DTilesSe
     if (orItr != rasters->overlayRasters.end())
     {
         rasters->overlayRasters.erase(orItr);
-        auto command = rasters->makeRastersCommand(*this);
+        auto newCommand = rasters->makeRastersCommand(*this);
+        vsg::ref_ptr<vsg::Command> oldCommand;
         // XXX Should check data or something in the state command instead of relying on the number of
         // commands in the group.
         auto& stateCommands = stateGroup->stateCommands;
         if (stateCommands.size() > 1)
         {
+            oldCommand = *(stateCommands.begin() + 1);
             stateCommands.erase(stateCommands.begin() + 1);
         }
-        stateCommands.push_back(command);
-        return command;
+        stateCommands.push_back(newCommand);
+        return {newCommand, oldCommand};
     }
     else
     {

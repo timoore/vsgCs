@@ -5,10 +5,57 @@
 #include <Cesium3DTilesSelection/Tile.h>
 #include <CesiumAsync/AsyncSystem.h>
 
+#include <limits>
 
 using namespace vsgCs;
 using namespace CesiumGltf;
 
+// This deletion queue is a hack to not delete VSG objects (like buffers) while
+// they might still be in use. The problem is that VSG recycles descriptors...
+
+DeletionQueue::DeletionQueue()
+    : lastFrameRun(std::numeric_limits<uint64_t>::max())
+{
+}
+
+void DeletionQueue::add(vsg::ref_ptr<vsg::Viewer> viewer,
+                        vsg::ref_ptr<vsg::Object> object)
+{
+    queue.push_back(Deletion{viewer->getFrameStamp()->frameCount, object});
+}
+
+void DeletionQueue::run()
+{
+    queue.clear();
+    lastFrameRun = std::numeric_limits<uint64_t>::max();
+}
+
+void DeletionQueue::run(vsg::ref_ptr<vsg::Viewer> viewer)
+{
+    const auto frameStamp = viewer->getFrameStamp();
+    if (lastFrameRun == std::numeric_limits<uint64_t>::max())
+    {
+        queue.clear();
+    }
+    else
+    {
+        if (frameStamp->frameCount <= lastFrameRun)
+            return;
+        auto itr = queue.begin();
+        while (itr != queue.end())
+        {
+            if (itr->frameRemoved + 2 <= frameStamp->frameCount)
+            {
+                itr = queue.erase(itr);
+            }
+            else
+            {
+                break;
+            }
+        }
+    }
+    lastFrameRun = frameStamp->frameCount;
+}
 
 LoadModelResult*
 vsgResourcePreparer::readAndCompile(Cesium3DTilesSelection::TileLoadResult &&tileLoadResult,
@@ -76,16 +123,26 @@ void vsgResourcePreparer::free(Cesium3DTilesSelection::Tile&,
                                void* pLoadThreadResult,
                                void* pMainThreadResult) noexcept
 {
-    if (pLoadThreadResult)
+    vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
+    LoadModelResult* loadModelResult = reinterpret_cast<LoadModelResult*>(pLoadThreadResult);
+    RenderResources* renderResources = reinterpret_cast<RenderResources*>(pMainThreadResult);
+
+    if (ref_viewer)
     {
-        LoadModelResult* loadModelResult = reinterpret_cast<LoadModelResult*>(pLoadThreadResult);
-        delete loadModelResult;
+        _deletionQueue.run(ref_viewer);
+        if (pLoadThreadResult)
+        {
+            _deletionQueue.add(ref_viewer, loadModelResult->modelResult);
+        }
+            if (pMainThreadResult)
+        if (ref_viewer)
+        {
+            _deletionQueue.add(ref_viewer, renderResources->model);
+        }
+
     }
-    else if (pMainThreadResult)
-    {
-        RenderResources* renderResources = reinterpret_cast<RenderResources*>(pMainThreadResult);
-        delete renderResources;
-    }
+    delete loadModelResult;
+    delete renderResources;
 }
 
 void*
@@ -125,10 +182,24 @@ vsgResourcePreparer::freeRaster(const Cesium3DTilesSelection::RasterOverlayTile&
                                 void* loadThreadResult,
                                 void* mainThreadResult) noexcept
 {
-
+    vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     LoadRasterResult* loadRasterResult = static_cast<LoadRasterResult*>(loadThreadResult);
-    delete loadRasterResult;
     RasterResources* rasterResources = static_cast<RasterResources*>(mainThreadResult);
+    if (ref_viewer)
+    {
+        _deletionQueue.run(ref_viewer);
+        if (loadThreadResult)
+        {
+            _deletionQueue.add(ref_viewer, loadRasterResult->rasterResult);
+        }
+            if (mainThreadResult)
+        if (ref_viewer)
+        {
+            _deletionQueue.add(ref_viewer, rasterResources->raster);
+        }
+    }
+
+    delete loadRasterResult;
     delete rasterResources;
 }
 
@@ -175,11 +246,16 @@ vsgResourcePreparer::detachRasterInMainThread(const Cesium3DTilesSelection::Tile
     if (renderContent)
     {
         RenderResources* resources = static_cast<RenderResources*>(renderContent->getRenderResources());
-        auto object = _builder->detachRaster(tile, resources->model, overlayTextureCoordinateID, rasterTile);
-        if (object.valid())
+        auto objects = _builder->detachRaster(tile, resources->model, overlayTextureCoordinateID, rasterTile);
+        if (objects.first.valid())
         {
-            auto compileResult = ref_viewer->compileManager->compile(object);
+            auto compileResult = ref_viewer->compileManager->compile(objects.first);
             vsg::updateViewer(*ref_viewer, compileResult);
+        }
+        if (objects.second.valid())
+        {
+            _deletionQueue.run(ref_viewer);
+            _deletionQueue.add(ref_viewer, objects.second);
         }
     }
 }
