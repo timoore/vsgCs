@@ -1,4 +1,5 @@
 #include "CSOverlay.h"
+#include "OpThreadTaskProcessor.h"
 
 #include "Cesium3DTilesSelection/IonRasterOverlay.h"
 #include <vsg/all.h>
@@ -25,16 +26,24 @@ void CSOverlay::addToTileset(vsg::ref_ptr<TilesetNode> tilesetNode)
         // assert(this->_pTileset == details.pTileset);
         vsg::warn(details.message);
         };
-      std::unique_ptr<Cesium3DTilesSelection::RasterOverlay> overlay =
-          createOverlay(options);
-      if (overlay)
+    _rasterOverlay = createOverlay(options);
+      if (_rasterOverlay)
       {
-          _rasterOverlay.swap(overlay);
-          tileset->getOverlays().add(_rasterOverlay.get());
+          tileset->getOverlays().add(_rasterOverlay);
       }
 }
 
-std::unique_ptr<Cesium3DTilesSelection::RasterOverlay> CSIonRasterOverlay::createOverlay(
+void CSOverlay::removeFromTileset(vsg::ref_ptr<TilesetNode> tilesetNode)
+{
+    ++_overlaysBeingDestroyed;
+    Cesium3DTilesSelection::Tileset* tileset = tilesetNode->getTileset();
+    _rasterOverlay->getAsyncDestructionCompleteEvent(getAsyncSystem())
+      .thenInMainThread([this]() { --this->_overlaysBeingDestroyed; });
+    tileset->getOverlays().remove(_rasterOverlay);
+    _rasterOverlay = 0;
+}
+
+Cesium3DTilesSelection::RasterOverlay* CSIonRasterOverlay::createOverlay(
             const Cesium3DTilesSelection::RasterOverlayOptions& options)
 {
       if (this->IonAssetID <= 0)
@@ -42,7 +51,7 @@ std::unique_ptr<Cesium3DTilesSelection::RasterOverlay> CSIonRasterOverlay::creat
           // Don't create an overlay for an invalid asset ID.
           return nullptr;
       }
-      return std::make_unique<Cesium3DTilesSelection::IonRasterOverlay>(
+      return new Cesium3DTilesSelection::IonRasterOverlay(
           MaterialLayerKey,
           IonAssetID,
           IonAccessToken,

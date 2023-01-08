@@ -1,5 +1,17 @@
 #include "OpThreadTaskProcessor.h"
 
+namespace vsgCs
+{
+    CesiumAsync::AsyncSystem& getAsyncSystem() noexcept
+    {
+        static CesiumAsync::AsyncSystem asyncSystem(
+            std::make_shared<OpThreadTaskProcessor>(4));
+        return asyncSystem;
+    }
+
+
+} // namespace vsgCs
+
 using namespace vsgCs;
 
 class TaskOperation : public vsg::Inherit<vsg::Operation, TaskOperation>

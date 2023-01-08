@@ -2,6 +2,7 @@
 
 #include "Export.h"
 #include <CesiumAsync/ITaskProcessor.h>
+#include <CesiumAsync/AsyncSystem.h>
 #include <vsg/all.h>
 
 namespace vsgCs
@@ -16,4 +17,6 @@ namespace vsgCs
     private:
         vsg::ref_ptr<vsg::OperationThreads> _opthreads;
     };
+
+    CesiumAsync::AsyncSystem& getAsyncSystem() noexcept;
 }

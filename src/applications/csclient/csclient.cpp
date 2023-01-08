@@ -264,6 +264,10 @@ int main(int argc, char** argv)
         }
         // XXX Unfortunately the viewer runs for one more frame after a close event, so it's a lot
         // simpler to tear down the tileset after the main loop.
+        if (csoverlay.valid())
+        {
+            csoverlay->removeFromTileset(tilesetNode);
+        }
         tilesetNode->shutdown();
     }
     catch (const vsg::Exception& ve)

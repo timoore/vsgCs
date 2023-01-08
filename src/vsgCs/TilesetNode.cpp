@@ -104,13 +104,6 @@ TilesetDeviceFeatures TilesetNode::prepareDeviceFeatures(vsg::ref_ptr<vsg::Windo
     return features;
 }
 
-CesiumAsync::AsyncSystem& getAsyncSystem() noexcept
-{
-    static CesiumAsync::AsyncSystem asyncSystem(
-        std::make_shared<OpThreadTaskProcessor>(4));
-    return asyncSystem;
-}
-
 TilesetNode::TilesetNode(const TilesetDeviceFeatures& deviceFeatures, const TilesetSource& source,
                          const Cesium3DTilesSelection::TilesetOptions& in_options,
                          vsg::ref_ptr<vsg::Options> vsgOptions)

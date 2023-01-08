@@ -19,10 +19,12 @@ namespace vsgCs
         int64_t SubTileCacheBytes = 16 * 1024 * 1024;
         bool ShowCreditsOnScreen;
         void addToTileset(vsg::ref_ptr<TilesetNode> tilesetNode);
-        virtual std::unique_ptr<Cesium3DTilesSelection::RasterOverlay> createOverlay(
+        void removeFromTileset(vsg::ref_ptr<TilesetNode> tilesetNode);
+        virtual Cesium3DTilesSelection::RasterOverlay* createOverlay(
             const Cesium3DTilesSelection::RasterOverlayOptions& options = {}) = 0;
     protected:
-        std::unique_ptr<Cesium3DTilesSelection::RasterOverlay> _rasterOverlay;
+        CesiumUtility::IntrusivePointer<Cesium3DTilesSelection::RasterOverlay> _rasterOverlay;
+        int32_t _overlaysBeingDestroyed = 0;
     };
 
     class VSGCS_EXPORT CSIonRasterOverlay : public vsg::Inherit<CSOverlay, CSIonRasterOverlay>
@@ -33,7 +35,7 @@ namespace vsgCs
         {}
         int64_t IonAssetID;
         std::string IonAccessToken;
-        std::unique_ptr<Cesium3DTilesSelection::RasterOverlay> createOverlay(
+        Cesium3DTilesSelection::RasterOverlay* createOverlay(
             const Cesium3DTilesSelection::RasterOverlayOptions& options = {}) override;
     };
 }
