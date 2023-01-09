@@ -53,7 +53,7 @@ layout(set = 1, binding = 1) uniform sampler2D overlayTextures[2];
 // Texture coordinates are assumed to have the OpenGL / glTF origin i.e., lower left.
 vec4 cstexture(sampler2D texmap, vec2 coords)
 {
-    return texture(texmap, vec2(coords.s, 1.0 - coords.t));
+    return texture(texmap, vec2(coords.s, coords.t));
 }
 
 layout(set = 2, binding = 10) uniform PbrData
@@ -87,7 +87,8 @@ vec4 overlayTexture(uint overlayNum)
     vec2 coords = texCoord[overlayParams.params[overlayNum].coordIndex + 2];
     coords = coords * overlayParams.params[overlayNum].scale;
     coords = coords + overlayParams.params[overlayNum].translation;
-    return cstexture(overlayTextures[overlayNum], coords);
+    coords.t = 1.0 - coords.t;
+    return texture(overlayTextures[overlayNum], coords);
 }
 #endif
 
@@ -140,7 +141,7 @@ vec3 getNormal()
 {
 #ifdef VSG_NORMAL_MAP
     // Perturb normal, see http://www.thetenthplanet.de/archives/1180
-    vec3 tangentNormal = cstexture(normalMap, texCoord[0]).xyz * 2.0 - 1.0;
+    vec3 tangentNormal = texture(normalMap, texCoord[0]).xyz * 2.0 - 1.0;
 
     //tangentNormal *= vec3(2,2,1);
 
@@ -309,7 +310,7 @@ vec3 BRDF(vec3 u_LightColor, vec3 v, vec3 n, vec3 l, vec3 h, float perceptualRou
     color *= ao;
 
 #ifdef VSG_EMISSIVE_MAP
-    vec3 emissive = cstexture(emissiveMap, texCoord[0]).rgb * pbr.emissiveFactor.rgb;
+    vec3 emissive = texture(emissiveMap, texCoord[0]).rgb * pbr.emissiveFactor.rgb;
 #else
     vec3 emissive = pbr.emissiveFactor.rgb;
 #endif
@@ -359,10 +360,10 @@ void main()
     {
 #ifdef VSG_DIFFUSE_MAP
 #ifdef VSG_GREYSACLE_DIFFUSE_MAP
-        float v = cstexture(diffuseMap, texCoord[0].st).s * pbr.baseColorFactor;
+        float v = texture(diffuseMap, texCoord[0].st).s * pbr.baseColorFactor;
         baseColor = vertexColor * vec4(v, v, v, 1.0);
 #else
-        baseColor = vertexColor * cstexture(diffuseMap, texCoord[0]) * pbr.baseColorFactor;
+        baseColor = vertexColor * texture(diffuseMap, texCoord[0]) * pbr.baseColorFactor;
 #endif
 #else
         baseColor = vertexColor * pbr.baseColorFactor;
@@ -377,14 +378,14 @@ void main()
 
 #ifdef VSG_WORKFLOW_SPECGLOSS
     #ifdef VSG_DIFFUSE_MAP
-        vec4 diffuse = cstexture(diffuseMap, texCoord[0]);
+        vec4 diffuse = texture(diffuseMap, texCoord[0]);
     #else
         vec4 diffuse = vec4(1.0);
     #endif
 
     #ifdef VSG_SPECULAR_MAP
-        vec3 specular = cstexture(specularMap, texCoord[0]).rgb;
-        perceptualRoughness = 1.0 - cstexture(specularMap, texCoord[0]).a;
+        vec3 specular = texture(specularMap, texCoord[0]).rgb;
+        perceptualRoughness = 1.0 - texture(specularMap, texCoord[0]).a;
     #else
         vec3 specular = vec3(0.0);
         perceptualRoughness = 0.0;
@@ -404,14 +405,14 @@ void main()
         metallic = pbr.metallicFactor;
 
     #ifdef VSG_METALLROUGHNESS_MAP
-        vec4 mrSample = cstexture(mrMap, texCoord[0]);
+        vec4 mrSample = texture(mrMap, texCoord[0]);
         perceptualRoughness = mrSample.g * perceptualRoughness;
         metallic = mrSample.b * metallic;
     #endif
 #endif
 
 #ifdef VSG_LIGHTMAP_MAP
-    ambientOcclusion = cstexture(aoMap, texCoord[0]).r;
+    ambientOcclusion = texture(aoMap, texCoord[0]).r;
 #endif
 
     diffuseColor = baseColor.rgb * (vec3(1.0) - f0);
