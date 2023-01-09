@@ -198,43 +198,4 @@ namespace vsgCs
         vsg::ref_ptr<ConvertedMaterial> _defaultMaterial;
 
     };
-    
-    inline void setdmat4(vsg::dmat4& vmat, const glm::dmat4x4& glmmat)
-    {
-        std::memcpy(vmat.data(), glm::value_ptr(glmmat), sizeof(double) * 16);
-    }
-
-    inline vsg::dmat4 glm2vsg(const glm::dmat4x4& glmmat)
-    {
-        vsg::dmat4 result;
-        setdmat4(result, glmmat);
-        return result;
-    }
-
-    inline vsg::vec2 glm2vsg(const glm::dvec2& vec2)
-    {
-        return vsg::vec2(vec2.x, vec2.y);
-    }
-    
-    inline bool isIdentity(const glm::dmat4x4& mat)
-    {
-        for (int c = 0; c < 4; ++c)
-        {
-            for (int r = 0; r < 4; ++r)
-            {
-                if (c == r)
-                {
-                    if (mat[c][r] != 1.0)
-                        return false;
-                }
-                else
-                {
-                    if (mat[c][r] != 0.0)
-                        return false;
-                }
-            }
-        }
-        return true;
-    }
-
 }

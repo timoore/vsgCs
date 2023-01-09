@@ -3,6 +3,7 @@
 #include "DescriptorSetConfigurator.h"
 #include "MultisetPipelineConfigurator.h"
 #include "LoadGltfResult.h"
+#include "runtimeSupport.h"
 
 #include <CesiumGltf/AccessorView.h>
 #include <CesiumGltf/ExtensionKhrTextureBasisu.h>
