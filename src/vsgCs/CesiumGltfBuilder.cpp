@@ -91,6 +91,7 @@ CesiumGltfBuilder::CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions)
 {
     std::set<std::string> shaderDefines;
     shaderDefines.insert("VSG_TWO_SIDED_LIGHTING");
+    shaderDefines.insert("VSGCS_OVERLAY_MAPS");
     _viewParamsPipelineLayout = makePipelineLayout(_pbrShaderSet, shaderDefines, 0);
     _overlayPipelineLayout = makePipelineLayout(_pbrShaderSet, shaderDefines, 1);
     _defaultTexture = makeDefaultTexture();
@@ -659,6 +660,10 @@ ModelBuilder::loadMaterial(const CesiumGltf::Material* material)
     // XXX Cesium Unreal always enables two-sided, but it should come from the material...
     convertedMat->descriptorConfig->two_sided = true;
     convertedMat->descriptorConfig->defines.insert("VSG_TWO_SIDED_LIGHTING");
+    if (_options.renderOverlays)
+    {
+        convertedMat->descriptorConfig->defines.insert("VSGCS_OVERLAY_MAPS");
+    }
     vsg::PbrMaterial pbr;
 
     if (material->alphaMode == CesiumGltf::Material::AlphaMode::BLEND)

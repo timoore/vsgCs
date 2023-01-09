@@ -18,6 +18,7 @@ namespace vsgCs
 {
     struct CreateModelOptions
     {
+        bool renderOverlays = false;
     };
     
     struct SamplerData

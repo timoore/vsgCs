@@ -99,6 +99,9 @@ vsgResourcePreparer::prepareInLoadThread(const CesiumAsync::AsyncSystem& asyncSy
     }
 
     CreateModelOptions options;
+    options.renderOverlays
+        = (tileLoadResult.rasterOverlayDetails
+           && !tileLoadResult.rasterOverlayDetails.value().rasterOverlayProjections.empty());
     LoadModelResult* result = readAndCompile(std::move(tileLoadResult), transform, options);
     return asyncSystem.createResolvedFuture(
         Cesium3DTilesSelection::TileLoadResultAndRenderResources{

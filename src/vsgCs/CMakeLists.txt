@@ -23,6 +23,7 @@ set(SOURCES
   OpThreadTaskProcessor.cpp
   TilesetNode.cpp
   UrlAssetAccessor.cpp
+  runtimeSupport.cpp
   vsgResourcePreparer.cpp
   pbr.cpp)
 

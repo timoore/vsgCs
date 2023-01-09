@@ -1,6 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSACLE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS)
+#pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSACLE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSGCS_OVERLAY_MAPS, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS)
 
 const float PI = 3.14159265359;
 const float RECIPROCAL_PI = 0.31830988618;
@@ -32,6 +32,7 @@ layout(set = 2, binding = 4) uniform sampler2D emissiveMap;
 layout(set = 2, binding = 5) uniform sampler2D specularMap;
 #endif
 
+#ifdef VSGCS_OVERLAY_MAPS
 struct OverlayParamBlock
 {
   vec2 translation;
@@ -47,6 +48,7 @@ layout(set = 1, binding = 0) uniform OverlayParams
   } overlayParams;
 
 layout(set = 1, binding = 1) uniform sampler2D overlayTextures[2];
+#endif
 
 // Texture coordinates are assumed to have the OpenGL / glTF origin i.e., lower left.
 vec4 cstexture(sampler2D texmap, vec2 coords)
@@ -79,6 +81,7 @@ layout(location = 4) in vec2 texCoord[4];
 
 layout(location = 0) out vec4 outColor;
 
+#ifdef VSGCS_OVERLAY_MAPS
 vec4 overlayTexture(uint overlayNum)
 {
     vec2 coords = texCoord[overlayParams.params[overlayNum].coordIndex + 2];
@@ -86,6 +89,7 @@ vec4 overlayTexture(uint overlayNum)
     coords = coords + overlayParams.params[overlayNum].translation;
     return cstexture(overlayTextures[overlayNum], coords);
 }
+#endif
 
 // Encapsulate the various inputs used by the various functions in the shading equation
 // We store values in this struct to simplify the integration of alternative implementations
@@ -341,7 +345,7 @@ void main()
     float ambientOcclusion = 1.0;
 
     vec3 f0 = vec3(0.04);
-
+#ifdef VSGCS_OVERLAY_MAPS
     if (overlayParams.params[0].enabled != 0)
     {
         baseColor = vertexColor * overlayTexture(0) * pbr.baseColorFactor;
@@ -351,6 +355,7 @@ void main()
         baseColor = vertexColor * overlayTexture(1) * pbr.baseColorFactor;
     }
     else
+#endif
     {
 #ifdef VSG_DIFFUSE_MAP
 #ifdef VSG_GREYSACLE_DIFFUSE_MAP

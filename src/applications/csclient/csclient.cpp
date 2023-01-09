@@ -102,6 +102,7 @@ int main(int argc, char** argv)
                 std::cout << "Unable to load file " << filename << std::endl;
             }
         }
+        vsgCs::startup();
         auto window = vsg::Window::create(windowTraits);
         auto deviceFeatures = vsgCs::TilesetNode::prepareDeviceFeatures(window);
         vsgCs::TilesetSource source;

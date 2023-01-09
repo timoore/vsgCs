@@ -3,6 +3,8 @@
 #include <vsg/all.h>
 #include "Cesium3DTilesSelection/Tileset.h"
 #include "Cesium3DTilesSelection/ViewUpdateResult.h"
+#include "Export.h"
+#include "runtimeSupport.h"
 #include "vsgResourcePreparer.h"
 
 #include <memory>
