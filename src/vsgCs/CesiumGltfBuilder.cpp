@@ -506,17 +506,18 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
             int normalAccessorID = normalAccessorIt->second;
             AccessorView<AccessorTypes::VEC3<float>> normalAccessor(*_model, normalAccessorID);
             hasNormals = normalAccessor.status() == AccessorViewStatus::Valid;
-            if (!hasNormals) {
-                vsg::warn(name, ": Invalid normal buffer. Flat normal will be auto-generated... someday");
-                auto normal = vsg::vec3Value::create(vsg::vec3(0.0f, 0.0f, 1.0f));
-                config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_INSTANCE, normal);
-            }
-            else
+            if (hasNormals) 
             {
                 auto normals = createArray<vsg::vec3>(normalAccessor);
                 config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX, normals);
             }
         }
+    }
+    if (!hasNormals)
+    {
+        vsg::warn(name, ": Invalid normal buffer. Flat normal will be auto-generated... someday");
+        auto normal = vsg::vec3Value::create(vsg::vec3(0.0f, 0.0f, 1.0f));
+        config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_INSTANCE, normal);
     }
 
     // XXX
