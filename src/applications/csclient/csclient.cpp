@@ -77,7 +77,7 @@ int main(int argc, char** argv)
         directionalLight->name = "directional";
         directionalLight->color.set(1.0, 1.0, 1.0);
         directionalLight->intensity = 0.8;
-        directionalLight->direction.set(0.0, -1.0, -1.0);
+        directionalLight->direction.set( -.9397, 0.0, -.340);
         vsg_scene->addChild(directionalLight);
 
         vsg::Path path;
@@ -231,8 +231,13 @@ int main(int argc, char** argv)
             }
             viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
         }
+        auto commandGraph = vsg::CommandGraph::create(window);
+        auto renderGraph = vsg::RenderGraph::create(window);
+        commandGraph->addChild(renderGraph);
 
-        auto commandGraph = vsg::createCommandGraphForView(window, camera, vsg_scene);
+        auto view = vsg::View::create(camera);
+        view->addChild(vsg_scene);
+        renderGraph->addChild(view);
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
         viewer->compile();
 
