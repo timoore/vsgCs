@@ -19,6 +19,7 @@ set(SOURCES
   CesiumGltfBuilder.cpp
   CompilableImage.cpp
   DescriptorSetConfigurator.cpp
+  ImageComponent.cpp
   MultisetPipelineConfigurator.cpp
   OpThreadTaskProcessor.cpp
   TilesetNode.cpp
@@ -39,7 +40,7 @@ set_target_properties(${LIB_NAME} PROPERTIES
 
 target_include_directories(${LIB_NAME} PRIVATE ${CURL_INCLUDE_DIR})
 
-target_link_libraries(${LIB_NAME} vsg::vsg cesium::3DTilesSelection cesium::GltfReader cesium::Gltf ${CURL_LIBRARIES})
+target_link_libraries(${LIB_NAME} vsg::vsg vsgImGui::vsgImGui cesium::3DTilesSelection cesium::GltfReader cesium::Gltf ${CURL_LIBRARIES})
 
 target_compile_definitions(${LIB_NAME} PRIVATE vsgXchange_FOUND)
 

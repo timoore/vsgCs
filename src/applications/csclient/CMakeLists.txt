@@ -1,5 +1,6 @@
 set(SOURCES
-    csclient.cpp
+  csclient.cpp
+  UI.cpp
 )
 
 SET(TARGET_SRC ${SOURCES})
@@ -10,7 +11,7 @@ add_executable(csclient ${SOURCES})
 
 target_link_libraries(csclient vsgCs vsg::vsg)
 
-target_link_libraries(csclient vsgXchange::vsgXchange)
+target_link_libraries(csclient vsgXchange::vsgXchange vsgImGui::vsgImGui)
 
 install(TARGETS csclient
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}

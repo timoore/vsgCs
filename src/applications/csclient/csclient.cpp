@@ -4,6 +4,10 @@
 
 #include <vsgXchange/all.h>
 
+#include <vsgImGui/RenderImGui.h>
+#include <vsgImGui/SendEventsToImGui.h>
+#include <vsgImGui/imgui.h>
+
 #include <algorithm>
 #include <chrono>
 #include <iostream>
@@ -11,6 +15,7 @@
 
 #include "vsgCs/TilesetNode.h"
 #include "vsgCs/CSOverlay.h"
+#include "UI.h"
 
 int main(int argc, char** argv)
 {
@@ -44,7 +49,6 @@ int main(int argc, char** argv)
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         bool useEllipsoidPerspective = !arguments.read({"--disble-EllipsoidPerspective", "--dep"});
         arguments.read("--file-cache", options->fileCache);
-        bool osgEarthStyleMouseButtons = arguments.read({"--osgearth", "-e"});
 
         uint32_t numOperationThreads = 0;
         if (arguments.read("--ot", numOperationThreads)) options->operationThreads = vsg::OperationThreads::create(numOperationThreads);
@@ -193,44 +197,9 @@ int main(int argc, char** argv)
         {
             perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
         }
-
-
-
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
-        auto trackball = vsg::Trackball::create(camera, ellipsoidModel);
-
-        // add close handler to respond the close window button and pressing escape
-        viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-
-        if (pathFilename.empty())
-        {
-            trackball->addKeyViewpoint(vsg::KeySymbol('1'), 51.50151088842245, -0.14181489107549874, 2000.0, 2.0); // Grenwish Observatory
-            trackball->addKeyViewpoint(vsg::KeySymbol('2'), 55.948642740309324, -3.199226855522667, 2000.0, 2.0);  // Edinburgh Castle
-            trackball->addKeyViewpoint(vsg::KeySymbol('3'), 48.858264952330764, 2.2945039609604665, 2000.0, 2.0);  // Eiffel Town, Paris
-            trackball->addKeyViewpoint(vsg::KeySymbol('4'), 52.5162603714634, 13.377684902745642, 2000.0, 2.0);    // Brandenburg Gate, Berlin
-            trackball->addKeyViewpoint(vsg::KeySymbol('5'), 30.047448591298807, 31.236319571791213, 10000.0, 2.0); // Cairo
-            trackball->addKeyViewpoint(vsg::KeySymbol('6'), 35.653099536061156, 139.74704060056993, 10000.0, 2.0); // Tokyo
-            trackball->addKeyViewpoint(vsg::KeySymbol('7'), 37.38701052699002, -122.08555895549424, 10000.0, 2.0); // Mountain View, California
-            trackball->addKeyViewpoint(vsg::KeySymbol('8'), 40.689618207006355, -74.04465595488215, 10000.0, 2.0); // Empire State Building
-            trackball->addKeyViewpoint(vsg::KeySymbol('9'), 25.997055873649554, -97.15543476551771, 1000.0, 2.0);  // Boca Chica, Taxas
-            if (osgEarthStyleMouseButtons)
-            {
-                trackball->panButtonMask = vsg::BUTTON_MASK_1;
-                trackball->rotateButtonMask = vsg::BUTTON_MASK_2;
-                trackball->zoomButtonMask = vsg::BUTTON_MASK_3;
-            }
-            viewer->addEventHandler(trackball);
-        }
-        else
-        {
-            auto animationPath = vsg::read_cast<vsg::AnimationPath>(pathFilename, options);
-            if (!animationPath)
-            {
-                std::cout<<"Warning: unable to read animation path : "<<pathFilename<<std::endl;
-                return 1;
-            }
-            viewer->addEventHandler(vsg::AnimationPathHandler::create(camera, animationPath, viewer->start_point()));
-        }
+        auto ui = vsgCs::UI::create();
+        ui->createUI(window, viewer, camera, ellipsoidModel, options, ionAsset >= 0);
         auto commandGraph = vsg::CommandGraph::create(window);
         auto renderGraph = vsg::RenderGraph::create(window);
         commandGraph->addChild(renderGraph);
@@ -238,8 +207,11 @@ int main(int argc, char** argv)
         auto view = vsg::View::create(camera);
         view->addChild(vsg_scene);
         renderGraph->addChild(view);
+
+        renderGraph->addChild(ui->getImGui());
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
         viewer->compile();
+        ui->compile(window, viewer);
 
         tilesetNode->initialize(viewer);
         
@@ -252,7 +224,7 @@ int main(int argc, char** argv)
             {
                 lookAt = vsgCs::makeLookAtFromTile(tilesetNode->getTileset()->getRootTile(),
                                                    poi_distance);
-                trackball->setViewpoint(lookAt, 1.0);
+                ui->setViewpoint(lookAt, 1.0);
                 setViewpointAfterLoad = false;
             }
             // pass any events into EventHandlers assigned to the Viewer
