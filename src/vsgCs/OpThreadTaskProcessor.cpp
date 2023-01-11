@@ -2,17 +2,26 @@
 
 namespace vsgCs
 {
-    CesiumAsync::AsyncSystem& getAsyncSystem() noexcept
+    AsyncSystemWrapper& getAsyncSystemWrapper()
     {
-        static CesiumAsync::AsyncSystem asyncSystem(
-            std::make_shared<OpThreadTaskProcessor>(4));
-        return asyncSystem;
+        static AsyncSystemWrapper wrapper;
+        return wrapper;
     }
-
-
-} // namespace vsgCs
+}
 
 using namespace vsgCs;
+
+AsyncSystemWrapper::AsyncSystemWrapper()
+    : taskProcessor(std::make_shared<OpThreadTaskProcessor>(4)),
+      asyncSystem(taskProcessor)
+{
+}
+
+void AsyncSystemWrapper::shutdown()
+{
+    asyncSystem.dispatchMainThreadTasks();
+    taskProcessor->stop();
+}
 
 class TaskOperation : public vsg::Inherit<vsg::Operation, TaskOperation>
 {
@@ -34,6 +43,11 @@ private:
 OpThreadTaskProcessor::OpThreadTaskProcessor(uint32_t numThreads)
 {
     _opthreads = vsg::OperationThreads::create(numThreads);
+}
+
+void OpThreadTaskProcessor::stop()
+{
+    _opthreads->stop();
 }
 
 OpThreadTaskProcessor::~OpThreadTaskProcessor()

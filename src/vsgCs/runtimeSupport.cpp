@@ -1,4 +1,5 @@
 #include "runtimeSupport.h"
+#include "OpThreadTaskProcessor.h"
 
 #include <Cesium3DTilesSelection/registerAllTileContentTypes.h>
 #include <Cesium3DTilesSelection/Tile.h>
@@ -9,6 +10,11 @@ namespace vsgCs
     void startup()
     {
         registerAllTileContentTypes();
+    }
+
+    void shutdown()
+    {
+        getAsyncSystemWrapper().shutdown();
     }
 
     vsg::ref_ptr<vsg::LookAt> makeLookAtFromTile(Cesium3DTilesSelection::Tile* tile,

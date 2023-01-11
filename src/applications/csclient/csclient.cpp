@@ -15,6 +15,7 @@
 
 #include "vsgCs/TilesetNode.h"
 #include "vsgCs/CSOverlay.h"
+#include "vsgCs/OpThreadTaskProcessor.h"
 #include "UI.h"
 
 int main(int argc, char** argv)
@@ -243,6 +244,7 @@ int main(int argc, char** argv)
             csoverlay->removeFromTileset(tilesetNode);
         }
         tilesetNode->shutdown();
+        vsgCs::shutdown();
     }
     catch (const vsg::Exception& ve)
     {

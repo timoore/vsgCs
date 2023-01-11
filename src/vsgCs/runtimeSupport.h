@@ -10,7 +10,9 @@
 namespace vsgCs
 {
     void VSGCS_EXPORT startup();
-    vsg::ref_ptr<vsg::LookAt> makeLookAtFromTile(Cesium3DTilesSelection::Tile* tile, double distance);
+    void VSGCS_EXPORT shutdown();
+    vsg::ref_ptr<vsg::LookAt> VSGCS_EXPORT makeLookAtFromTile(Cesium3DTilesSelection::Tile* tile,
+                                                              double distance);
 
     inline void setdmat4(vsg::dmat4& vmat, const glm::dmat4x4& glmmat)
     {
@@ -55,21 +57,20 @@ namespace vsgCs
         return true;
     }
 
-        template<class T>
-        vsg::ref_ptr<T> read_cast(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options = {})
+    template<class T>
+    vsg::ref_ptr<T> read_cast(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options = {})
+    {
+        static const vsg::Paths libraryPaths{VSGCS_FULL_DATA_DIR};
+        vsg::Path filePath = vsg::findFile(filename, options);
+        if (filePath.empty())
         {
-            static const vsg::Paths libraryPaths{VSGCS_FULL_DATA_DIR};
-            vsg::Path filePath = vsg::findFile(filename, options);
-            if (filePath.empty())
-            {
-                filePath = vsg::findFile(filename, libraryPaths);
-            }
-            if (filePath.empty())
-            {
-                return {};
-            }
-            auto object = read(filePath, options);
-            return vsg::ref_ptr<T>(dynamic_cast<T*>(object.get()));
+            filePath = vsg::findFile(filename, libraryPaths);
         }
-
+        if (filePath.empty())
+        {
+            return {};
+        }
+        auto object = read(filePath, options);
+        return vsg::ref_ptr<T>(dynamic_cast<T*>(object.get()));
+    }
 }
