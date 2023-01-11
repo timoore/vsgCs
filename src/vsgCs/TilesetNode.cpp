@@ -227,17 +227,7 @@ void TilesetNode::t_traverse(V& visitor) const
 
 void TilesetNode::traverse(vsg::Visitor& visitor)
 {
-    if (_viewUpdateResult)
-    {
-        for (auto itr = _viewUpdateResult->tilesToRenderThisFrame.begin();
-             itr != _viewUpdateResult->tilesToRenderThisFrame.end();
-             ++itr)
-        {
-            RenderResources *renderResources
-                = const_cast<RenderResources*>(reinterpret_cast<const RenderResources*>((*itr)->getContent().getRenderContent()));
-            renderResources->model->accept(visitor);
-        }
-    }
+    t_traverse(visitor);
 }
 
 void TilesetNode::traverse(vsg::ConstVisitor& visitor) const
