@@ -1,16 +1,15 @@
 cmake_minimum_required(VERSION 3.7)
-cmake_policy(SET CMP0022 NEW)
 
-project(vsgcs
-    VERSION 0.0.1
-    DESCRIPTION "VSG library for rendering Cesium Native assets"
+project(vsgCs
+    VERSION 0.0.2
+    DESCRIPTION "VSG library for rendering 3D Tiles and Cesium assets"
     LANGUAGES CXX C
 )
 set(VSGCS_SOVERSION 0)
 SET(VSGCS_RELEASE_CANDIDATE 0)
 
 # We have some custom .cmake scripts not in the official distribution.
-SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${vsgcs_SOURCE_DIR}/CMakeModules")
+SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${vsgCs_SOURCE_DIR}/CMakeModules")
 
 # set the use of C++17 globally as all examples require it
 set(CMAKE_CXX_STANDARD 17)
@@ -69,10 +68,11 @@ vsg_add_option_maintainer(
 
 # Make the headers visible to everything. This is not OSG / VSG style,
 # but we prefer that include files live next to their source files.
-include_directories(${vsgcs_SOURCE_DIR}/src ${GENERATED_HEADERS_DIR})
+include_directories(${vsgCs_SOURCE_DIR}/src ${GENERATED_HEADERS_DIR})
 
 # source directory for library and applications
 
 add_subdirectory(src)
+add_subdirectory(data)
 
 vsg_add_feature_summary()
