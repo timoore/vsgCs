@@ -42,7 +42,7 @@ set(VSGCS_DATA_DIR "${CMAKE_INSTALL_DATADIR}/vsgCs")
 set(VSGCS_FULL_DATA_DIR "${CMAKE_INSTALL_FULL_DATADIR}/vsgCs")
 
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/vsgCs/Config.h.in"
-  "${GENERATED_HEADERS_DIR}/vsgcs/Config.h")
+  "${GENERATED_HEADERS_DIR}/vsgCs/Config.h")
 
 vsg_add_target_clang_format(
   FILES
