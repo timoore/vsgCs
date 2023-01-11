@@ -9,9 +9,15 @@ find_package(CURL REQUIRED)
 set(LIB_NAME vsgCs)
 
 set(LIB_PUBLIC_HEADERS
+  ${GENERATED_HEADERS_DIR}/vsgCs/Config.h
+  CSOverlay.h
+  CesiumGltfBuilder.h
   Export.h
+  ImageComponent.h
+  LoadGltfResult.h
   TilesetNode.h
-  vsgResourcePreparer.h)
+  vsgResourcePreparer.h
+  runtimeSupport.h)
 
 set(SOURCES
   ${LIB_PUBLIC_HEADERS}

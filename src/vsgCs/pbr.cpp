@@ -11,6 +11,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 </editor-fold> */
 
 #include "pbr.h"
+#include "runtimeSupport.h"
 
 #include <vsg/core/Array.h>
 #include <vsg/core/Array2D.h>
@@ -40,12 +41,12 @@ namespace vsgCs {
 
         vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(vsg::ref_ptr<const vsg::Options> options)
         {
-            auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard.vert", options);
-            auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard_pbr.frag", options);
+            auto vertexShader = vsgCs::read_cast<vsg::ShaderStage>("shaders/csstandard.vert", options);
+            auto fragmentShader = vsgCs::read_cast<vsg::ShaderStage>("shaders/csstandard_pbr.frag", options);
 
             if (!vertexShader || !fragmentShader)
             {
-                vsg::error("pbr::makeShaderSet(...) could not find shaders.");
+                vsg::fatal("pbr::makeShaderSet(...) could not find shaders.");
                 return {};
             }
 

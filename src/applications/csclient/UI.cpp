@@ -5,6 +5,7 @@
 #include <vsgImGui/imgui.h>
 
 #include "vsgCs/Config.h"
+#include "vsgCs/runtimeSupport.h"
 
 
 using namespace vsgCs;
@@ -14,8 +15,8 @@ CSGuiComponent::CSGuiComponent(vsg::ref_ptr<vsg::Window> window,
     : usesIon(in_usesIon)
 {
     vsg::Path filename("images/Cesium_ion_256.png");
-    auto object = vsg::read(filename, options);
-    if (auto data = object.cast<vsg::Data>(); data)
+    auto data = vsgCs::read_cast<vsg::Data>(filename, options);
+    if (data)
     {
         ionLogo = ImageComponent::create(window, data);
     }
