@@ -81,7 +81,7 @@ int main(int argc, char** argv)
         auto directionalLight = vsg::DirectionalLight::create();
         directionalLight->name = "directional";
         directionalLight->color.set(1.0, 1.0, 1.0);
-        directionalLight->intensity = 0.8;
+        directionalLight->intensity = 1.6;
         directionalLight->direction.set( -.9397, 0.0, -.340);
         vsg_scene->addChild(directionalLight);
 
