@@ -70,6 +70,8 @@ int main(int argc, char** argv)
         auto ionTokenFile = arguments.value(std::string(), "--ion-token-file");
         auto tilesetUrl = arguments.value(std::string(), "--tileset-url");
         auto ionEndpointUrl = arguments.value(std::string(), "--ion-endpoint-url");
+        bool useHeadlight = !(arguments.read("--no-headlight"));
+
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
         auto vsg_scene = vsg::Group::create();
@@ -79,12 +81,15 @@ int main(int argc, char** argv)
         ambientLight->color.set(1.0, 1.0, 1.0);
         ambientLight->intensity = 0.2;
         vsg_scene->addChild(ambientLight);
-        auto directionalLight = vsg::DirectionalLight::create();
-        directionalLight->name = "directional";
-        directionalLight->color.set(1.0, 1.0, 1.0);
-        directionalLight->intensity = 1.6;
-        directionalLight->direction.set( -.9397, 0.0, -.340);
-        vsg_scene->addChild(directionalLight);
+        if (!useHeadlight)
+        {
+            auto directionalLight = vsg::DirectionalLight::create();
+            directionalLight->name = "directional";
+            directionalLight->color.set(1.0, 1.0, 1.0);
+            directionalLight->intensity = 1.0;
+            directionalLight->direction.set( -.9397, 0.0, -.340);
+            vsg_scene->addChild(directionalLight);
+        }
 
         // read any vsg files
         for (int i = 1; i < argc; ++i)
@@ -213,6 +218,10 @@ int main(int argc, char** argv)
         commandGraph->addChild(renderGraph);
 
         auto view = vsg::View::create(camera);
+        if (useHeadlight)
+        {
+            view->addChild(vsg::createHeadlight());
+        }
         view->addChild(vsg_scene);
         renderGraph->addChild(view);
 
@@ -261,5 +270,6 @@ int main(int argc, char** argv)
     }
 
     // clean up done automatically thanks to ref_ptr<>
+    // Hah!
     return 0;
 }
