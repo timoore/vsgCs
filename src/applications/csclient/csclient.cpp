@@ -111,6 +111,7 @@ int main(int argc, char** argv)
             }
         }
         vsgCs::startup();
+        windowTraits->swapchainPreferences.surfaceFormat = {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
         auto window = vsg::Window::create(windowTraits);
         auto deviceFeatures = vsgCs::TilesetNode::prepareDeviceFeatures(window);
         vsgCs::TilesetSource source;
@@ -215,6 +216,7 @@ int main(int argc, char** argv)
         ui->createUI(window, viewer, camera, ellipsoidModel, options, ionAsset >= 0);
         auto commandGraph = vsg::CommandGraph::create(window);
         auto renderGraph = vsg::RenderGraph::create(window);
+        renderGraph->setClearValues({{0.02899f, 0.02899f, 0.13321f}});
         commandGraph->addChild(renderGraph);
 
         auto view = vsg::View::create(camera);
