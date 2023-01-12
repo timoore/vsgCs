@@ -18,6 +18,36 @@
 #include "vsgCs/OpThreadTaskProcessor.h"
 #include "UI.h"
 
+void usage(const char* name)
+{
+    std::cout
+        << "\nUsage: " << name << " <options> [model files]...\n\n"
+        << "where options include:\n"
+        << "--ion-asset asset_id\t asset id of tileset on ion server\n"
+        << "--ion-overlay asset_id\t asset id of overlay for tileset\n"
+        << "--ion-token token_string user's Cesium ion token\n"
+        << "--ion-token-file filename file containing user's ion token\n"
+        << "--tileset-url url\t URL for a tileset\n"
+        << "--ion-endpoint-url url\t URL for an ion server. Defaults to Cesium's\n"
+        << "--no-headlight\t\t Fix lighting at noon GMT in summer\n"
+        << "--debug|-d\t\t load Vulkan debug layer\n"
+        << "--api|-a\t\t load Vulkan dump layer\n"
+        << "--IMMEDIATE\t\t set swapchain present mode to VK_PRESENT_MODE_IMMEDIATE_KHR\n"
+        << "--fullscreen|--fs\t fullscreen window\n"
+        << "--window|-w width height set window dimensions\n"
+        << "--screen number\n"
+        << "--display number\n"
+        << "--samples n\t\t enable multisamples with n samples\n"
+        << "-f numFrames\t\t run for numFrames and exit\n"
+        << "--hmh height\t\t horizon mountain height for ellipsoid perspective viewing\n"
+        << "--disble-EllipsoidPerspective|--dep disable ellipsoid perspective\n"
+        << "--file-cache path\t VSG file cache\n"
+        << "--ot numThreads\t\t number of operation threads\n"
+        << "--poi lat lon\t\t coordinates of initial point of interest\n"
+        << "--distance dist\t\t distance from point of interest\n"
+        << "--help\t\t\t print this message\n";
+}
+
 int main(int argc, char** argv)
 {
     try
@@ -25,6 +55,11 @@ int main(int argc, char** argv)
         // set up defaults and read command line arguments to override them
         vsg::CommandLine arguments(&argc, argv);
 
+        if (arguments.read({"--help", "-h", "-?"}))
+        {
+            usage(argv[0]);
+            return 0;
+        }
         // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
         auto options = vsg::Options::create();
         options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
