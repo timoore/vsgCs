@@ -13,6 +13,12 @@ namespace vsgCs
         // The overlay uniform structure.
         struct OverlayParams
         {
+            OverlayParams()
+                : enabled(0), coordIndex(0)
+            {
+                pad[0] = 0;
+                pad[1] = 0;
+            }
             vsg::vec2 translation;
             vsg::vec2 scale;
             uint32_t enabled;

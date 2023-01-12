@@ -1249,7 +1249,6 @@ struct RasterData
     RasterData()
         : element(0)
     {
-        overlayParams.enabled = 0;
     }
 };
 
@@ -1265,10 +1264,6 @@ vsg::ref_ptr<vsg::StateCommand> Rasters::makeRastersCommand(CesiumGltfBuilder& b
     vsg::ref_ptr<DescriptorSetConfigurator> descriptorBuilder
         = DescriptorSetConfigurator::create(1, builder.getOrCreatePbrShaderSet());
     pbr::OverlayUniformMem overlayParams;
-    for (int i = 0; i < 2; ++i)
-    {
-        overlayParams[i].enabled = 0;
-    }
     for (auto& overlayRaster : overlayRasters)
     {
         auto& rasterData = overlayRaster.second;
