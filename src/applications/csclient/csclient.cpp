@@ -67,6 +67,7 @@ int main(int argc, char** argv)
         int64_t ionAsset = arguments.value<int64_t>(-1L, "--ion-asset");
         int64_t ionOverlay = arguments.value<int64_t>(-1L, "--ion-overlay");
         auto ionToken = arguments.value(std::string(), "--ion-token");
+        auto ionTokenFile = arguments.value(std::string(), "--ion-token-file");
         auto tilesetUrl = arguments.value(std::string(), "--tileset-url");
         auto ionEndpointUrl = arguments.value(std::string(), "--ion-endpoint-url");
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -108,6 +109,15 @@ int main(int argc, char** argv)
         auto window = vsg::Window::create(windowTraits);
         auto deviceFeatures = vsgCs::TilesetNode::prepareDeviceFeatures(window);
         vsgCs::TilesetSource source;
+        if (!ionTokenFile.empty())
+        {
+            // Slurp it in.
+            std::ifstream infile(ionTokenFile);
+            if (!infile || !std::getline(infile, ionToken))
+            {
+                vsg::fatal("Can't read ion token file ", ionTokenFile);
+            }
+        }
         if (!tilesetUrl.empty())
         {
             source.url = tilesetUrl;
