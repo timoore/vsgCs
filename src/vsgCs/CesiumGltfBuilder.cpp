@@ -476,11 +476,11 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     std::string name = _name;
     std::ptrdiff_t meshNum = mesh - &_model->meshes[0];
     std::ptrdiff_t primNum = primitive - &mesh->primitives[0];
-    if (meshNum >= 0 && meshNum < _model->meshes.size())
+    if (meshNum >= 0 && static_cast<size_t>(meshNum) < _model->meshes.size())
     {
         name += " mesh " + std::to_string(meshNum);
     }
-    if (primNum >= 0 && primNum < mesh->primitives.size())
+    if (primNum >= 0 && static_cast<size_t>(primNum) < mesh->primitives.size())
     {
         name += " primitive " + std::to_string(primNum);
     }
@@ -1288,7 +1288,7 @@ vsg::ref_ptr<vsg::StateCommand> Rasters::makeRastersCommand(CesiumGltfBuilder& b
     return bindDescriptorSet;
  }
 
-vsg::ref_ptr<vsg::Command> CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection::Tile& tile,
+vsg::ref_ptr<vsg::Command> CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection::Tile&,
                                                            vsg::ref_ptr<vsg::Node> node,
                                                            int32_t overlayTextureCoordinateID,
                                                            const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
@@ -1350,9 +1350,9 @@ vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::makeDefaultTexture()
 }
 
 std::pair<vsg::ref_ptr<vsg::Command>, vsg::ref_ptr<vsg::Command>>
-CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile& tile,
+CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile&,
                                 vsg::ref_ptr<vsg::Node> node,
-                                int32_t overlayTextureCoordinateID,
+                                int32_t,
                                 const Cesium3DTilesSelection::RasterOverlayTile& rasterTile)
 {
     vsg::ref_ptr<vsg::MatrixTransform> matrixTransform = node.cast<vsg::MatrixTransform>();

@@ -85,13 +85,10 @@ int main(int argc, char** argv)
         directionalLight->direction.set( -.9397, 0.0, -.340);
         vsg_scene->addChild(directionalLight);
 
-        vsg::Path path;
-
         // read any vsg files
         for (int i = 1; i < argc; ++i)
         {
             vsg::Path filename = arguments[i];
-            path = vsg::filePath(filename);
 
             auto object = vsg::read(filename, options);
             if (auto node = object.cast<vsg::Node>(); node)
