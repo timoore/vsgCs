@@ -1,6 +1,6 @@
 MIT License
 
-Copyright (c) 2022 Timothy Moore
+Copyright (c) 2022-2023 Timothy Moore
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
