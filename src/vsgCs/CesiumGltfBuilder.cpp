@@ -615,9 +615,16 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     drawCommand->setValue("name", name);
     if (mat->blending)
     {
-        // XXX figure out what this means someday
+        // figure out what this means someday...
+        // These are parameters for blending into the first color attachment in the render
+        // pass. While this set of parameters implements bog-standard alpha blending, should they be
+        // buried at this low level?
+        //
+        // Note that this will work for any "compatible" render pass too.
         config->colorBlendState->attachments = vsg::ColorBlendState::ColorBlendAttachments{
-            {true, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_SUBTRACT, VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT}};
+            {true, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD,
+             VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_SUBTRACT,
+             VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT}};
         _builder->_sharedObjects->share(config->colorBlendState);
     }
     if (mat->two_sided)
