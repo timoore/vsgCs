@@ -198,6 +198,8 @@ namespace vsgCs
             }
             return false;
         }
+        std::string makeName(const CesiumGltf::Mesh* mesh, const CesiumGltf::MeshPrimitive* primitive);
+
         CesiumGltfBuilder* _builder;
         CesiumGltf::Model* _model;
         std::string _name;
