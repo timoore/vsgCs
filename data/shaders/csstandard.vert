@@ -1,7 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
 
-#pragma import_defines (VSG_INSTANCE_POSITIONS, VSG_DISPLACEMENT_MAP)
+#pragma import_defines (VSG_INSTANCE_POSITIONS, VSG_DISPLACEMENT_MAP, VSGCS_FLAT_SHADING)
 
 layout(push_constant) uniform PushConstants {
     mat4 projection;
@@ -21,7 +21,11 @@ layout(location = 3) in vec3 vsg_position;
 layout(location = 4) in vec2 vsg_TexCoord[4];
 
 layout(location = 0) out vec3 eyePos;
+#ifdef VSGCS_FLAT_SHADING
+layout(location = 1) flat out vec3 normalDir;
+#else
 layout(location = 1) out vec3 normalDir;
+#endif
 layout(location = 2) out vec4 vertexColor;
 layout(location = 3) out vec3 viewDir;
 layout(location = 4) out vec2 texCoord[4];

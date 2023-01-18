@@ -102,6 +102,58 @@ namespace
         const std::string suffix = s.substr(s.length() - suffixLength, suffixLength);
         return prefix + ellipsis + suffix;
     }
+
+    bool generateNormals(vsg::ref_ptr<vsg::vec3Array> positions, vsg::ref_ptr<vsg::vec3Array> normals,
+                         VkPrimitiveTopology topology)
+    {
+        auto setNormals =
+            [&](uint32_t p0, uint32_t p1, uint32_t p2)
+            {
+                vsg::vec3 v0 = (*positions)[p1] - (*positions)[p0];
+                vsg::vec3 v1 = (*positions)[p2] - (*positions)[p0];
+                vsg::vec3 perp = vsg::cross(v0, v1);
+                float len = vsg::length(perp);
+                if (len > 0.0f)
+                {
+                    perp = perp / len;
+                }
+                else
+                {
+                    // The edges are parallel and the triangle is degenerate. Try to construct
+                    // something perpendicular to the edges.
+                    perp = vsg::vec3(-v0.y, v0.x, 0.0);
+                    len = vsg::length(perp);
+                    if (len > 0.0f)
+                    {
+                        perp = perp / len;
+                    }
+                    else
+                    {
+                        perp = vsg::vec3(0.0f, 1.0f, 0.0f);
+                    }
+                }
+                (*normals)[p0] = perp;
+                if (topology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
+                {
+                    (*normals)[p1] = perp;
+                    (*normals)[p2] = perp;
+                }
+            };
+        switch (topology)
+        {
+        case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST:
+            mapTriangleList(positions->size(), setNormals);
+            return true;
+        case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY:
+            mapTriangleStrip(positions->size(), setNormals);
+            return true;
+        case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN:
+            mapTriangleFan(positions->size(), setNormals);
+            return true;
+        default:
+            return false;
+        }
+    }
 }
 
 inline VkDescriptorSetLayoutBinding getVk(const vsg::UniformBinding& binding)
@@ -674,11 +726,18 @@ vsg::ref_ptr<vsg::Data> createData(Model* model, const A* dataAccessor, const I*
     }
 }
 
+// I naively wrote the below comment:
+// 
 // Lots of hair for this in cesium-unreal. The main issues there seem to be 1) the need to recopy
 // indices into a single format in Unreal and 2) support for duplicating vertices for generating
 // normals and tangents. 1) isn't much of a problem (though uint8 is only supported with an
 // extension), and 2) will be dealt with later. If we need to duplicate vertices, we will do that on
 // the VSG data structures.
+//
+// 500 lines of code later, we have plenty of hair for duplicating vertex data,
+// generating normals, recopying into the right data format... Most of our hair
+// is in template functions, but there is a kind of conservation of hair going
+// on here.
 
 namespace
 {
@@ -747,17 +806,19 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     vsg::DataList vertexArrays;
     auto positions = createData(_model, pPositionAccessor, expansionIndices);
     config->assignArray(vertexArrays, "vsg_Vertex", VK_VERTEX_INPUT_RATE_VERTEX, positions);
+    vsg::ref_ptr<vsg::vec3Array> normals;
     if (normalAccessor)
     {
-        auto normals = createData(_model, normalAccessor, expansionIndices);
-        config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX, normals);
+        normals = ref_ptr_cast<vsg::vec3Array>(createData(_model, normalAccessor, expansionIndices));
     }
     else
     {
-        vsg::warn(name, ": Invalid normal buffer. Flat normal will be auto-generated... someday");
-        auto normal = vsg::vec3Value::create(vsg::vec3(0.0f, 0.0f, 1.0f));
-        config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_INSTANCE, normal);
+        auto posArray = ref_ptr_cast<vsg::vec3Array>(positions);
+        normals = vsg::vec3Array::create(posArray->size());
+        generateNormals(posArray, normals, config->inputAssemblyState->topology);
+        config->shaderHints->defines.insert("VSGCS_FLAT_SHADING");
     }
+    config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX, normals);
 
     // XXX
     // The VSG PBR shader doesn't use vertex tangent data, so we will skip the Cesium Unreal hair
@@ -860,7 +921,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     vdsl = _builder->_sharedObjects->shared_default<vsg::ViewDescriptorSetLayout>();
     config->additionalDescriptorSetLayout = vdsl;
 
-    config->init(mat->defines);
+    config->init(config->shaderHints->defines);
     _builder->_sharedObjects->share(config->bindGraphicsPipeline);
 
     auto stateGroup = vsg::StateGroup::create();

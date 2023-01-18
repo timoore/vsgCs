@@ -81,6 +81,9 @@ namespace vsgCs
         return true;
     }
 
+    /**
+     * @brief call vsg::read_cast using vsgCs' data directory first.
+     */
     template<class T>
     vsg::ref_ptr<T> read_cast(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options = {})
     {
@@ -97,4 +100,50 @@ namespace vsgCs
         auto object = read(filePath, options);
         return vsg::ref_ptr<T>(dynamic_cast<T*>(object.get()));
     }
+
+    /**
+     * @brief Creates a vsg::ref_ptr to a subclass using dynamic_cast from another ref_ptr.
+     *
+     * The VSG cast() member function templates use typeid, so they won't work if the actual object
+     * is a sublcass of the desired cast.
+     * @param TSubclass the target subclass
+     * @param p the source ref_ptr
+     * @return a ref_ptr that is valid if the cast succeeds, otherwise not.
+     */
+    template<typename TSubclass, typename TParent>
+    vsg::ref_ptr<TSubclass> ref_ptr_cast(const vsg::ref_ptr<TParent>& p)
+    {
+        return vsg::ref_ptr<TSubclass>(dynamic_cast<TSubclass*>(p.get()));
+    }
+
+    // Templates for calling a function with the vertex indices of a triangle in the various
+    // formats.
+
+    template<typename F>
+    void mapTriangleList(uint32_t numVertices, F&& f)
+    {
+        for (uint32_t i = 0; i < numVertices; i += 3)
+        {
+            f(i, i + 1, i + 2);
+        }
+    }
+
+    template<typename F>
+    void mapTriangleStrip(uint32_t numVertices, F&& f)
+    {
+        for (uint32_t i = 0; i < numVertices - 2; ++i)
+        {
+            f(i, i + 1 + (i % 2), i + 2 - (i % 2));
+        }
+    }
+
+    template<typename F>
+    void mapTriangleFan(uint32_t numVertices, F&& f)
+    {
+        for (uint32_t i = 0; i < numVertices - 2; ++i)
+        {
+            f(i + 1, i + 2, 0);
+        }
+    }
+
 }

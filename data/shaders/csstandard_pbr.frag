@@ -1,6 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
-#pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSACLE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSGCS_OVERLAY_MAPS, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS)
+#pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSACLE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSGCS_OVERLAY_MAPS, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, VSGCS_FLAT_SHADING)
 
 const float PI = 3.14159265359;
 const float RECIPROCAL_PI = 0.31830988618;
@@ -74,7 +74,11 @@ layout(set = 0, binding = 0) uniform LightData
 } lightData;
 
 layout(location = 0) in vec3 eyePos;
+#ifdef VSGCS_FLAT_SHADING
+layout(location = 1) flat in vec3 normalDir;
+#else
 layout(location = 1) in vec3 normalDir;
+#endif
 layout(location = 2) in vec4 vertexColor;
 layout(location = 3) in vec3 viewDir;
 layout(location = 4) in vec2 texCoord[4];
