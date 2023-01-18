@@ -789,7 +789,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     auto convertedMaterial = loadMaterial(materialID);
     auto mat = convertedMaterial->descriptorConfig;
     auto config = MultisetPipelineConfigurator::create(mat->shaderSet);
-    config->shaderHints->defines = mat->defines;
+    config->defines() = mat->defines;
     bool generateTangents = convertedMaterial->texInfo.count("normalMap") != 0
         && primitive->attributes.count("TANGENT") == 0;
     if (!gltfToVk(primitive->mode, config->inputAssemblyState->topology))
@@ -917,11 +917,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         config->descriptorSetLayout = mat->descriptorSet->setLayout;
         config->descriptorBindings = mat->descriptorBindings;
     }
-    vsg::ref_ptr<vsg::ViewDescriptorSetLayout> vdsl;
-    vdsl = _builder->_sharedObjects->shared_default<vsg::ViewDescriptorSetLayout>();
-    config->additionalDescriptorSetLayout = vdsl;
-
-    config->init(config->shaderHints->defines);
+    config->init();
     _builder->_sharedObjects->share(config->bindGraphicsPipeline);
 
     auto stateGroup = vsg::StateGroup::create();

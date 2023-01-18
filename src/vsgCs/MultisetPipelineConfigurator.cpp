@@ -95,11 +95,11 @@ MultisetPipelineConfigurator::MultisetPipelineConfigurator(vsg::ref_ptr<vsg::Sha
 {
 }
 
-void MultisetPipelineConfigurator::init(std::set<std::string> defines)
+void MultisetPipelineConfigurator::init()
 {
     Inherit::init();
     // Now redo the layout creation
-    layout = makePipelineLayout(shaderSet, defines);
+    layout = makePipelineLayout(shaderSet, defines());
     graphicsPipeline = vsg::GraphicsPipeline::create(layout, graphicsPipeline->stages, graphicsPipeline->pipelineStates,
                                                      graphicsPipeline->subpass);
     bindGraphicsPipeline = vsg::BindGraphicsPipeline::create(graphicsPipeline);
