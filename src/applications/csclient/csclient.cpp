@@ -43,6 +43,7 @@ SOFTWARE.
 #include "vsgCs/TilesetNode.h"
 #include "vsgCs/CSOverlay.h"
 #include "vsgCs/OpThreadTaskProcessor.h"
+#include "vsgCs/RuntimeEnvironment.h"
 #include "UI.h"
 
 void usage(const char* name)
@@ -57,19 +58,10 @@ void usage(const char* name)
         << "--tileset-url url\t URL for a tileset\n"
         << "--ion-endpoint-url url\t URL for an ion server. Defaults to Cesium's\n"
         << "--no-headlight\t\t Fix lighting at noon GMT in summer\n"
-        << "--debug|-d\t\t load Vulkan debug layer\n"
-        << "--api|-a\t\t load Vulkan dump layer\n"
-        << "--IMMEDIATE\t\t set swapchain present mode to VK_PRESENT_MODE_IMMEDIATE_KHR\n"
-        << "--fullscreen|--fs\t fullscreen window\n"
-        << "--window|-w width height set window dimensions\n"
-        << "--screen number\n"
-        << "--display number\n"
-        << "--samples n\t\t enable multisamples with n samples\n"
+        << vsgCs::RuntimeEnvironment::usage()
         << "-f numFrames\t\t run for numFrames and exit\n"
         << "--hmh height\t\t horizon mountain height for ellipsoid perspective viewing\n"
         << "--disble-EllipsoidPerspective|--dep disable ellipsoid perspective\n"
-        << "--file-cache path\t VSG file cache\n"
-        << "--ot numThreads\t\t number of operation threads\n"
         << "--poi lat lon\t\t coordinates of initial point of interest\n"
         << "--distance dist\t\t distance from point of interest\n"
         << "--help\t\t\t print this message\n";
@@ -88,33 +80,12 @@ int main(int argc, char** argv)
             return 0;
         }
         // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
-        auto options = vsg::Options::create();
-        options->fileCache = vsg::getEnv("VSG_FILE_CACHE");
-        options->paths = vsg::getEnvPaths("VSG_FILE_PATH");
-
-        // add vsgXchange's support for reading and writing 3rd party file formats
-        options->add(vsgXchange::all::create());
-
-        arguments.read(options);
-
-        auto windowTraits = vsg::WindowTraits::create();
-        windowTraits->windowTitle = "csclient";
-        windowTraits->debugLayer = arguments.read({"--debug", "-d"});
-        windowTraits->apiDumpLayer = arguments.read({"--api", "-a"});
-        if (arguments.read("--IMMEDIATE")) windowTraits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-        if (arguments.read({"--fullscreen", "--fs"})) windowTraits->fullscreen = true;
-        if (arguments.read({"--window", "-w"}, windowTraits->width, windowTraits->height)) { windowTraits->fullscreen = false; }
-        arguments.read("--screen", windowTraits->screenNum);
-        arguments.read("--display", windowTraits->display);
-        arguments.read("--samples", windowTraits->samples);
+        auto environment = vsgCs::RuntimeEnvironment::get();
+        auto window = environment->openWindow(arguments, "csclient");
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value(std::string(), "-p");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         bool useEllipsoidPerspective = !arguments.read({"--disble-EllipsoidPerspective", "--dep"});
-        arguments.read("--file-cache", options->fileCache);
-
-        uint32_t numOperationThreads = 0;
-        if (arguments.read("--ot", numOperationThreads)) options->operationThreads = vsg::OperationThreads::create(numOperationThreads);
 
         const double invalid_value = std::numeric_limits<double>::max();
         double poi_latitude = invalid_value;
@@ -158,7 +129,7 @@ int main(int argc, char** argv)
         {
             vsg::Path filename = arguments[i];
 
-            auto object = vsg::read(filename, options);
+            auto object = vsg::read(filename, environment->options);
             if (auto node = object.cast<vsg::Node>(); node)
             {
                 vsg_scene->addChild(node);
@@ -173,9 +144,6 @@ int main(int argc, char** argv)
             }
         }
         vsgCs::startup();
-        windowTraits->swapchainPreferences.surfaceFormat = {VK_FORMAT_B8G8R8A8_SRGB, VK_COLOR_SPACE_SRGB_NONLINEAR_KHR};
-        auto window = vsg::Window::create(windowTraits);
-        auto deviceFeatures = vsgCs::TilesetNode::prepareDeviceFeatures(window);
         vsgCs::TilesetSource source;
         if (!ionTokenFile.empty())
         {
@@ -215,7 +183,7 @@ int main(int argc, char** argv)
         Cesium3DTilesSelection::TilesetOptions tileOptions;
         tileOptions.enableOcclusionCulling = false;
         tileOptions.forbidHoles = true;
-        auto tilesetNode = vsgCs::TilesetNode::create(deviceFeatures, source, tileOptions, options);
+        auto tilesetNode = vsgCs::TilesetNode::create(environment->features, source, tileOptions, environment->options);
         auto ellipsoidModel = vsg::EllipsoidModel::create();
         tilesetNode->setObject("EllipsoidModel", ellipsoidModel);
         // XXX need to detach this from the tileset before the program exits
@@ -275,7 +243,7 @@ int main(int argc, char** argv)
         }
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
         auto ui = vsgCs::UI::create();
-        ui->createUI(window, viewer, camera, ellipsoidModel, options, ionAsset >= 0);
+        ui->createUI(window, viewer, camera, ellipsoidModel, environment->options, ionAsset >= 0);
         auto commandGraph = vsg::CommandGraph::create(window);
         auto renderGraph = vsg::RenderGraph::create(window);
         renderGraph->setClearValues({{0.02899f, 0.02899f, 0.13321f}});

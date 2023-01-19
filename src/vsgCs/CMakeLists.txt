@@ -15,6 +15,7 @@ set(LIB_PUBLIC_HEADERS
   Export.h
   ImageComponent.h
   LoadGltfResult.h
+  RuntimeEnvironment.h
   TilesetNode.h
   vsgResourcePreparer.h
   runtimeSupport.h)
@@ -28,6 +29,7 @@ set(SOURCES
   ImageComponent.cpp
   MultisetPipelineConfigurator.cpp
   OpThreadTaskProcessor.cpp
+  RuntimeEnvironment.cpp
   TilesetNode.cpp
   UrlAssetAccessor.cpp
   runtimeSupport.cpp

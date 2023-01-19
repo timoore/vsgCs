@@ -71,64 +71,7 @@ void for_each_view(vsg::ref_ptr<vsg::Viewer> viewer, const F& f)
     }
 }
 
-TilesetDeviceFeatures TilesetNode::prepareDeviceFeatures(vsg::ref_ptr<vsg::Window> window)
-{
-    TilesetDeviceFeatures features;
-    if (window->getDevice())
-    {
-        vsg::warn("The Vulkan Device has already been created; features may or may not be enabled.");
-    }
-    auto traits = window->traits();
-    if (!traits->deviceFeatures)
-    {
-        traits->deviceFeatures = vsg::DeviceFeatures::create();
-    }
-    auto physDevice = window->getOrCreatePhysicalDevice();
-    auto indexFeature
-        = physDevice->getFeatures<VkPhysicalDeviceIndexTypeUint8FeaturesEXT,
-        VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT>();
-    if (indexFeature.indexTypeUint8 == 1)
-    {
-        traits->deviceExtensionNames.push_back(VK_EXT_INDEX_TYPE_UINT8_EXTENSION_NAME);
-        if (!traits->deviceFeatures)
-        {
-            traits->deviceFeatures = vsg::DeviceFeatures::create();
-        }
-        auto& indexFeatures
-            = traits->deviceFeatures->get<VkPhysicalDeviceIndexTypeUint8FeaturesEXT,
-                                          VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT>();
-        indexFeatures.indexTypeUint8 = 1;
-        features.indexTypeUint8 = true;
-    }
-    const auto& physFeatures = physDevice->getFeatures();
-    if (physFeatures.textureCompressionETC2)
-    {
-        features.textureCompressionETC2 = true;
-        traits->deviceFeatures->get().textureCompressionETC2 = 1;
-    }
-    if (physFeatures.textureCompressionASTC_LDR)
-    {
-        features.textureCompressionASTC_LDR = true;
-        traits->deviceFeatures->get().textureCompressionASTC_LDR = 1;
-    }
-    if (physFeatures.textureCompressionBC)
-    {
-        features.textureCompressionBC = true;
-        traits->deviceFeatures->get().textureCompressionBC = 1;
-    }
-    auto extensionProperties = physDevice->enumerateDeviceExtensionProperties();
-    for (VkExtensionProperties extension : extensionProperties)
-    {
-        if (!strcmp(extension.extensionName, VK_IMG_FORMAT_PVRTC_EXTENSION_NAME))
-        {
-            features.textureCompressionPVRTC = true;
-            traits->deviceExtensionNames.push_back(VK_IMG_FORMAT_PVRTC_EXTENSION_NAME);
-        }
-    }
-    return features;
-}
-
-TilesetNode::TilesetNode(const TilesetDeviceFeatures& deviceFeatures, const TilesetSource& source,
+TilesetNode::TilesetNode(const DeviceFeatures& deviceFeatures, const TilesetSource& source,
                          const Cesium3DTilesSelection::TilesetOptions& in_options,
                          vsg::ref_ptr<vsg::Options> vsgOptions)
     : _viewUpdateResult(nullptr), _tilesetsBeingDestroyed(0)

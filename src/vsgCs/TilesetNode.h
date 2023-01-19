@@ -16,6 +16,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "Cesium3DTilesSelection/Tileset.h"
 #include "Cesium3DTilesSelection/ViewUpdateResult.h"
 #include "Export.h"
+#include "RuntimeEnvironment.h"
 #include "runtimeSupport.h"
 #include "vsgResourcePreparer.h"
 
@@ -27,15 +28,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 namespace vsgCs
 {
-    struct VSGCS_EXPORT TilesetDeviceFeatures
-    {
-        bool indexTypeUint8 = false;
-        bool textureCompressionETC2 = false;
-        bool textureCompressionASTC_LDR = false;
-        bool textureCompressionBC = false;
-        bool textureCompressionPVRTC = false;
-    };
-
     struct VSGCS_EXPORT TilesetSource
     {
         std::optional<std::string> url;
@@ -49,16 +41,12 @@ namespace vsgCs
     public:
         static vsg::dmat4 zUp2yUp;
         static vsg::dmat4 yUp2zUp;
-    
-        TilesetNode(const TilesetDeviceFeatures& deviceFeatures, const TilesetSource& source,
+
+        TilesetNode(const DeviceFeatures& deviceFeatures, const TilesetSource& source,
                     const Cesium3DTilesSelection::TilesetOptions& tilesetOptions,
                     vsg::ref_ptr<vsg::Options> options);
         ~TilesetNode() override;
-        /**
-         * @brief Set up the window traits to create the Vulkan Device with the desired features, etc.,
-         * @returns features that are actually available for Cesium and vsgCs.
-         */
-        static TilesetDeviceFeatures prepareDeviceFeatures(vsg::ref_ptr<vsg::Window> window);
+
         /**
          * @brief Load the tileset, set up recurring VSG tasks, and perform any other necessary
          * initialization. This calls updateViews().
