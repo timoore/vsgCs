@@ -53,8 +53,6 @@ void usage(const char* name)
         << "where options include:\n"
         << "--ion-asset asset_id\t asset id of tileset on ion server\n"
         << "--ion-overlay asset_id\t asset id of overlay for tileset\n"
-        << "--ion-token token_string user's Cesium ion token\n"
-        << "--ion-token-file filename file containing user's ion token\n"
         << "--tileset-url url\t URL for a tileset\n"
         << "--ion-endpoint-url url\t URL for an ion server. Defaults to Cesium's\n"
         << "--no-headlight\t\t Fix lighting at noon GMT in summer\n"
@@ -99,8 +97,6 @@ int main(int argc, char** argv)
         }
         int64_t ionAsset = arguments.value<int64_t>(-1L, "--ion-asset");
         int64_t ionOverlay = arguments.value<int64_t>(-1L, "--ion-overlay");
-        auto ionToken = arguments.value(std::string(), "--ion-token");
-        auto ionTokenFile = arguments.value(std::string(), "--ion-token-file");
         auto tilesetUrl = arguments.value(std::string(), "--tileset-url");
         auto ionEndpointUrl = arguments.value(std::string(), "--ion-endpoint-url");
         bool useHeadlight = !(arguments.read("--no-headlight"));
@@ -145,15 +141,6 @@ int main(int argc, char** argv)
         }
         vsgCs::startup();
         vsgCs::TilesetSource source;
-        if (!ionTokenFile.empty())
-        {
-            // Slurp it in.
-            std::ifstream infile(ionTokenFile);
-            if (!infile || !std::getline(infile, ionToken))
-            {
-                vsg::fatal("Can't read ion token file ", ionTokenFile);
-            }
-        }
         if (!tilesetUrl.empty())
         {
             source.url = tilesetUrl;
@@ -166,7 +153,7 @@ int main(int argc, char** argv)
                 return 1;
             }
             source.ionAssetID = ionAsset;
-            source.ionAccessToken = ionToken;
+            source.ionAccessToken = environment->ionAccessToken;
             if (!ionEndpointUrl.empty())
             {
                 source.ionAssetEndpointUrl = ionEndpointUrl;
@@ -190,7 +177,7 @@ int main(int argc, char** argv)
         vsg::ref_ptr<vsgCs::CSIonRasterOverlay> csoverlay;
         if (ionOverlay > 0)
         {
-            csoverlay = vsgCs::CSIonRasterOverlay::create(ionOverlay, ionToken);
+            csoverlay = vsgCs::CSIonRasterOverlay::create(ionOverlay, environment->ionAccessToken);
             csoverlay->addToTileset(tilesetNode);
         }
 

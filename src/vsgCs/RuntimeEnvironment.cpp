@@ -73,12 +73,45 @@ vsg::ref_ptr<vsg::WindowTraits> RuntimeEnvironment::initializeTraits(vsg::Comman
     return traits;
 }
 
+void RuntimeEnvironment::initializeCs(vsg::CommandLine& arguments)
+{
+    ionAccessToken = arguments.value(std::string(), "--ion-token");
+    auto ionTokenFile = arguments.value(std::string(), "--ion-token-file");
+    if (!ionAccessToken.empty() && !ionTokenFile.empty())
+    {
+        vsg::warn("--ion-token and --ion-token-file both specified; using --ion-token");
+    }
+    if (ionAccessToken.empty() && !ionTokenFile.empty())
+    {
+        // Slurp it in.
+        std::ifstream infile(ionTokenFile);
+        if (!infile || !std::getline(infile, ionAccessToken))
+        {
+            vsg::fatal("Can't read ion token file ", ionTokenFile);
+        }
+    }
+}
+
+void RuntimeEnvironment::initialize(vsg::CommandLine &arguments,
+                                    vsg::ref_ptr<vsg::WindowTraits> in_traits,
+                                    vsg::ref_ptr<vsg::Options> in_options)
+{
+    initializeOptions(arguments, in_options);
+    initializeTraits(arguments, in_traits);
+    initializeCs(arguments);
+}
+
 vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openSystemWindow(const std::string& name,
-                                                               vsg::ref_ptr<vsg::WindowTraits> in_traits)
+                                                               vsg::ref_ptr<vsg::WindowTraits> in_traits,
+                                                               vsg::ref_ptr<vsg::Options> in_options)
 {
     if (in_traits)
     {
         traits = in_traits;
+    }
+    if (in_options)
+    {
+        options = in_options;
     }
     traits->windowTitle = name;
     return vsg::Window::create(traits);
@@ -88,15 +121,7 @@ vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openSystemWindow(vsg::CommandLine&
                                                                vsg::ref_ptr<vsg::WindowTraits> in_traits,
                                                                vsg::ref_ptr<vsg::Options> in_options)
 {
-    if (in_options)
-    {
-        options = in_options;
-    }
-    else if (!options)
-    {
-        initializeOptions(arguments);
-    }
-    initializeTraits(arguments, in_traits);
+    initialize(arguments, in_traits, in_options);
     return openSystemWindow(name);
 }
 
@@ -155,9 +180,11 @@ DeviceFeatures RuntimeEnvironment::prepareFeaturesAndExtensions(vsg::ref_ptr<vsg
     return features;
 }
 
-vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openWindow(const std::string& name, vsg::ref_ptr<vsg::WindowTraits> in_traits)
+vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openWindow(const std::string& name,
+                                                         vsg::ref_ptr<vsg::WindowTraits> in_traits,
+                                                         vsg::ref_ptr<vsg::Options> in_options)
 {
-    auto result = openSystemWindow(name, in_traits);
+    auto result = openSystemWindow(name, in_traits, in_options);
     prepareFeaturesAndExtensions(result);
     return result;
 }
@@ -198,7 +225,14 @@ std::string RuntimeEnvironment::traitsUsage()
         "--samples n\t\t enable multisamples with n samples\n");
 }
 
+std::string RuntimeEnvironment::csUsage()
+{
+    return std::string(
+        "--ion-token token_string user's Cesium ion token\n"
+        "--ion-token-file filename file containing user's ion token\n");
+}
+
 std::string RuntimeEnvironment::usage()
 {
-    return optionsUsage() + traitsUsage();
+    return optionsUsage() + traitsUsage() + csUsage();
 }

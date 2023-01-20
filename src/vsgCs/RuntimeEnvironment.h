@@ -45,16 +45,23 @@ namespace vsgCs
     };
 
     /**
-     * Objects that are needed by vsgCs for initializing VSG and Vulkan.
+     * Objects that are needed by vsgCs for initializing VSG, Vulkan, Cesium Ion...
      */
     class VSGCS_EXPORT RuntimeEnvironment : public vsg::Inherit<vsg::Object, RuntimeEnvironment>
     {
         public:
-        vsg::ref_ptr<vsg::Options> initializeOptions(vsg::CommandLine& arguments, vsg::ref_ptr<vsg::Options> = {});
+        vsg::ref_ptr<vsg::Options> initializeOptions(vsg::CommandLine& arguments, vsg::ref_ptr<vsg::Options> options= {});
         vsg::ref_ptr<vsg::WindowTraits> initializeTraits(vsg::CommandLine& arguments,
                                                          vsg::ref_ptr< vsg::WindowTraits> traits = {});
+        void initializeCs(vsg::CommandLine& arguments);
+        // Parse all command line arguments and initalize everything
+        void initialize(vsg::CommandLine& arguments,
+                        vsg::ref_ptr<vsg::WindowTraits> traits = {},
+                        vsg::ref_ptr<vsg::Options> options = {});
         // Open window without creating a Vulkan logical device
-        vsg::ref_ptr<vsg::Window> openSystemWindow(const std::string& name, vsg::ref_ptr<vsg::WindowTraits> traits = {});
+        vsg::ref_ptr<vsg::Window> openSystemWindow(const std::string& name,
+                                                   vsg::ref_ptr<vsg::WindowTraits> traits = {},
+                                                   vsg::ref_ptr<vsg::Options> options = {});
         vsg::ref_ptr<vsg::Window> openSystemWindow(vsg::CommandLine& arguments, const std::string& name,
                                                    vsg::ref_ptr<vsg::WindowTraits> traits = {},
                                                    vsg::ref_ptr<vsg::Options> options = {});
@@ -70,7 +77,9 @@ namespace vsgCs
 
         DeviceFeatures prepareFeaturesAndExtensions(vsg::ref_ptr<vsg::Window> window);
         // Open window and prepare features and extensions for vsgCs.
-        vsg::ref_ptr<vsg::Window> openWindow(const std::string& name, vsg::ref_ptr<vsg::WindowTraits> traits = {});
+        vsg::ref_ptr<vsg::Window> openWindow(const std::string& name,
+                                             vsg::ref_ptr<vsg::WindowTraits> traits = {},
+                                             vsg::ref_ptr<vsg::Options> options = {});
         vsg::ref_ptr<vsg::Window> openWindow(vsg::CommandLine& arguments, const std::string& name,
                                              vsg::ref_ptr<vsg::WindowTraits> traits = {},
                                                    vsg::ref_ptr<vsg::Options> options = {});
@@ -80,12 +89,16 @@ namespace vsgCs
         /** @brief Usage message for vsg::WindowTraits command line parsing.
          */
         static std::string traitsUsage();
+        /** @brief Usage message for vsgCs command line parsing.
+         */
+        static std::string csUsage();
         /** @brief Usage message for command line options recognized by RuntimeEnvironment.
          */
         static std::string usage();
         vsg::ref_ptr<vsg::Options> options;
         vsg::ref_ptr<vsg::WindowTraits> traits;
         DeviceFeatures features;
+        std::string ionAccessToken;
         static vsg::ref_ptr<RuntimeEnvironment> get();
     };
 
