@@ -23,11 +23,14 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <memory>
 #include <optional>
 #include <string>
+#include <vector>
 #include <vsg/core/ref_ptr.h>
 #include <vsg/io/Options.h>
 
 namespace vsgCs
 {
+    class CSOverlay;
+
     struct VSGCS_EXPORT TilesetSource
     {
         std::optional<std::string> url;
@@ -78,11 +81,16 @@ namespace vsgCs
         {
             return _tileset.get();
         }
+        // Add and delete overlays for which the Cesium overlay object has already been created. You
+        // probably don't want to call these; use CSOverlay::addTotileset instead.
+        void addOverlay(vsg::ref_ptr<CSOverlay> overlay);
+        void removeOverlay(vsg::ref_ptr<CSOverlay> overlay);
     protected:
         const Cesium3DTilesSelection::ViewUpdateResult* _viewUpdateResult;
         std::unique_ptr<Cesium3DTilesSelection::Tileset> _tileset;
         std::shared_ptr<vsgResourcePreparer> _resourcePreparer;
         std::shared_ptr<Cesium3DTilesSelection::CreditSystem> _creditSystem;
+        std::vector<vsg::ref_ptr<CSOverlay>> _overlays;
     private:
         template<class V> void t_traverse(V& visitor) const;
         int32_t _tilesetsBeingDestroyed;

@@ -41,10 +41,20 @@ namespace vsgCs
         int32_t MaximumSimultaneousTileLoads = 20;
         int64_t SubTileCacheBytes = 16 * 1024 * 1024;
         bool ShowCreditsOnScreen;
+        // I followed cesium-unreal's lead by making this an action to perform on an overlay; why not
+        // have TilesetNode do this?
         void addToTileset(vsg::ref_ptr<TilesetNode> tilesetNode);
         void removeFromTileset(vsg::ref_ptr<TilesetNode> tilesetNode);
         virtual Cesium3DTilesSelection::RasterOverlay* createOverlay(
             const Cesium3DTilesSelection::RasterOverlayOptions& options = {}) = 0;
+        CesiumUtility::IntrusivePointer<Cesium3DTilesSelection::RasterOverlay>& getOverlay()
+        {
+            return _rasterOverlay;
+        }
+        const CesiumUtility::IntrusivePointer<Cesium3DTilesSelection::RasterOverlay>& getOverlay() const
+        {
+            return _rasterOverlay;
+        }
     protected:
         CesiumUtility::IntrusivePointer<Cesium3DTilesSelection::RasterOverlay> _rasterOverlay;
         int32_t _overlaysBeingDestroyed = 0;

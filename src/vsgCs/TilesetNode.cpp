@@ -22,9 +22,10 @@ SOFTWARE.
 
 </editor-fold> */
 
+#include "CSOverlay.h"
 #include "TilesetNode.h"
-#include "UrlAssetAccessor.h"
 #include "OpThreadTaskProcessor.h"
+#include "UrlAssetAccessor.h"
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
@@ -156,6 +157,13 @@ void TilesetNode::shutdown()
 {
     if (_tileset)
     {
+        // Kind of gross, but the overlay is going to call TilesetNode::removeOverlay, which mutates
+        // the _overlays vector.
+        vsg::ref_ptr<TilesetNode> ref_this(this);
+        while (!_overlays.empty())
+        {
+            (*(_overlays.end() - 1))->removeFromTileset(ref_this);
+        }
         ++_tilesetsBeingDestroyed;
         _tileset->getAsyncDestructionCompleteEvent().thenInMainThread(
             [this]()
@@ -381,4 +389,16 @@ bool TilesetNode::initialize(vsg::ref_ptr<vsg::Viewer> viewer)
     viewer->addUpdateOperation(UpdateTileset::create(vsg::ref_ptr<TilesetNode>(this), viewer),
                                vsg::UpdateOperations::ALL_FRAMES);
     return true;
+}
+
+void TilesetNode::addOverlay(vsg::ref_ptr<CSOverlay> overlay)
+{
+    _overlays.push_back(overlay);
+    _tileset->getOverlays().add(overlay->getOverlay());
+}
+
+void TilesetNode::removeOverlay(vsg::ref_ptr<CSOverlay> overlay)
+{
+    _tileset->getOverlays().remove(overlay->getOverlay());
+    _overlays.erase(std::remove(_overlays.begin(), _overlays.end(), overlay), _overlays.end());
 }

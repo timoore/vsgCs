@@ -32,7 +32,6 @@ using namespace vsgCs;
 
 void CSOverlay::addToTileset(vsg::ref_ptr<TilesetNode> tilesetNode)
 {
-    Cesium3DTilesSelection::Tileset* tileset = tilesetNode->getTileset();
     Cesium3DTilesSelection::RasterOverlayOptions options{};
     options.maximumScreenSpaceError = this->MaximumScreenSpaceError;
     options.maximumSimultaneousTileLoads = this->MaximumSimultaneousTileLoads;
@@ -46,23 +45,22 @@ void CSOverlay::addToTileset(vsg::ref_ptr<TilesetNode> tilesetNode)
                 details.type <=
                 uint8_t(
                     Cesium3DTilesSelection::RasterOverlayLoadType::TileProvider));
-            // assert(this->_pTileset == details.pTileset);
+            assert(this->_pTileset == details.pTileset);
             vsg::warn(details.message);
         };
     _rasterOverlay = createOverlay(options);
       if (_rasterOverlay)
       {
-          tileset->getOverlays().add(_rasterOverlay);
+          tilesetNode->addOverlay(vsg::ref_ptr<CSOverlay>(this));
       }
 }
 
 void CSOverlay::removeFromTileset(vsg::ref_ptr<TilesetNode> tilesetNode)
 {
     ++_overlaysBeingDestroyed;
-    Cesium3DTilesSelection::Tileset* tileset = tilesetNode->getTileset();
     _rasterOverlay->getAsyncDestructionCompleteEvent(getAsyncSystem())
       .thenInMainThread([this]() { --this->_overlaysBeingDestroyed; });
-    tileset->getOverlays().remove(_rasterOverlay);
+    tilesetNode->removeOverlay(vsg::ref_ptr<CSOverlay>(this));
     _rasterOverlay = 0;
 }
 
