@@ -9,7 +9,7 @@ INCLUDE_DIRECTORIES(${Vulkan_INCLUDE_DIR})
 
 add_executable(csclient ${SOURCES})
 
-target_link_libraries(csclient vsgCs vsg::vsg)
+target_link_libraries(csclient vsgCs CsApp vsg::vsg)
 
 target_link_libraries(csclient vsgXchange::vsgXchange vsgImGui::vsgImGui)
 

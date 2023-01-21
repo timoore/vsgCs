@@ -22,6 +22,8 @@ SOFTWARE.
 
 </editor-fold> */
 
+#pragma once
+
 #include <vsg/all.h>
 #include <Cesium3DTilesSelection/Tile.h>
 #include <glm/gtc/type_ptr.hpp>
@@ -35,7 +37,7 @@ namespace vsgCs
 {
     void VSGCS_EXPORT startup();
     void VSGCS_EXPORT shutdown();
-    vsg::ref_ptr<vsg::LookAt> VSGCS_EXPORT makeLookAtFromTile(Cesium3DTilesSelection::Tile* tile,
+    vsg::ref_ptr<vsg::LookAt> VSGCS_EXPORT makeLookAtFromTile(const Cesium3DTilesSelection::Tile* tile,
                                                               double distance);
 
     inline void setdmat4(vsg::dmat4& vmat, const glm::dmat4x4& glmmat)
@@ -101,6 +103,11 @@ namespace vsgCs
         return vsg::ref_ptr<T>(dynamic_cast<T*>(object.get()));
     }
 
+    /**
+     * @brief Read an entire file as a string.
+     */
+    std::string readFile(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options = {});
+    
     /**
      * @brief Creates a vsg::ref_ptr to a subclass using dynamic_cast from another ref_ptr.
      *

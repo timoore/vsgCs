@@ -34,53 +34,6 @@ SOFTWARE.
 
 using namespace vsgCs;
 
-CSGuiComponent::CSGuiComponent(vsg::ref_ptr<vsg::Window> window,
-                               vsg::ref_ptr<vsg::Options> options, bool in_usesIon)
-    : usesIon(in_usesIon)
-{
-    vsg::Path filename("images/Cesium_ion_256.png");
-    auto data = vsgCs::read_cast<vsg::Data>(filename, options);
-    if (data)
-    {
-        ionLogo = ImageComponent::create(window, data);
-    }
-}
-
-void CSGuiComponent::compile(vsg::ref_ptr<vsg::Window>, vsg::ref_ptr<vsg::Viewer> viewer)
-{
-    // XXX Should probably use the context select function.
-    viewer->compileManager->compile(ionLogo);
-}
-
-bool CSGuiComponent::operator()()
-{
-    bool visibleComponents = false;
-    // Shamelessly copied from imgui_demo.cpp simple overlay
-    ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
-    const float PAD = 10.0f;
-    const ImGuiViewport* viewport = ImGui::GetMainViewport();
-    ImVec2 work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
-    ImVec2 work_size = viewport->WorkSize;
-    ImVec2 window_pos, window_pos_pivot;
-    window_pos.x = work_pos.x + PAD;
-    window_pos.y = work_pos.y + work_size.y - PAD;
-    window_pos_pivot.x =  0.0f;
-    window_pos_pivot.y =  1.0f;
-    ImGui::SetNextWindowPos(window_pos, ImGuiCond_Always, window_pos_pivot);
-    window_flags |= ImGuiWindowFlags_NoMove;
-    ImGui::SetNextWindowBgAlpha(0.0f); // Transparent background
-    ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
-    ImGui::Begin("vsgCS UI", nullptr, window_flags);
-    if (usesIon)
-    {
-        (*ionLogo)();
-        visibleComponents = true;
-    }
-    ImGui::End();
-    ImGui::PopStyleVar();
-    return visibleComponents;
-}
-
 bool UI::createUI(vsg::ref_ptr<vsg::Window> window,
                   vsg::ref_ptr<vsg::Viewer> viewer,
                   vsg::ref_ptr<vsg::Camera> camera,
@@ -118,14 +71,14 @@ vsg::ref_ptr<vsgImGui::RenderImGui> UI::createImGui(vsg::ref_ptr<vsg::Window> wi
                                                    vsg::ref_ptr<vsg::Options> options,
                                                    bool usesIon)
 {
-    _csGuiComponent = CSGuiComponent::create(window, options, usesIon);
-    _renderImGui = vsgImGui::RenderImGui::create(window, *_csGuiComponent);
+    _ionIconComponent = CsApp::IonIconComponent::create(window, options, usesIon);
+    _renderImGui = vsgImGui::RenderImGui::create(window, *_ionIconComponent);
     return _renderImGui;
 }
 
 void UI::compile(vsg::ref_ptr<vsg::Window> window, vsg::ref_ptr<vsg::Viewer> viewer)
 {
-    _csGuiComponent->compile(window, viewer);
+    _ionIconComponent->compile(window, viewer);
 }
 
 void UI::setViewpoint(vsg::ref_ptr<vsg::LookAt> lookAt, float duration)

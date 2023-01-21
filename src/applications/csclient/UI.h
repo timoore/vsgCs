@@ -27,21 +27,10 @@ SOFTWARE.
 #include <vsg/all.h>
 #include <vsgImGui/RenderImGui.h>
 #include <vsgImGui/SendEventsToImGui.h>
-#include "vsgCs/ImageComponent.h"
+#include "CsApp/IonIconComponent.h"
 
 namespace vsgCs
 {
-    class CSGuiComponent : public vsg::Inherit<vsg::Object, CSGuiComponent>
-    {
-    public:
-        CSGuiComponent(vsg::ref_ptr<vsg::Window> window, vsg::ref_ptr<vsg::Options> options, bool in_usesIon);
-        void compile(vsg::ref_ptr<vsg::Window> window, vsg::ref_ptr<vsg::Viewer> viewer);
-        bool operator()();
-        bool usesIon;
-    protected:
-        vsg::ref_ptr<ImageComponent> ionLogo;
-    };
-    
     class UI : public vsg::Inherit<vsg::Object, UI>
     {
         public:
@@ -65,7 +54,7 @@ namespace vsgCs
                                                         bool in_usesIon);
 
         vsg::ref_ptr<vsgImGui::RenderImGui> _renderImGui;
-        vsg::ref_ptr<CSGuiComponent> _csGuiComponent;
+        vsg::ref_ptr<CsApp::IonIconComponent> _ionIconComponent;
         vsg::ref_ptr<vsg::Trackball> _trackball;
     };
 }

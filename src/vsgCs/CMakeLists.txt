@@ -18,7 +18,9 @@ set(LIB_PUBLIC_HEADERS
   RuntimeEnvironment.h
   TilesetNode.h
   vsgResourcePreparer.h
-  runtimeSupport.h)
+  runtimeSupport.h
+  WorldNode.h
+)
 
 set(SOURCES
   ${LIB_PUBLIC_HEADERS}
@@ -34,7 +36,9 @@ set(SOURCES
   UrlAssetAccessor.cpp
   runtimeSupport.cpp
   vsgResourcePreparer.cpp
-  pbr.cpp)
+  pbr.cpp
+  WorldNode.cpp
+)
 
 add_library(
     ${LIB_NAME}

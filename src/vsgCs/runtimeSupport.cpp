@@ -23,6 +23,7 @@ SOFTWARE.
 </editor-fold> */
 
 #include "runtimeSupport.h"
+#include "RuntimeEnvironment.h"
 #include "OpThreadTaskProcessor.h"
 
 #include <Cesium3DTilesSelection/registerAllTileContentTypes.h>
@@ -41,7 +42,7 @@ namespace vsgCs
         getAsyncSystemWrapper().shutdown();
     }
 
-    vsg::ref_ptr<vsg::LookAt> makeLookAtFromTile(Cesium3DTilesSelection::Tile* tile,
+    vsg::ref_ptr<vsg::LookAt> makeLookAtFromTile(const Cesium3DTilesSelection::Tile* tile,
                                                  double distance)
     {
         auto boundingVolume = tile->getBoundingVolume();
@@ -71,5 +72,22 @@ namespace vsgCs
         {
             return vsg::LookAt::create();
         }
+    }
+
+    std::string readFile(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options)
+    {
+        if (!options)
+        {
+            options = RuntimeEnvironment::get()->options;
+        }
+        vsg::Path filePath = vsg::findFile(filename, options);
+        if (filePath.empty())
+        {
+            throw std::runtime_error("Could not find " + filename);
+        }
+        std::fstream f(filePath);
+        std::stringstream iss;
+        iss << f.rdbuf();
+        return iss.str();
     }
 }
