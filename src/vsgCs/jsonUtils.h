@@ -24,37 +24,33 @@ SOFTWARE.
 
 #pragma once
 
-#include <vsg/nodes/Group.h>
-#include <Cesium3DTilesSelection/Tileset.h>
-#include <gsl/span>
-
-#include "Export.h"
-#include "runtimeSupport.h"
+#include <rapidjson/document.h>
+#include <vsg/io/Logger.h>
 
 namespace vsgCs
 {
-    class VSGCS_EXPORT WorldNode : public vsg::Inherit<vsg::Group, WorldNode>
+    // This was written with a parameter TDest so that the definition of rapidjson::Document
+    // wouldn't have to be visible, but in practice any user of this function will need to include
+    // rapidjson/document.h.
+
+    /**
+     * @brief Initialize an object from raw data that can be parsed into JSON.
+     *
+     * @param obj An object that defines an init(const rapidjson::Value&) member function.
+     */
+    template<typename TObj, typename TSource, typename TDest = rapidjson::Document>
+    void initFromJSON(TObj& obj, TSource&& source)
     {
-        public:
-        WorldNode();
-        // Init (create TilesetNode objects) from Json data
-        void init(const rapidjson::Value& worldJson);
-        /**
-         * @brief Load tilesets, set up recurring VSG tasks, and perform any other necessary
-         * initialization. This calls updateViews().
-         *
-         * Call this after the initial command graphs have been assigned to the viewer, but before
-         * the main loop starts.
-         */
-        bool initialize(vsg::ref_ptr<vsg::Viewer> viewer);
-        void shutdown();
-        // hack for supporting zoom after load
-        const Cesium3DTilesSelection::Tile* getRootTile(size_t tileset = 0);
-        protected:
-        vsg::Group::Children& worldNodes()
+        TDest document;
+        document.Parse(source.data(), source.size());
+        if (document.HasParseError())
         {
-            auto stateGroup = ref_ptr_cast<vsg::StateGroup>(children[0]);
-            return stateGroup->children;
+            vsg::error("Error parsing json: error code ", document.GetParseError(),
+                       " at byte ", document.GetErrorOffset(),
+                       "\n Source:\n",
+                       std::string(source.data(), source.data() + std::min(128ul, source.size())));
+            throw std::runtime_error("JSON parse error");
         }
-    };
+        obj.init(document);
+    }
 }

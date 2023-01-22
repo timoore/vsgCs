@@ -1546,7 +1546,11 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
     return vsg::ImageInfo::create(sampler, data);
 }
 
-// Hold Raster data that we can attach to the VSG tile in order to easily find it later.
+// Hold Raster data that we can attach to the VSG tile in order to easily find
+// it later.
+//
+// XXX It doesn't make sense to assign named slots for overlays. We should do it
+// by index into a list of overlays.
 
 struct RasterData
 {

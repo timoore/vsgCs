@@ -42,6 +42,7 @@ SOFTWARE.
 
 #include "vsgCs/TilesetNode.h"
 #include "vsgCs/CSOverlay.h"
+#include "vsgCs/jsonUtils.h"
 #include "vsgCs/OpThreadTaskProcessor.h"
 #include "vsgCs/RuntimeEnvironment.h"
 #include "vsgCs/WorldNode.h"
@@ -152,7 +153,7 @@ int main(int argc, char** argv)
             return 1;
         }
         auto worldNode = vsgCs::WorldNode::create();
-        worldNode->init(worldJson);
+        vsgCs::initFromJSON(*worldNode, worldJson);
         auto ellipsoidModel = vsg::EllipsoidModel::create();
         worldNode->setObject("EllipsoidModel", ellipsoidModel);
         vsg_scene->addChild(worldNode);

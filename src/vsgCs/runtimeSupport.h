@@ -24,9 +24,10 @@ SOFTWARE.
 
 #pragma once
 
+#include <glm/gtc/type_ptr.hpp>
+
 #include <vsg/all.h>
 #include <Cesium3DTilesSelection/Tile.h>
-#include <glm/gtc/type_ptr.hpp>
 
 #include "Export.h"
 #include "vsgCs/Config.h"
@@ -152,5 +153,4 @@ namespace vsgCs
             f(i + 1, i + 2, 0);
         }
     }
-
 }

@@ -67,19 +67,9 @@ namespace
     }
 }
 
-void WorldNode::init(gsl::span<const char> data)
+void WorldNode::init(const rapidjson::Value& worldJson)
 {
     auto tilesetParent = ref_ptr_cast<vsg::StateGroup>(children[0]);
-    rapidjson::Document worldJson;
-    worldJson.Parse(data.data(), data.size());
-    if (worldJson.HasParseError())
-    {
-        vsg::error("Error parsing json: error code ", worldJson.GetParseError(),
-                   " at byte ", worldJson.GetErrorOffset(),
-                   "\n Source:\n",
-                   std::string(data.data(), data.data() + std::min(128ul, data.size())));
-        return;
-    }
     auto tilesetsItr = worldJson.FindMember("tilesets");
     if (tilesetsItr == worldJson.MemberEnd() || !tilesetsItr->value.IsArray())
     {
