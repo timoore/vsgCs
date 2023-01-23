@@ -23,9 +23,13 @@ SOFTWARE.
 </editor-fold> */
 
 #include "CSOverlay.h"
+#include "jsonUtils.h"
 #include "OpThreadTaskProcessor.h"
+#include "RuntimeEnvironment.h"
+#include "runtimeSupport.h"
 
-#include "Cesium3DTilesSelection/IonRasterOverlay.h"
+#include <Cesium3DTilesSelection/IonRasterOverlay.h>
+#include <CesiumUtility/JsonHelpers.h>
 #include <vsg/all.h>
 
 using namespace vsgCs;
@@ -77,4 +81,28 @@ Cesium3DTilesSelection::RasterOverlay* CSIonRasterOverlay::createOverlay(
           IonAssetID,
           IonAccessToken,
           options);
+}
+
+namespace
+{
+    vsg::ref_ptr<vsg::Object> buildCSIonRasterOverlay(const rapidjson::Value& json,
+                                                      JSONObjectFactory*,
+                                                      vsg::ref_ptr<vsg::Object> object)
+    {
+        auto env = RuntimeEnvironment::get();
+        auto overlay = create_or<CSIonRasterOverlay>(object);
+        if (!overlay)
+        {
+            throw std::runtime_error("no valid CSIonOverlay obejct");
+        }
+        overlay->IonAssetID = CesiumUtility::JsonHelpers::getInt64OrDefault(json, "assetId", -1);
+        overlay->IonAccessToken
+            = CesiumUtility::JsonHelpers::getStringOrDefault(json, "accessToken",
+                                                             env->ionAccessToken);
+        // XXX ignore for the moment
+        auto ionEndpointUrl = CesiumUtility::JsonHelpers::getStringOrDefault(json, "server", "");
+        return overlay;
+    }
+
+    JSONObjectFactory::Registrar r("IonRasterOverlay", buildCSIonRasterOverlay);
 }

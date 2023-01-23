@@ -22,10 +22,14 @@ SOFTWARE.
 
 </editor-fold> */
 
-#include "CSOverlay.h"
 #include "TilesetNode.h"
+
+#include "CSOverlay.h"
+#include "jsonUtils.h"
 #include "OpThreadTaskProcessor.h"
 #include "UrlAssetAccessor.h"
+
+#include <CesiumUtility/JsonHelpers.h>
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
@@ -401,4 +405,67 @@ void TilesetNode::removeOverlay(vsg::ref_ptr<CSOverlay> overlay)
 {
     _tileset->getOverlays().remove(overlay->getOverlay());
     _overlays.erase(std::remove(_overlays.begin(), _overlays.end(), overlay), _overlays.end());
+}
+
+namespace
+{
+    vsg::ref_ptr<vsg::Object> buildTilesetNode(const rapidjson::Value& json,
+                                               JSONObjectFactory* factory,
+                                               vsg::ref_ptr<vsg::Object>)
+    {
+        auto env = RuntimeEnvironment::get();
+        // Current implementation of TilesetNode constructs Cesium tileset in the constructor, using
+        // its arguments... so the object argument is not useful.
+        // auto tilesetNode = create_or<TilesetNode>(object);
+        auto ionAsset = CesiumUtility::JsonHelpers::getInt64OrDefault(json, "ionAssetID", -1);
+        auto tilesetUrl = CesiumUtility::JsonHelpers::getStringOrDefault(json, "tilesetUrl", "");
+        auto ionAccessToken = CesiumUtility::JsonHelpers::getStringOrDefault(json, "ionAccessToken", "");
+        auto ionEndpointUrl = CesiumUtility::JsonHelpers::getStringOrDefault(json, "ionEndpointUrl", "");
+        vsgCs::TilesetSource source;
+        if (!tilesetUrl.empty())
+        {
+            source.url = tilesetUrl;
+        }
+        else
+        {
+            if (ionAsset < 0)
+            {
+                vsg::error("No valid Ion asset\n");
+                return {};
+            }
+            source.ionAssetID = ionAsset;
+            if (ionAccessToken.empty())
+            {
+                ionAccessToken = env->ionAccessToken;
+            }
+            source.ionAccessToken = ionAccessToken;
+            if (!ionEndpointUrl.empty())
+            {
+                source.ionAssetEndpointUrl = ionEndpointUrl;
+            }
+        }
+        Cesium3DTilesSelection::TilesetOptions tileOptions;
+        tileOptions.enableOcclusionCulling = false;
+        tileOptions.forbidHoles = true;
+        auto tilesetNode = vsgCs::TilesetNode::create(env->features, source, tileOptions, env->options);
+        const auto itr = json.FindMember("overlays");
+        if (itr != json.MemberEnd() && itr->value.IsArray())
+        {
+            const auto& valueJson = itr->value;
+            for (rapidjson::SizeType i = 0; i < valueJson.Size(); ++i)
+            {
+                const auto& element = valueJson[i];
+                vsg::ref_ptr<CSOverlay> overlay = ref_ptr_cast<CSOverlay>(factory->build(element));
+                if (!overlay)
+                {
+                    vsg::error("expected CSOverly, got ", overlay->className());
+                    break;
+                }
+                overlay->addToTileset(tilesetNode);
+            }
+        }
+        return tilesetNode;
+    }
+
+    JSONObjectFactory::Registrar r("Tileset", buildTilesetNode);
 }

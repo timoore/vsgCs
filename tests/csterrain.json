@@ -1,8 +1,14 @@
 {
-  "tilesets": [
-    {
-      "ionAssetID": 1,
-      "ionOverlayID": 2
+    "tilesets": [
+        {
+        "Type": "Tileset",
+        "ionAssetID":1,
+        "overlays": [
+            {
+            "Type": "IonRasterOverlay",
+            "assetId": 2
+        }
+        ]
     }
   ]
 } 

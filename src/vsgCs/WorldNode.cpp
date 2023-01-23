@@ -1,8 +1,10 @@
 #include "WorldNode.h"
 
+#include "CSOverlay.h"
+#include "jsonUtils.h"
 #include "RuntimeEnvironment.h"
 #include "TilesetNode.h"
-#include "vsgCs/CSOverlay.h"
+
 
 #include <vsg/all.h>
 #include <rapidjson/document.h>
@@ -24,46 +26,7 @@ namespace
 {
     vsg::ref_ptr<TilesetNode> makeTilesetNode(const rapidjson::Value& tsObject)
     {
-        auto env = RuntimeEnvironment::get();
-        auto ionAsset = CesiumUtility::JsonHelpers::getInt64OrDefault(tsObject, "ionAssetID", -1);
-        auto ionOverlay = CesiumUtility::JsonHelpers::getInt64OrDefault(tsObject, "ionOverlayID", -1);
-        auto tilesetUrl = CesiumUtility::JsonHelpers::getStringOrDefault(tsObject, "tilesetUrl", "");
-        auto ionAccessToken = CesiumUtility::JsonHelpers::getStringOrDefault(tsObject, "ionAccessToken", "");
-        auto ionEndpointUrl = CesiumUtility::JsonHelpers::getStringOrDefault(tsObject, "ionEndpointUrl", "");
-        vsgCs::TilesetSource source;
-        if (!tilesetUrl.empty())
-        {
-            source.url = tilesetUrl;
-        }
-        else
-        {
-            if (ionAsset < 0)
-            {
-                vsg::error("No valid Ion asset\n");
-                return {};
-            }
-            source.ionAssetID = ionAsset;
-            if (ionAccessToken.empty())
-            {
-                ionAccessToken = env->ionAccessToken;
-            }
-            source.ionAccessToken = ionAccessToken;
-            if (!ionEndpointUrl.empty())
-            {
-                source.ionAssetEndpointUrl = ionEndpointUrl;
-            }
-        }
-        Cesium3DTilesSelection::TilesetOptions tileOptions;
-        tileOptions.enableOcclusionCulling = false;
-        tileOptions.forbidHoles = true;
-        auto tilesetNode = vsgCs::TilesetNode::create(env->features, source, tileOptions, env->options);
-        if (ionOverlay > 0)
-        {
-            auto csoverlay = vsgCs::CSIonRasterOverlay::create(ionOverlay, ionAccessToken);
-            csoverlay->addToTileset(tilesetNode);
-        }
-
-        return tilesetNode;
+        return ref_ptr_cast<TilesetNode>(JSONObjectFactory::get()->build(tsObject));
     }
 }
 

@@ -14,6 +14,7 @@ set(LIB_PUBLIC_HEADERS
   CesiumGltfBuilder.h
   Export.h
   ImageComponent.h
+  jsonUtils.h
   LoadGltfResult.h
   RuntimeEnvironment.h
   TilesetNode.h
@@ -29,6 +30,7 @@ set(SOURCES
   CompilableImage.cpp
   DescriptorSetConfigurator.cpp
   ImageComponent.cpp
+  jsonUtils.cpp
   MultisetPipelineConfigurator.cpp
   OpThreadTaskProcessor.cpp
   RuntimeEnvironment.cpp

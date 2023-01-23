@@ -63,7 +63,8 @@ namespace vsgCs
     class VSGCS_EXPORT CSIonRasterOverlay : public vsg::Inherit<CSOverlay, CSIonRasterOverlay>
     {
         public:
-        CSIonRasterOverlay(int64_t in_IonAssetID, std::string in_IonAccessToken)
+        CSIonRasterOverlay(int64_t in_IonAssetID = -1,
+                           std::string in_IonAccessToken = std::string())
             : IonAssetID(in_IonAssetID), IonAccessToken(std::move(in_IonAccessToken))
         {}
         int64_t IonAssetID;

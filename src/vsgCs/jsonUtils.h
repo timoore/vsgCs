@@ -27,6 +27,9 @@ SOFTWARE.
 #include <rapidjson/document.h>
 #include <vsg/io/Logger.h>
 
+#include <map>
+#include <string>
+
 namespace vsgCs
 {
     // This was written with a parameter TDest so that the definition of rapidjson::Document
@@ -53,4 +56,56 @@ namespace vsgCs
         }
         obj.init(document);
     }
+
+    class JSONObjectFactory : public vsg::Inherit<vsg::Object, JSONObjectFactory>
+    {
+        public:
+        /**
+         * Builder function takes JSON value, the factory, and a constructed object to initialze. If
+         * that is null, then the builder should create the object.
+         */
+        using Builder = vsg::ref_ptr<vsg::Object> (*)(const rapidjson::Value& json,
+                                                      JSONObjectFactory* factory,
+                                                      vsg::ref_ptr<vsg::Object> object);
+        void addBuilder(const std::string& name, Builder builder)
+        {
+            builders[name] = builder;
+        }
+
+        void removeBuilder(const std::string& name)
+        {
+            auto itr = builders.find(name);
+            if (itr != builders.end())
+            {
+                builders.erase(name);
+            }
+        }
+        /**
+         * @brief Build an object based on the "Type" attribute found in its JSON representation.
+         *
+         * @param value the rapidjson Value object
+         * @param typeOverride Use this type instead of the found type. (sublcassing?)
+         * @param object Initialize this object instead of constructing a new one.
+         * @returns A constructed object
+         */
+        vsg::ref_ptr<vsg::Object> build(const rapidjson::Value& value,
+                                        const std::string& typeOverride = std::string(),
+                                        vsg::ref_ptr<vsg::Object> object = {});
+        /**
+         * @brief get the standard factory
+         */
+        static vsg::ref_ptr<JSONObjectFactory> get();
+        /**
+         * Helper class to register a builder from a static object i.e., at load time.
+         */
+        struct Registrar
+        {
+            Registrar(const std::string& name, Builder builder)
+            {
+                JSONObjectFactory::get()->addBuilder(name, builder);
+            }
+        };
+        // Leaving this public. If you want to mess with it, be my guest.
+        std::map<std::string, Builder> builders;
+    };
 }

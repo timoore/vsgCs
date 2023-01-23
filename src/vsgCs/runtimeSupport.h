@@ -124,6 +124,17 @@ namespace vsgCs
         return vsg::ref_ptr<TSubclass>(dynamic_cast<TSubclass*>(p.get()));
     }
 
+    template<typename T, typename TSource, typename... Args>
+    vsg::ref_ptr<T> create_or(vsg::ref_ptr<TSource> source, Args&&... args)
+    {
+        auto downcast = ref_ptr_cast<T>(source);
+        if (downcast.valid())
+        {
+            return downcast;
+        }
+        return T::create(args...);
+    }
+
     // Templates for calling a function with the vertex indices of a triangle in the various
     // formats.
 
