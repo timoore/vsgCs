@@ -1600,14 +1600,15 @@ vsg::ref_ptr<vsg::StateCommand> Rasters::makeRastersCommand(CesiumGltfBuilder& b
     return bindDescriptorSet;
  }
 
-vsg::ref_ptr<vsg::Command> CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection::Tile&,
-                                                           vsg::ref_ptr<vsg::Node> node,
-                                                           int32_t overlayTextureCoordinateID,
-                                                           const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
-                                                           void* pMainThreadRendererResources,
-                                                           const glm::dvec2& translation,
-                                                           const glm::dvec2& scale)
+ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection::Tile&,
+                                                    vsg::ref_ptr<vsg::Node> node,
+                                                    int32_t overlayTextureCoordinateID,
+                                                    const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
+                                                    void* pMainThreadRendererResources,
+                                                    const glm::dvec2& translation,
+                                                    const glm::dvec2& scale)
 {
+    ModifyRastersResult result;
     vsg::ref_ptr<vsg::MatrixTransform> matrixTransform = node.cast<vsg::MatrixTransform>();
     if (!matrixTransform)
         return {};                 // uhhhh
@@ -1646,7 +1647,8 @@ vsg::ref_ptr<vsg::Command> CesiumGltfBuilder::attachRaster(const Cesium3DTilesSe
         stateCommands.erase(stateCommands.begin() + 1);
     }
     stateCommands.push_back(command);
-    return command;
+    result.compileObjects.push_back(command);
+    return result;
 }
 
 vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::makeDefaultTexture()
@@ -1661,12 +1663,13 @@ vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::makeDefaultTexture()
     return vsg::ImageInfo::create(sampler, arrayData);
 }
 
-std::pair<vsg::ref_ptr<vsg::Command>, vsg::ref_ptr<vsg::Command>>
+ModifyRastersResult
 CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile&,
                                 vsg::ref_ptr<vsg::Node> node,
                                 int32_t,
                                 const Cesium3DTilesSelection::RasterOverlayTile& rasterTile)
 {
+    ModifyRastersResult result;
     vsg::ref_ptr<vsg::MatrixTransform> matrixTransform = node.cast<vsg::MatrixTransform>();
     if (!matrixTransform)
         return {};                 // uhhhh
@@ -1694,10 +1697,8 @@ CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile&,
             stateCommands.erase(stateCommands.begin() + 1);
         }
         stateCommands.push_back(newCommand);
-        return {newCommand, oldCommand};
+        result.compileObjects.push_back(newCommand);
+        result.deleteObjects.push_back(oldCommand);
     }
-    else
-    {
-        return {};
-    }
+    return result;
 }

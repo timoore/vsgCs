@@ -230,6 +230,23 @@ vsgResourcePreparer::freeRaster(const Cesium3DTilesSelection::RasterOverlayTile&
     delete rasterResources;
 }
 
+void vsgResourcePreparer::compileAndDelete(ModifyRastersResult& result)
+{
+    vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
+    if (!ref_viewer)
+        return;
+    for (auto object : result.compileObjects)
+    {
+        auto compileResult = ref_viewer->compileManager->compile(object);
+        vsg::updateViewer(*ref_viewer, compileResult);
+    }
+    if (!result.deleteObjects.empty())
+    {
+        _deletionQueue.run(ref_viewer);
+        _deletionQueue.addObjects(ref_viewer, result.deleteObjects);
+    }
+}
+
 void
 vsgResourcePreparer::attachRasterInMainThread(const Cesium3DTilesSelection::Tile& tile,
                                   int32_t overlayTextureCoordinateID,
@@ -247,14 +264,10 @@ vsgResourcePreparer::attachRasterInMainThread(const Cesium3DTilesSelection::Tile
     {
         RenderResources* resources = static_cast<RenderResources*>(renderContent->getRenderResources());
 
-        auto object = _builder->attachRaster(tile, resources->model,
+        auto results = _builder->attachRaster(tile, resources->model,
                                              overlayTextureCoordinateID, rasterTile,
                                              pMainThreadRendererResources, translation, scale);
-        if (object.valid())
-        {
-            auto compileResult = ref_viewer->compileManager->compile(object);
-            vsg::updateViewer(*ref_viewer, compileResult);
-        }
+        compileAndDelete(results);
     }
 }
 
@@ -273,16 +286,7 @@ vsgResourcePreparer::detachRasterInMainThread(const Cesium3DTilesSelection::Tile
     if (renderContent)
     {
         RenderResources* resources = static_cast<RenderResources*>(renderContent->getRenderResources());
-        auto objects = _builder->detachRaster(tile, resources->model, overlayTextureCoordinateID, rasterTile);
-        if (objects.first.valid())
-        {
-            auto compileResult = ref_viewer->compileManager->compile(objects.first);
-            vsg::updateViewer(*ref_viewer, compileResult);
-        }
-        if (objects.second.valid())
-        {
-            _deletionQueue.run(ref_viewer);
-            _deletionQueue.add(ref_viewer, objects.second);
-        }
+        auto results = _builder->detachRaster(tile, resources->model, overlayTextureCoordinateID, rasterTile);
+        compileAndDelete(results);
     }
 }

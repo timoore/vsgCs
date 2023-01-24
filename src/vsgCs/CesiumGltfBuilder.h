@@ -51,6 +51,15 @@ namespace vsgCs
         vsg::ref_ptr<vsg::Data> data;
     };
 
+    // The functions for attaching and detaching rasters return objects that need to be compiled and
+    // may replace objects that should then eventually be freed. I don't think the tile-building
+    // commands need this generality.
+    struct ModifyRastersResult
+    {
+        std::vector<vsg::ref_ptr<vsg::Object>> compileObjects;
+        std::vector<vsg::ref_ptr<vsg::Object>> deleteObjects;
+    };
+
     // A lot of hair in Cesium Unreal to support these variants, and it's unclear if any are actually
     // used other than GltfImagePtr
 
@@ -122,18 +131,18 @@ namespace vsgCs
                                                  bool useMipMaps,
                                                  bool sRGB);
         vsg::ref_ptr<vsg::ShaderSet> getOrCreatePbrShaderSet();
-        vsg::ref_ptr<vsg::Command> attachRaster(const Cesium3DTilesSelection::Tile& tile,
-                                                vsg::ref_ptr<vsg::Node> node,
-                                                int32_t overlayTextureCoordinateID,
-                                                const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
-                                                void* pMainThreadRendererResources,
-                                                const glm::dvec2& translation,
-                                                const glm::dvec2& scale);
-        std::pair<vsg::ref_ptr<vsg::Command>, vsg::ref_ptr<vsg::Command>>
-            detachRaster(const Cesium3DTilesSelection::Tile& tile,
-                         vsg::ref_ptr<vsg::Node> node,
-                         int32_t overlayTextureCoordinateID,
-                         const Cesium3DTilesSelection::RasterOverlayTile& rasterTile);
+
+        ModifyRastersResult attachRaster(const Cesium3DTilesSelection::Tile& tile,
+                                         vsg::ref_ptr<vsg::Node> node,
+                                         int32_t overlayTextureCoordinateID,
+                                         const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
+                                         void* pMainThreadRendererResources,
+                                         const glm::dvec2& translation,
+                                         const glm::dvec2& scale);
+        ModifyRastersResult detachRaster(const Cesium3DTilesSelection::Tile& tile,
+                                         vsg::ref_ptr<vsg::Node> node,
+                                         int32_t overlayTextureCoordinateID,
+                                         const Cesium3DTilesSelection::RasterOverlayTile& rasterTile);
         vsg::ref_ptr<vsg::ImageInfo> getDefaultTexture()
         {
             return _defaultTexture;
