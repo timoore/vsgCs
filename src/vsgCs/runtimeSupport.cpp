@@ -90,4 +90,19 @@ namespace vsgCs
         iss << f.rdbuf();
         return iss.str();
     }
+
+    std::optional<uint32_t> getUintSuffix(const std::string& prefix, const std::string& data)
+    {
+        if (prefix.size() >= data.size())
+        {
+            return {};
+        }
+        auto match = std::mismatch(prefix.begin(), prefix.end(), data.begin());
+        if (match.first == prefix.end())
+        {
+            long val = std::strtol(&(*match.second), nullptr, 10);
+            return static_cast<uint32_t>(val);
+        }
+        return {};
+    }
 }

@@ -1,0 +1,12 @@
+{
+    "tilesets": [
+        { "Type": "Tileset",
+          "ionAssetID": 1,
+          "overlays": [{ "Type": "DebugColorizeTilesRasterOverlay",
+                         "materialKey": "Overlay0"},
+                       { "Type": "IonRasterOverlay",
+                         "assetId": 2,
+                         "materialKey": "Overlay1"}]
+        }
+    ]
+}

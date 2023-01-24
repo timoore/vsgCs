@@ -347,30 +347,31 @@ void main()
     float ambientOcclusion = 1.0;
 
     vec3 f0 = vec3(0.04);
-#ifdef VSGCS_OVERLAY_MAPS
-    if (overlayParams.params[0].enabled != 0)
-    {
-        baseColor = vertexColor * overlayTexture(0) * pbr.baseColorFactor;
-    }
-    else if (overlayParams.params[1].enabled != 0)
-    {
-        baseColor = vertexColor * overlayTexture(1) * pbr.baseColorFactor;
-    }
-    else
-#endif
-    {
+
 #ifdef VSG_DIFFUSE_MAP
 #ifdef VSG_GREYSACLE_DIFFUSE_MAP
-        float v = texture(diffuseMap, texCoord[0].st).s * pbr.baseColorFactor;
-        baseColor = vertexColor * vec4(v, v, v, 1.0);
+    float v = texture(diffuseMap, texCoord[0].st).s * pbr.baseColorFactor;
+    baseColor = vertexColor * vec4(v, v, v, 1.0);
 #else
-        baseColor = vertexColor * texture(diffuseMap, texCoord[0]) * pbr.baseColorFactor;
+    baseColor = vertexColor * texture(diffuseMap, texCoord[0]) * pbr.baseColorFactor;
 #endif
 #else
-        baseColor = vertexColor * pbr.baseColorFactor;
+    baseColor = vertexColor * pbr.baseColorFactor;
 #endif
-    }
 
+    // Blend overlays with the diffuse color. With these blend equations, an overlay can't make the
+    // result transparent; is that correct?
+#ifdef VSGCS_OVERLAY_MAPS
+    for (int i = 1; i >= 0; --i)
+    {
+        if (overlayParams.params[i].enabled != 0)
+        {
+            vec4 overlayColor = overlayTexture(i);
+            baseColor.rgb = overlayColor.rgb * overlayColor.a + baseColor.rgb * (1.0 - overlayColor.a);
+            baseColor.a = overlayColor.a  + baseColor.a * (1.0 - overlayColor.a);
+        }
+    }
+#endif
     if (pbr.alphaMask == 1.0f)
     {
         if (baseColor.a < pbr.alphaMaskCutoff)

@@ -63,3 +63,14 @@ vsg::ref_ptr<JSONObjectFactory> JSONObjectFactory::get()
     static auto factory = JSONObjectFactory::create();
     return factory;
 }
+
+
+// XXX Very gross workaround to static library problems...
+
+namespace vsgCs
+{
+    vsg::ref_ptr<vsg::Object> buildCSDebugColorizeTilesOverlay(const rapidjson::Value&,
+                                                               JSONObjectFactory*,
+                                                               vsg::ref_ptr<vsg::Object> object);
+    JSONObjectFactory::Registrar r("DebugColorizeTilesRasterOverlay", buildCSDebugColorizeTilesOverlay);
+}

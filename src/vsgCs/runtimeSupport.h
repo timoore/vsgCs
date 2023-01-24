@@ -164,4 +164,6 @@ namespace vsgCs
             f(i + 1, i + 2, 0);
         }
     }
+
+    std::optional<uint32_t> getUintSuffix(const std::string& prefix, const std::string& data);
 }

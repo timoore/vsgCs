@@ -95,6 +95,8 @@ namespace
         {
             throw std::runtime_error("no valid CSIonOverlay obejct");
         }
+        overlay->MaterialLayerKey = CesiumUtility::JsonHelpers::getStringOrDefault(json, "materialKey",
+                                                                                   "Overlay0");
         overlay->IonAssetID = CesiumUtility::JsonHelpers::getInt64OrDefault(json, "assetId", -1);
         overlay->IonAccessToken
             = CesiumUtility::JsonHelpers::getStringOrDefault(json, "accessToken",

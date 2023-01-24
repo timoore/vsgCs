@@ -535,14 +535,10 @@ namespace
         for (auto itr = attributes.begin(); itr != attributes.end(); ++itr)
         {
             const auto& name = itr->first;
-            if (name.size() > prefix.size())
+            auto texCoords = getUintSuffix(prefix, name);
+            if (texCoords)
             {
-                auto prefixMismatch = std::mismatch(prefix.begin(), prefix.end(), name.begin(), name.end());
-                if (prefixMismatch.first == prefix.end())
-                {
-                    long texCoords = std::strtol(&(*prefixMismatch.second), nullptr, 10);
-                    result[static_cast<int32_t>(texCoords)] = itr->second;
-                }
+                result[texCoords.value()] = itr->second;
             }
         }
         return result;
@@ -1633,6 +1629,14 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
         orItr = insertResult.first;
     }
     auto& rasterData = orItr->second;
+    if (auto element = getUintSuffix("Overlay", overlayName); element)
+    {
+        rasterData.element = element.value();
+    }
+    else
+    {
+        throw std::runtime_error(overlayName + " does not have an overlay number");
+    }
     rasterData.rasterImage = raster;
     rasterData.overlayParams.translation = glm2vsg(translation);
     rasterData.overlayParams.scale = glm2vsg(scale);
@@ -1644,7 +1648,9 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
     auto& stateCommands = stateGroup->stateCommands;
     if (stateCommands.size() > 1)
     {
-        stateCommands.erase(stateCommands.begin() + 1);
+        result.deleteObjects.insert(result.deleteObjects.end(),
+                                    stateCommands.begin() + 1, stateCommands.end());
+        stateCommands.erase(stateCommands.begin() + 1, stateCommands.end());
     }
     stateCommands.push_back(command);
     result.compileObjects.push_back(command);
