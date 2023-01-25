@@ -52,6 +52,7 @@ void CSOverlay::addToTileset(vsg::ref_ptr<TilesetNode> tilesetNode)
             assert(this->_pTileset == details.pTileset);
             vsg::warn(details.message);
         };
+    options.rendererOptions = OverlayRendererOptions{layerNumber};
     _rasterOverlay = createOverlay(options);
       if (_rasterOverlay)
       {

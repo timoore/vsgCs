@@ -174,7 +174,7 @@ void vsgResourcePreparer::free(Cesium3DTilesSelection::Tile&,
 
 void*
 vsgResourcePreparer::prepareRasterInLoadThread(CesiumGltf::ImageCesium& image,
-                                               const std::any&)
+                                               const std::any& rendererOptions)
 {
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     if (!ref_viewer)
@@ -187,7 +187,8 @@ vsgResourcePreparer::prepareRasterInLoadThread(CesiumGltf::ImageCesium& image,
                                         true,
                                         true);
     auto compilable = CompilableImage::create(result);
-    return new LoadRasterResult{compilable->imageInfo, ref_viewer->compileManager->compile(compilable)};
+    return new LoadRasterResult{compilable->imageInfo, ref_viewer->compileManager->compile(compilable),
+                                std::any_cast<OverlayRendererOptions>(rendererOptions)};
 }
 
 void*
@@ -201,7 +202,7 @@ vsgResourcePreparer::prepareRasterInMainThread(Cesium3DTilesSelection::RasterOve
         vsg::updateViewer(*ref_viewer, loadRasterResult->compileResult);
     }
 
-    return new RasterResources{loadRasterResult->rasterResult};
+    return new RasterResources{loadRasterResult->rasterResult, loadRasterResult->overlayOptions};
 }
 
 void

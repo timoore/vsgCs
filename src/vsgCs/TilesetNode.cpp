@@ -461,6 +461,7 @@ namespace
                     vsg::error("expected CSOverly, got ", overlay->className());
                     break;
                 }
+                overlay->layerNumber = i;
                 overlay->addToTileset(tilesetNode);
             }
         }

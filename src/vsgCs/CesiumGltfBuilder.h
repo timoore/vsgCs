@@ -45,12 +45,6 @@ namespace vsgCs
         bool renderOverlays = false;
     };
     
-    struct SamplerData
-    {
-        vsg::ref_ptr<vsg::Sampler> sampler;
-        vsg::ref_ptr<vsg::Data> data;
-    };
-
     // The functions for attaching and detaching rasters return objects that need to be compiled and
     // may replace objects that should then eventually be freed. I don't think the tile-building
     // commands need this generality.

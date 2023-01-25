@@ -1,6 +1,9 @@
 #pragma once
 
 #include <cstdint>
+
+#include <gsl/span>
+
 #include <vsg/core/ref_ptr.h>
 #include <vsg/io/Options.h>
 #include <vsg/maths/vec2.h>
@@ -25,8 +28,12 @@ namespace vsgCs
             uint32_t coordIndex;
             uint32_t pad[2];
         };
-        typedef OverlayParams OverlayUniformMem[2];
-        vsg::ref_ptr<vsg::Data> makeOverlayData(const OverlayUniformMem& overlayUniformMem);
+
+        // This will eventually not be constant, but it will be a major event to change it at
+        // runtime.
+        const unsigned maxOverlays = 4;
+
+        vsg::ref_ptr<vsg::Data> makeOverlayData(const gsl::span<OverlayParams> overlayUniformMem);
         vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(vsg::ref_ptr<const vsg::Options> options = {});
     }
 

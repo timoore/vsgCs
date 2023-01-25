@@ -40,6 +40,9 @@ namespace vsgCs
         int32_t MaximumTextureSize = 2048;
         int32_t MaximumSimultaneousTileLoads = 20;
         int64_t SubTileCacheBytes = 16 * 1024 * 1024;
+        // The number of this layer in a tileset's layers. Layers are rendered from highest number
+        // to lowest.
+        uint32_t layerNumber = 0;
         bool ShowCreditsOnScreen;
         // I followed cesium-unreal's lead by making this an action to perform on an overlay; why not
         // have TilesetNode do this?

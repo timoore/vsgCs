@@ -32,7 +32,10 @@ layout(set = 2, binding = 4) uniform sampler2D emissiveMap;
 layout(set = 2, binding = 5) uniform sampler2D specularMap;
 #endif
 
+layout(constant_id = 0) const int maxOverlays = 4;
+
 #ifdef VSGCS_OVERLAY_MAPS
+
 struct OverlayParamBlock
 {
   vec2 translation;
@@ -44,10 +47,10 @@ struct OverlayParamBlock
 
 layout(set = 1, binding = 0) uniform OverlayParams
   {
-    OverlayParamBlock params[2];
+    OverlayParamBlock params[maxOverlays];
   } overlayParams;
 
-layout(set = 1, binding = 1) uniform sampler2D overlayTextures[2];
+layout(set = 1, binding = 1) uniform sampler2D overlayTextures[maxOverlays];
 #endif
 
 // Texture coordinates are assumed to have the OpenGL / glTF origin i.e., lower left.
@@ -362,7 +365,7 @@ void main()
     // Blend overlays with the diffuse color. With these blend equations, an overlay can't make the
     // result transparent; is that correct?
 #ifdef VSGCS_OVERLAY_MAPS
-    for (int i = 1; i >= 0; --i)
+    for (int i = maxOverlays - 1; i >= 0; --i)
     {
         if (overlayParams.params[i].enabled != 0)
         {

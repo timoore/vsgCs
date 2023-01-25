@@ -32,14 +32,23 @@ namespace vsgCs
         vsg::ref_ptr<vsg::Node> model;
     };
 
+    // Not a great place for this definition, but it is "low level."
+    struct OverlayRendererOptions
+    {
+        uint32_t layerNumber;
+    };
+
     struct LoadRasterResult
     {
         vsg::ref_ptr<vsg::ImageInfo> rasterResult;
         vsg::CompileResult compileResult;
+        // trick Cesium into passing our overlay options back to us.
+        OverlayRendererOptions overlayOptions;
     };
 
     struct RasterResources
     {
         vsg::ref_ptr<vsg::ImageInfo> raster;
+        OverlayRendererOptions overlayOptions;
     };
 }

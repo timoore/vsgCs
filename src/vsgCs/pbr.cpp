@@ -32,10 +32,10 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace vsgCs {
     namespace pbr
     {
-        vsg::ref_ptr<vsg::Data> makeOverlayData(const OverlayUniformMem& overlayUniformMem)
+        vsg::ref_ptr<vsg::Data> makeOverlayData(const gsl::span<OverlayParams> overlayUniformMem)
         {
-            auto result = vsg::ubyteArray::create(sizeof(OverlayUniformMem));
-            memcpy(&(*result)[0], &overlayUniformMem, sizeof(overlayUniformMem));
+            auto result = vsg::ubyteArray::create(overlayUniformMem.size_bytes());
+            memcpy(&(*result)[0], &overlayUniformMem[0], overlayUniformMem.size_bytes());
             return result;
         }
 
@@ -49,7 +49,9 @@ namespace vsgCs {
                 vsg::fatal("pbr::makeShaderSet(...) could not find shaders.");
                 return {};
             }
-
+            vsg::ShaderStage::SpecializationConstants specializationContexts{
+                {0, vsg::intValue::create(maxOverlays)}, // numTiles
+            };
             auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
 
             shaderSet->addAttributeBinding("vsg_Vertex", "", 0, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
@@ -71,7 +73,7 @@ namespace vsgCs {
             shaderSet->addUniformBinding("material", "", 2, 10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::PbrMaterialValue::create());
             shaderSet->addUniformBinding("lightData", "", 0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
             shaderSet->addUniformBinding("overlayParams", "", 1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
-            shaderSet->addUniformBinding("overlayTextures", "", 1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 2, VK_SHADER_STAGE_FRAGMENT_BIT, {});
+            shaderSet->addUniformBinding("overlayTextures", "", 1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxOverlays, VK_SHADER_STAGE_FRAGMENT_BIT, {});
             // additional defines
             shaderSet->optionalDefines = {"VSG_GREYSACLE_DIFFUSE_MAP", "VSG_TWO_SIDED_LIGHTING", "VSG_WORKFLOW_SPECGLOSS",
                                           "VSGCS_FLAT_SHADING"};

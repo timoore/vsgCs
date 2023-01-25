@@ -1550,40 +1550,33 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
 
 struct RasterData
 {
+    std::string name;
     vsg::ref_ptr<vsg::ImageInfo> rasterImage;
     pbr::OverlayParams overlayParams;
-    // Index in texture descriptor array. This could probably be assigned once per overlay.
-    uint32_t element;
-    RasterData()
-        : element(0)
-    {
-    }
 };
 
 struct Rasters : public vsg::Inherit<vsg::Object, Rasters>
 {
-    std::map<std::string, RasterData> overlayRasters;
+    Rasters(size_t numOverlays)
+        : overlayRasters(numOverlays)
+    {
+    }
+    std::vector<RasterData> overlayRasters;
     vsg::ref_ptr<vsg::StateCommand> makeRastersCommand(CesiumGltfBuilder& builder);
 };
 
 vsg::ref_ptr<vsg::StateCommand> Rasters::makeRastersCommand(CesiumGltfBuilder& builder)
 {
-    vsg::ImageInfoList rasterImages(2);
+    vsg::ImageInfoList rasterImages(overlayRasters.size());
     vsg::ref_ptr<DescriptorSetConfigurator> descriptorBuilder
         = DescriptorSetConfigurator::create(1, builder.getOrCreatePbrShaderSet());
-    pbr::OverlayUniformMem overlayParams;
-    for (auto& overlayRaster : overlayRasters)
+    std::vector<pbr::OverlayParams> overlayParams(overlayRasters.size());
+    for (size_t i = 0; i < overlayRasters.size(); ++i)
     {
-        auto& rasterData = overlayRaster.second;
-        rasterImages[rasterData.element] = rasterData.rasterImage;
-        overlayParams[rasterData.element] = rasterData.overlayParams;
-    }
-    for (int i = 0; i < 2; ++i)
-    {
-        if (!rasterImages[i])
-        {
-            rasterImages[i] = builder.getDefaultTexture();
-        }
+        const auto& rasterData = overlayRasters[i];
+        rasterImages[i] = rasterData.rasterImage.valid()
+            ? rasterData.rasterImage : builder.getDefaultTexture();
+        overlayParams[i] = rasterData.overlayParams;
     }
     descriptorBuilder->assignTexture("overlayTextures", rasterImages);
     auto ubo = pbr::makeOverlayData(overlayParams);
@@ -1599,7 +1592,7 @@ vsg::ref_ptr<vsg::StateCommand> Rasters::makeRastersCommand(CesiumGltfBuilder& b
 ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection::Tile&,
                                                     vsg::ref_ptr<vsg::Node> node,
                                                     int32_t overlayTextureCoordinateID,
-                                                    const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
+                                                    const Cesium3DTilesSelection::RasterOverlayTile&,
                                                     void* pMainThreadRendererResources,
                                                     const glm::dvec2& translation,
                                                     const glm::dvec2& scale)
@@ -1611,7 +1604,7 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
     vsg::ref_ptr<Rasters> rasters(matrixTransform->getObject<Rasters>("vsgCs_rasterData"));
     if (!rasters)
     {
-        rasters = Rasters::create();
+        rasters = Rasters::create(pbr::maxOverlays);
         matrixTransform->setObject("vsgCs_rasterData", rasters);
     }
 
@@ -1620,23 +1613,7 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
         return {};
     RasterResources *resource = static_cast<RasterResources*>(pMainThreadRendererResources);
     auto raster = resource->raster;
-    auto& overlayName = rasterTile.getOverlay().getName();
-    // Should it be an error if there is already an entry for this overlay?
-    auto orItr = rasters->overlayRasters.find(overlayName);
-    if (orItr == rasters->overlayRasters.end())
-    {
-        auto insertResult = rasters->overlayRasters.insert({overlayName, RasterData()});
-        orItr = insertResult.first;
-    }
-    auto& rasterData = orItr->second;
-    if (auto element = getUintSuffix("Overlay", overlayName); element)
-    {
-        rasterData.element = element.value();
-    }
-    else
-    {
-        throw std::runtime_error(overlayName + " does not have an overlay number");
-    }
+    auto& rasterData = rasters->overlayRasters.at(resource->overlayOptions.layerNumber);
     rasterData.rasterImage = raster;
     rasterData.overlayParams.translation = glm2vsg(translation);
     rasterData.overlayParams.scale = glm2vsg(scale);
@@ -1687,11 +1664,11 @@ CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile&,
     vsg::ref_ptr<vsg::StateGroup> stateGroup = matrixTransform->children[0].cast<vsg::StateGroup>();
     if (!stateGroup)
         return {};
-    auto& overlayName = rasterTile.getOverlay().getName();
-    auto orItr = rasters->overlayRasters.find(overlayName);
-    if (orItr != rasters->overlayRasters.end())
+    RasterResources *resource = static_cast<RasterResources*>(rasterTile.getRendererResources());
+    auto& rasterData = rasters->overlayRasters.at(resource->overlayOptions.layerNumber);
     {
-        rasters->overlayRasters.erase(orItr);
+        rasterData.rasterImage = {}; // ref to rasterImage is still held by the old StateCommand
+        rasterData.overlayParams.enabled = 0;
         auto newCommand = rasters->makeRastersCommand(*this);
         vsg::ref_ptr<vsg::Command> oldCommand;
         // XXX Should check data or something in the state command instead of relying on the number of
