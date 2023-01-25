@@ -85,26 +85,6 @@ namespace vsgCs
     }
 
     /**
-     * @brief call vsg::read_cast using vsgCs' data directory first.
-     */
-    template<class T>
-    vsg::ref_ptr<T> read_cast(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options = {})
-    {
-        static const vsg::Paths libraryPaths{VSGCS_FULL_DATA_DIR};
-        vsg::Path filePath = vsg::findFile(filename, options);
-        if (filePath.empty())
-        {
-            filePath = vsg::findFile(filename, libraryPaths);
-        }
-        if (filePath.empty())
-        {
-            return {};
-        }
-        auto object = read(filePath, options);
-        return vsg::ref_ptr<T>(dynamic_cast<T*>(object.get()));
-    }
-
-    /**
      * @brief Read an entire file as a string.
      */
     std::string readFile(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options = {});

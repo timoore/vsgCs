@@ -41,8 +41,8 @@ namespace vsgCs {
 
         vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(vsg::ref_ptr<const vsg::Options> options)
         {
-            auto vertexShader = vsgCs::read_cast<vsg::ShaderStage>("shaders/csstandard.vert", options);
-            auto fragmentShader = vsgCs::read_cast<vsg::ShaderStage>("shaders/csstandard_pbr.frag", options);
+            auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard.vert", options);
+            auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard_pbr.frag", options);
 
             if (!vertexShader || !fragmentShader)
             {

@@ -36,7 +36,7 @@ IonIconComponent::IonIconComponent(vsg::ref_ptr<vsg::Window> window,
     : usesIon(in_usesIon)
 {
     vsg::Path filename("images/Cesium_ion_256.png");
-    auto data = vsgCs::read_cast<vsg::Data>(filename, options);
+    auto data = vsg::read_cast<vsg::Data>(filename, options);
     if (data)
     {
         ionLogo = vsgCs::ImageComponent::create(window, data);
