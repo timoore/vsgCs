@@ -246,8 +246,8 @@ int main(int argc, char** argv)
 
             viewer->present();
         }
-        worldNode->shutdown();
         vsgCs::shutdown();
+        worldNode->shutdown();
     }
     catch (const vsg::Exception& ve)
     {
