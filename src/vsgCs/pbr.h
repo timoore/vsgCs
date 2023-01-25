@@ -17,16 +17,16 @@ namespace vsgCs
         struct OverlayParams
         {
             OverlayParams()
-                : enabled(0), coordIndex(0)
+                : alpha(1.0f), enabled(0), coordIndex(0)
             {
                 pad[0] = 0;
-                pad[1] = 0;
             }
             vsg::vec2 translation;
             vsg::vec2 scale;
+            float alpha;
             uint32_t enabled;
             uint32_t coordIndex;
-            uint32_t pad[2];
+            uint32_t pad[1];
         };
 
         // This will eventually not be constant, but it will be a major event to change it at

@@ -1619,6 +1619,7 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
     rasterData.overlayParams.scale = glm2vsg(scale);
     rasterData.overlayParams.coordIndex = overlayTextureCoordinateID;
     rasterData.overlayParams.enabled = 1;
+    rasterData.overlayParams.alpha = resource->overlayOptions.alpha;
     auto command = rasters->makeRastersCommand(*this);
     // XXX Should check data or something in the state command instead of relying on the number of
     // commands in the group.

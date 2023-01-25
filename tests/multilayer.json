@@ -1,0 +1,17 @@
+{
+    "comment": "3 layer test",
+    "tilesets": [
+        { "Type": "Tileset",
+          "ionAssetID": 1,
+          "overlays": [{ "Type": "DebugColorizeTilesRasterOverlay",
+                         "alpha": 0.5},
+                       { "Type": "IonRasterOverlay",
+                         "alpha": 0.5,
+                         "assetId": 3812,
+                         "comment": "Black Marble"},
+                       { "Type": "IonRasterOverlay",
+                         "assetId": 2,
+                         "comment": "Bing Maps Aerial"}]
+        }
+    ]
+}

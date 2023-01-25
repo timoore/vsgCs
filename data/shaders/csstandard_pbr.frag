@@ -40,9 +40,10 @@ struct OverlayParamBlock
 {
   vec2 translation;
   vec2 scale;
+  float alpha;
   uint enabled;
   uint coordIndex;
-  // 8 bytes padding
+  // 4 bytes padding
 };
 
 layout(set = 1, binding = 0) uniform OverlayParams
@@ -370,8 +371,10 @@ void main()
         if (overlayParams.params[i].enabled != 0)
         {
             vec4 overlayColor = overlayTexture(i);
-            baseColor.rgb = overlayColor.rgb * overlayColor.a + baseColor.rgb * (1.0 - overlayColor.a);
-            baseColor.a = overlayColor.a  + baseColor.a * (1.0 - overlayColor.a);
+            float overlayAlpha = overlayParams.params[i].alpha * overlayColor.a;
+
+            baseColor.rgb = overlayColor.rgb * overlayAlpha + baseColor.rgb * (1.0 - overlayAlpha);
+            baseColor.a = overlayAlpha  + baseColor.a * (1.0 - overlayAlpha);
         }
     }
 #endif

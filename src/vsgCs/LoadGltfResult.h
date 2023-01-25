@@ -36,6 +36,7 @@ namespace vsgCs
     struct OverlayRendererOptions
     {
         uint32_t layerNumber;
+        float alpha;
     };
 
     struct LoadRasterResult
