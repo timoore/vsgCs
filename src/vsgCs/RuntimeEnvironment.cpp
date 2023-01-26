@@ -31,6 +31,9 @@ SOFTWARE.
 #include "vsgCs/Config.h"
 #include <vsg/all.h>
 
+#include <CesiumAsync/CachingAssetAccessor.h>
+#include <CesiumAsync/SqliteCache.h>
+
 using namespace vsgCs;
 
 vsg::ref_ptr<vsg::Options> RuntimeEnvironment::initializeOptions(vsg::CommandLine &arguments,
@@ -91,6 +94,11 @@ void RuntimeEnvironment::initializeCs(vsg::CommandLine& arguments)
         {
             vsg::fatal("Can't read ion token file ", ionTokenFile);
         }
+    }
+    auto csCacheFile = arguments.value(std::string(), "--cesium-cache");
+    if (!csCacheFile.empty())
+    {
+        _csCacheFile = csCacheFile;
     }
 }
 
@@ -252,14 +260,27 @@ std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> RuntimeEnvironment::ge
     {
         return _externals;
     }
-    std::shared_ptr<CesiumAsync::IAssetAccessor> assetAccessor = std::make_shared<UrlAssetAccessor>();
+    auto logger = spdlog::default_logger();
+    auto urlAccessor = std::make_shared<UrlAssetAccessor>();
+    std::shared_ptr<CesiumAsync::IAssetAccessor> assetAccessor;
+    if (_csCacheFile.has_value())
+    {
+        assetAccessor = std::make_shared<CesiumAsync::CachingAssetAccessor>(
+            logger,
+            urlAccessor,
+            std::make_shared<CesiumAsync::SqliteCache>(logger, _csCacheFile.value()));
+    }
+    else
+    {
+        assetAccessor = urlAccessor;
+    }
     const CesiumAsync::AsyncSystem& asyncSystem = getAsyncSystem();
-    auto _resourcePreparer = std::make_shared<vsgResourcePreparer>(options);
-    auto _creditSystem = std::make_shared<Cesium3DTilesSelection::CreditSystem>();
+    auto resourcePreparer = std::make_shared<vsgResourcePreparer>(options);
+    auto creditSystem = std::make_shared<Cesium3DTilesSelection::CreditSystem>();
     using TE = Cesium3DTilesSelection::TilesetExternals;
     return _externals
-        = std::shared_ptr<TE>(new TE{assetAccessor, _resourcePreparer, asyncSystem, _creditSystem,
-                                     spdlog::default_logger(), nullptr});
+        = std::shared_ptr<TE>(new TE{assetAccessor, resourcePreparer, asyncSystem, creditSystem,
+                                     logger, nullptr});
 }
 
 void RuntimeEnvironment::update()
@@ -297,7 +318,8 @@ std::string RuntimeEnvironment::csUsage()
 {
     return std::string(
         "--ion-token token_string user's Cesium ion token\n"
-        "--ion-token-file filename file containing user's ion token\n");
+        "--ion-token-file filename file containing user's ion token\n"
+        "--cesium-cache filename\t cache file for 3D Tiles remote requests\n");
 }
 
 std::string RuntimeEnvironment::usage()

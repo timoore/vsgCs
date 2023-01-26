@@ -52,7 +52,7 @@ namespace vsgCs
      */
     class VSGCS_EXPORT RuntimeEnvironment : public vsg::Inherit<vsg::Object, RuntimeEnvironment>
     {
-        public:
+    public:
         vsg::ref_ptr<vsg::Options> initializeOptions(vsg::CommandLine& arguments, vsg::ref_ptr<vsg::Options> options= {});
         vsg::ref_ptr<vsg::WindowTraits> initializeTraits(vsg::CommandLine& arguments,
                                                          vsg::ref_ptr< vsg::WindowTraits> traits = {});
@@ -85,7 +85,7 @@ namespace vsgCs
                                              vsg::ref_ptr<vsg::Options> options = {});
         vsg::ref_ptr<vsg::Window> openWindow(vsg::CommandLine& arguments, const std::string& name,
                                              vsg::ref_ptr<vsg::WindowTraits> traits = {},
-                                                   vsg::ref_ptr<vsg::Options> options = {});
+                                             vsg::ref_ptr<vsg::Options> options = {});
         /**
          * @brief Set the viewer object.
          *
@@ -104,7 +104,7 @@ namespace vsgCs
          *
          * XXX This should be in a viewer operation.
          */
-         void update();
+        void update();
          
         /** @brief Uusage message for vsg::Options command line parsing.
          */
@@ -125,8 +125,10 @@ namespace vsgCs
         vsg::ref_ptr<vsg::WindowTraits> traits;
         DeviceFeatures features;
         std::string ionAccessToken;
-        std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> _externals;
         static vsg::ref_ptr<RuntimeEnvironment> get();
+    protected:
+        std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> _externals;
+        std::optional<std::string> _csCacheFile;
     };
 
     vsg::ref_ptr<RuntimeEnvironment> getRuntimeEnvironment();
