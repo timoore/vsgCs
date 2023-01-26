@@ -36,9 +36,6 @@ Follow the installation instructions for:
 - [VulkanSceneGraph](https://github.com/vsg-dev/VulkanSceneGraph). In
   particular, you will need the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home)
   from LunarG.
-- [vsgXchange](https://github.com/vsg-dev/vsgXchange). vsgCs doesn't
-  require this library's optional dependencies, but you might want
-  them in order to load your own models into a scene.
 - [vsgImGui](https://github.com/vsg-dev/vsgImGui)
 
 #### Cesium Native
