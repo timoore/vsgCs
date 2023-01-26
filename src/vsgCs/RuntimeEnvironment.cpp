@@ -25,7 +25,6 @@ SOFTWARE.
 #include "RuntimeEnvironment.h"
 #include "vsgCs/Config.h"
 #include <vsg/all.h>
-#include <vsgXchange/all.h>
 
 using namespace vsgCs;
 
@@ -42,8 +41,6 @@ vsg::ref_ptr<vsg::Options> RuntimeEnvironment::initializeOptions(vsg::CommandLin
     vsg::Paths vsgFilePaths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->paths.insert(options->paths.end(), vsgFilePaths.begin(), vsgFilePaths.end());
     options->paths.insert(options->paths.end(), vsg::Path(VSGCS_FULL_DATA_DIR));
-    // add vsgXchange's support for reading and writing 3rd party file formats
-    options->add(vsgXchange::all::create());
     arguments.read(options);
     uint32_t numOperationThreads = 0;
     if (arguments.read("--ot", numOperationThreads))

@@ -11,7 +11,12 @@ add_executable(worldviewer ${SOURCES})
 
 target_link_libraries(worldviewer vsgCs CsApp vsg::vsg)
 
-target_link_libraries(worldviewer vsgXchange::vsgXchange vsgImGui::vsgImGui)
+target_link_libraries(worldviewer vsgImGui::vsgImGui)
+
+if (vsgXchange_FOUND)
+  target_compile_definitions(worldviewer PRIVATE vsgXchange_FOUND)
+  target_link_libraries(worldviewer vsgXchange::vsgXchange)
+endif()
 
 install(TARGETS worldviewer
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
