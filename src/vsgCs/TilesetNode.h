@@ -88,8 +88,6 @@ namespace vsgCs
     protected:
         const Cesium3DTilesSelection::ViewUpdateResult* _viewUpdateResult;
         std::unique_ptr<Cesium3DTilesSelection::Tileset> _tileset;
-        std::shared_ptr<vsgResourcePreparer> _resourcePreparer;
-        std::shared_ptr<Cesium3DTilesSelection::CreditSystem> _creditSystem;
         std::vector<vsg::ref_ptr<CSOverlay>> _overlays;
     private:
         template<class V> void t_traverse(V& visitor) const;

@@ -165,7 +165,7 @@ int main(int argc, char** argv)
         worldNode->setObject("EllipsoidModel", ellipsoidModel);
         vsg_scene->addChild(worldNode);
         viewer->addWindow(window);
-
+        environment->setViewer(viewer);
         // compute the bounds of the scene graph to help position camera
         // XXX not yet
 #if 0
@@ -247,6 +247,7 @@ int main(int argc, char** argv)
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
 
+            environment->update();
             viewer->update();
 
             viewer->recordAndSubmit();

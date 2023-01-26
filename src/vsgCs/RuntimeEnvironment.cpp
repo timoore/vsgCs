@@ -23,6 +23,11 @@ SOFTWARE.
 </editor-fold> */
 
 #include "RuntimeEnvironment.h"
+
+#include "OpThreadTaskProcessor.h"
+#include "UrlAssetAccessor.h"
+#include "vsgResourcePreparer.h"
+
 #include "vsgCs/Config.h"
 #include <vsg/all.h>
 
@@ -219,6 +224,47 @@ vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openWindow(vsg::CommandLine& argum
     prepareFeaturesAndExtensions(result);
     return result;
     
+}
+
+void RuntimeEnvironment::setViewer(vsg::ref_ptr<vsg::Viewer> viewer)
+{
+    auto externals = getTilesetExternals();
+    auto resourcePrep = std::dynamic_pointer_cast<vsgResourcePreparer>(externals->pPrepareRendererResources);
+    if (!resourcePrep)
+    {
+        throw std::logic_error("No resource preparer!");
+    }
+    resourcePrep->viewer = viewer;
+#if 0
+    if (!viewer->compileManager)
+    {
+        vsg::warn("RuntimeEnvironment::setViewer(): installing compile manager");
+        viewer->compileManager = vsg::CompileManager::create(*viewer,
+                                                             vsg::ref_ptr<vsg::ResourceHints>());
+    }
+#endif
+
+}
+
+std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> RuntimeEnvironment::getTilesetExternals()
+{
+    if (_externals)
+    {
+        return _externals;
+    }
+    std::shared_ptr<CesiumAsync::IAssetAccessor> assetAccessor = std::make_shared<UrlAssetAccessor>();
+    const CesiumAsync::AsyncSystem& asyncSystem = getAsyncSystem();
+    auto _resourcePreparer = std::make_shared<vsgResourcePreparer>(options);
+    auto _creditSystem = std::make_shared<Cesium3DTilesSelection::CreditSystem>();
+    using TE = Cesium3DTilesSelection::TilesetExternals;
+    return _externals
+        = std::shared_ptr<TE>(new TE{assetAccessor, _resourcePreparer, asyncSystem, _creditSystem,
+                                     spdlog::default_logger(), nullptr});
+}
+
+void RuntimeEnvironment::update()
+{
+    getTilesetExternals()->pCreditSystem->startNextFrame();
 }
 
 vsg::ref_ptr<RuntimeEnvironment> RuntimeEnvironment::get()

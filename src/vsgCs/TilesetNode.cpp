@@ -27,6 +27,7 @@ SOFTWARE.
 #include "CSOverlay.h"
 #include "jsonUtils.h"
 #include "OpThreadTaskProcessor.h"
+#include "RuntimeEnvironment.h"
 #include "UrlAssetAccessor.h"
 
 #include <CesiumUtility/JsonHelpers.h>
@@ -94,23 +95,18 @@ TilesetNode::TilesetNode(const DeviceFeatures& deviceFeatures, const TilesetSour
             assert(this->_tileset.get() == details.pTileset);
             vsg::warn(details.message);
         };
-    std::shared_ptr<CesiumAsync::IAssetAccessor> assetAccessor = std::make_shared<UrlAssetAccessor>();
-    const CesiumAsync::AsyncSystem& asyncSystem = getAsyncSystem();
-    _resourcePreparer = std::make_shared<vsgResourcePreparer>(vsgOptions);
-    _creditSystem = std::make_shared<Cesium3DTilesSelection::CreditSystem>();
-    Cesium3DTilesSelection::TilesetExternals externals{assetAccessor, _resourcePreparer, asyncSystem,
-        _creditSystem, spdlog::default_logger(), nullptr};
+    auto externals = RuntimeEnvironment::get()->getTilesetExternals();
     options.contentOptions.ktx2TranscodeTargets = deviceFeatures.ktx2TranscodeTargets;
     if (source.url)
     {
-        _tileset = std::make_unique<Cesium3DTilesSelection::Tileset>(externals, source.url.value(), options);
+        _tileset = std::make_unique<Cesium3DTilesSelection::Tileset>(*externals, source.url.value(), options);
     }
     else
     {
         if (source.ionAssetEndpointUrl)
         {
             _tileset
-                = std::make_unique<Cesium3DTilesSelection::Tileset>(externals,
+                = std::make_unique<Cesium3DTilesSelection::Tileset>(*externals,
                                                                     source.ionAssetID.value(),
                                                                     source.ionAccessToken.value(),
                                                                     options,
@@ -119,7 +115,7 @@ TilesetNode::TilesetNode(const DeviceFeatures& deviceFeatures, const TilesetSour
         else
         {
             _tileset
-                = std::make_unique<Cesium3DTilesSelection::Tileset>(externals,
+                = std::make_unique<Cesium3DTilesSelection::Tileset>(*externals,
                                                                     source.ionAssetID.value(),
                                                                     source.ionAccessToken.value(),
                                                                     options);
@@ -350,21 +346,11 @@ void TilesetNode::UpdateTileset::run()
                           viewStates.push_back(viewState.value());
                       }
                   });
-    ref_tileset->_creditSystem->startNextFrame();
     ref_tileset->_viewUpdateResult = &ref_tileset->_tileset->updateView(viewStates);
 }
 
 bool TilesetNode::initialize(vsg::ref_ptr<vsg::Viewer> viewer)
 {
-    // XXX A bit gross initializing this here, but I think we want to allow creation of TilesetNode
-    // before the viewer.
-    _resourcePreparer->viewer = viewer;
-    if (!viewer->compileManager)
-    {
-        vsg::warn("TilesetNode::initialize(): installing compile manager");
-        viewer->compileManager = vsg::CompileManager::create(*viewer.get(),
-                                                             vsg::ref_ptr<vsg::ResourceHints>());
-    }
     updateViews(viewer);
     viewer->addUpdateOperation(UpdateTileset::create(vsg::ref_ptr<TilesetNode>(this), viewer),
                                vsg::UpdateOperations::ALL_FRAMES);

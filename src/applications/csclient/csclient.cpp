@@ -168,7 +168,6 @@ int main(int argc, char** argv)
         }
         // create the viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
-
         if (!window)
         {
             std::cout << "Could not create windows." << std::endl;
@@ -190,6 +189,7 @@ int main(int argc, char** argv)
 
         vsg_scene->addChild(tilesetNode);
         viewer->addWindow(window);
+        environment->setViewer(viewer);
 
         // compute the bounds of the scene graph to help position camera
         // XXX not yet
@@ -273,6 +273,7 @@ int main(int argc, char** argv)
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
 
+            environment->update();
             viewer->update();
 
             viewer->recordAndSubmit();

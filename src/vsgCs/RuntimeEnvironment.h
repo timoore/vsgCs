@@ -25,6 +25,7 @@ SOFTWARE.
 #pragma once
 
 #include "Export.h"
+#include <Cesium3DTilesSelection/TilesetExternals.h>
 #include <CesiumGltf/Ktx2TranscodeTargets.h>
 #include <vsg/app/WindowTraits.h>
 #include <vsg/core/Inherit.h>
@@ -67,12 +68,12 @@ namespace vsgCs
         vsg::ref_ptr<vsg::Window> openSystemWindow(vsg::CommandLine& arguments, const std::string& name,
                                                    vsg::ref_ptr<vsg::WindowTraits> traits = {},
                                                    vsg::ref_ptr<vsg::Options> options = {});
-                /**
+        /**
          * @brief Set up the window traits to create the Vulkan Device with the desired features,
          * etc.
          *
          * If the application needs custom Vulkan features and extensions, then it can set up
-         * traits->deviceFeatures traits->deviceExtensionNames itself. This function will only touch
+         * traits->deviceFeatures and traits->deviceExtensionNames itself. This function will only touch
          * features and extensions needed for vsgCs.
          * @returns features that are actually available for Cesium and vsgCs.
          */
@@ -85,15 +86,38 @@ namespace vsgCs
         vsg::ref_ptr<vsg::Window> openWindow(vsg::CommandLine& arguments, const std::string& name,
                                              vsg::ref_ptr<vsg::WindowTraits> traits = {},
                                                    vsg::ref_ptr<vsg::Options> options = {});
+        /**
+         * @brief Set the viewer object.
+         *
+         * TilesetNode and WorldNode objects can be created before the VSG viewer, but
+         * RuntimeEnvironment needs the viewer before code can start running.
+         */
+        void setViewer(vsg::ref_ptr<vsg::Viewer> viewer);
+        
+        /**
+         * Get the tileset externals that should be used by every tileset.
+         */
+        std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> getTilesetExternals();
+
+        /**
+         * @brief Update the environment for a new frame.
+         *
+         * XXX This should be in a viewer operation.
+         */
+         void update();
+         
         /** @brief Uusage message for vsg::Options command line parsing.
          */
         static std::string optionsUsage();
+        
         /** @brief Usage message for vsg::WindowTraits command line parsing.
          */
         static std::string traitsUsage();
+        
         /** @brief Usage message for vsgCs command line parsing.
          */
         static std::string csUsage();
+        
         /** @brief Usage message for command line options recognized by RuntimeEnvironment.
          */
         static std::string usage();
@@ -101,6 +125,7 @@ namespace vsgCs
         vsg::ref_ptr<vsg::WindowTraits> traits;
         DeviceFeatures features;
         std::string ionAccessToken;
+        std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> _externals;
         static vsg::ref_ptr<RuntimeEnvironment> get();
     };
 
