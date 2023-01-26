@@ -25,7 +25,6 @@ SOFTWARE.
 #include "RuntimeEnvironment.h"
 #include "vsgCs/Config.h"
 #include <vsg/all.h>
-#include <vsgXchange/all.h>
 
 using namespace vsgCs;
 
@@ -42,8 +41,6 @@ vsg::ref_ptr<vsg::Options> RuntimeEnvironment::initializeOptions(vsg::CommandLin
     vsg::Paths vsgFilePaths = vsg::getEnvPaths("VSG_FILE_PATH");
     options->paths.insert(options->paths.end(), vsgFilePaths.begin(), vsgFilePaths.end());
     options->paths.insert(options->paths.end(), vsg::Path(VSGCS_FULL_DATA_DIR));
-    // add vsgXchange's support for reading and writing 3rd party file formats
-    options->add(vsgXchange::all::create());
     arguments.read(options);
     uint32_t numOperationThreads = 0;
     if (arguments.read("--ot", numOperationThreads))
@@ -177,6 +174,31 @@ DeviceFeatures RuntimeEnvironment::prepareFeaturesAndExtensions(vsg::ref_ptr<vsg
             traits->deviceExtensionNames.push_back(VK_IMG_FORMAT_PVRTC_EXTENSION_NAME);
         }
     }
+    CesiumGltf::SupportedGpuCompressedPixelFormats supportedFormats;
+    if (features.textureCompressionETC2)
+    {
+        supportedFormats.ETC1_RGB = true;
+        supportedFormats.ETC2_RGBA = true;
+        supportedFormats.ETC2_EAC_R11 = true;
+        supportedFormats.ETC2_EAC_RG11 = true;
+    }
+    if (features.textureCompressionBC)
+    {
+        supportedFormats.BC1_RGB = true;
+        supportedFormats.BC3_RGBA = true;
+        supportedFormats.BC4_R = true;
+        supportedFormats.BC5_RG = true;
+        supportedFormats.BC7_RGBA = true;
+    }
+    if (features.textureCompressionASTC_LDR)
+    {
+        supportedFormats.ASTC_4x4_RGBA = true;
+    }
+    if (features.textureCompressionPVRTC)
+    {
+        supportedFormats.PVRTC2_4_RGBA = true;
+    }
+    features.ktx2TranscodeTargets = CesiumGltf::Ktx2TranscodeTargets(supportedFormats, false);
     return features;
 }
 

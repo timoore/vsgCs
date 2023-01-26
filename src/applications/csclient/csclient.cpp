@@ -29,7 +29,9 @@ SOFTWARE.
 
 #include <vsg/all.h>
 
+#ifdef vsgXchange_FOUND
 #include <vsgXchange/all.h>
+#endif
 
 #include <vsgImGui/RenderImGui.h>
 #include <vsgImGui/SendEventsToImGui.h>
@@ -80,6 +82,11 @@ int main(int argc, char** argv)
         // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
         auto environment = vsgCs::RuntimeEnvironment::get();
         auto window = environment->openWindow(arguments, "csclient");
+#ifdef vsgXchange_FOUND
+        // add vsgXchange's support for reading and writing 3rd party file formats
+        environment->options->add(vsgXchange::all::create());
+        arguments.read(environment->options);
+#endif
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value(std::string(), "-p");
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");

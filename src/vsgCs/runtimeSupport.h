@@ -88,7 +88,12 @@ namespace vsgCs
      * @brief Read an entire file as a string.
      */
     std::string readFile(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options = {});
-    
+
+    std::vector<std::byte> readBinaryFile(const vsg::Path& filename,
+                                          vsg::ref_ptr<const vsg::Options> options = {});
+
+    vsg::ref_ptr<vsg::Data> readImageFile(const vsg::Path& filename,
+                                          vsg::ref_ptr<const vsg::Options> options);
     /**
      * @brief Creates a vsg::ref_ptr to a subclass using dynamic_cast from another ref_ptr.
      *

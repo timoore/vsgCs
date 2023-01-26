@@ -23,8 +23,7 @@ endif()
 set(VSG_MIN_VERSION 1.0.0)
 find_package(vsg ${VSG_MIN_VERSION} REQUIRED)
 
-# is it?
-find_package(vsgXchange REQUIRED)
+find_package(vsgXchange)
 
 find_package(vsgImGui REQUIRED)
 

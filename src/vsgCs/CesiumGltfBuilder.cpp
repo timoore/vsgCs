@@ -1284,6 +1284,9 @@ namespace
     }
 }
 
+namespace vsgCs
+{
+
 vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMaps, bool sRGB)
 {
     if (image.pixelData.empty() || image.width == 0 || image.height == 0)
@@ -1331,6 +1334,7 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMap
     // Assume that there is no advantage in sharing the texture data; might be very false!
     return makeArray(image.width, image.height, imageSource, props);
 }
+}
 
 vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRGB)
 {
@@ -1349,7 +1353,7 @@ vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRG
     {
         return imageData.image;
     }
-    auto data = ::loadImage(image, useMipMaps, sRGB);
+    auto data = vsgCs::loadImage(image, useMipMaps, sRGB);
     imageData.sRGB = sRGB;
     if (useMipMaps)
     {

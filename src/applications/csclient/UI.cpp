@@ -25,7 +25,6 @@ SOFTWARE.
 #include "UI.h"
 
 #include <vsg/all.h>
-#include <vsgXchange/all.h>
 #include <vsgImGui/imgui.h>
 
 #include "vsgCs/Config.h"
