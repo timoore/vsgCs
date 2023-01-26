@@ -25,6 +25,7 @@ SOFTWARE.
 #pragma once
 
 #include "Export.h"
+#include <CesiumGltf/Ktx2TranscodeTargets.h>
 #include <vsg/app/WindowTraits.h>
 #include <vsg/core/Inherit.h>
 #include <vsg/io/Options.h>
@@ -42,6 +43,7 @@ namespace vsgCs
         bool textureCompressionASTC_LDR = false;
         bool textureCompressionBC = false;
         bool textureCompressionPVRTC = false;
+        CesiumGltf::Ktx2TranscodeTargets ktx2TranscodeTargets;
     };
 
     /**

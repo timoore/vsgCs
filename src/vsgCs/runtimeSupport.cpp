@@ -22,12 +22,14 @@ SOFTWARE.
 
 </editor-fold> */
 
+#include "CesiumGltfBuilder.h"
+#include "OpThreadTaskProcessor.h"
 #include "runtimeSupport.h"
 #include "RuntimeEnvironment.h"
-#include "OpThreadTaskProcessor.h"
 
 #include <Cesium3DTilesSelection/registerAllTileContentTypes.h>
 #include <Cesium3DTilesSelection/Tile.h>
+#include <CesiumGltfReader/GltfReader.h>
 
 namespace vsgCs
 {
@@ -89,6 +91,54 @@ namespace vsgCs
         std::stringstream iss;
         iss << f.rdbuf();
         return iss.str();
+    }
+
+    std::vector<std::byte> readBinaryFile(const vsg::Path& filename,
+                                          vsg::ref_ptr<const vsg::Options> options)
+    {
+        if (!options)
+        {
+            options = RuntimeEnvironment::get()->options;
+        }
+        vsg::Path filePath = vsg::findFile(filename, options);
+        if (filePath.empty())
+        {
+            throw std::runtime_error("Could not find " + filename);
+        }
+        std::ifstream input( filePath, std::ios::binary);
+        std::vector<std::byte> result;
+
+        std::transform(std::istreambuf_iterator<char>(input), std::istreambuf_iterator<char>( ),
+                       std::back_inserter(result),
+                       [](char c)
+                       {
+                           return std::byte(c);
+                       });
+        return result;
+    }
+
+    vsg::ref_ptr<vsg::Data> readImageFile(const vsg::Path& filename,
+                                          vsg::ref_ptr<const vsg::Options> options)
+    {
+        std::vector<std::byte> raw = readBinaryFile(filename, options);
+        if (raw.empty())
+        {
+            return {};
+        }
+        auto env = RuntimeEnvironment::get();
+        CesiumGltfReader::ImageReaderResult result
+            = CesiumGltfReader::GltfReader::readImage(raw,env->features.ktx2TranscodeTargets);
+        if (!result.image.has_value())
+        {
+            vsg::warn("Could not read image file ", filename, ": ");
+            for (auto& msg : result.errors)
+            {
+                vsg::warn("readImage: ", msg);
+            }
+            return {};
+        }
+        // XXX Should use file extension to choose sRGB argument.
+        return loadImage(result.image.value(), false, true);
     }
 
     std::optional<uint32_t> getUintSuffix(const std::string& prefix, const std::string& data)

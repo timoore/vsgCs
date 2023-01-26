@@ -54,9 +54,8 @@ namespace vsgCs
         std::vector<vsg::ref_ptr<vsg::Object>> deleteObjects;
     };
 
-    // A lot of hair in Cesium Unreal to support these variants, and it's unclear if any are actually
-    // used other than GltfImagePtr
-
+    // There is a lot of hair in Cesium Unreal to support these variants. It's unclear if any
+    // are actually used other than GltfImagePtr
 
     /**
      * @brief A pointer to a glTF image. This image will be cached and used on the
@@ -99,6 +98,14 @@ namespace vsgCs
     // assets) and images that are not part of a model.
 
     class ModelBuilder;
+
+    /**
+     * @brief Load an image as vsg::Data.
+     *
+     * This returns vsg::Data because the vsg::Array2D template class does not have a more specific
+     * superclass.
+     */
+    vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMaps, bool sRGB);
 
     class VSGCS_EXPORT CesiumGltfBuilder : public vsg::Inherit<vsg::Object, CesiumGltfBuilder>
     {

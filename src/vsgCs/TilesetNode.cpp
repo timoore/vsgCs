@@ -100,31 +100,7 @@ TilesetNode::TilesetNode(const DeviceFeatures& deviceFeatures, const TilesetSour
     _creditSystem = std::make_shared<Cesium3DTilesSelection::CreditSystem>();
     Cesium3DTilesSelection::TilesetExternals externals{assetAccessor, _resourcePreparer, asyncSystem,
         _creditSystem, spdlog::default_logger(), nullptr};
-    CesiumGltf::SupportedGpuCompressedPixelFormats supportedFormats;
-    if (deviceFeatures.textureCompressionETC2)
-    {
-        supportedFormats.ETC1_RGB = true;
-        supportedFormats.ETC2_RGBA = true;
-        supportedFormats.ETC2_EAC_R11 = true;
-        supportedFormats.ETC2_EAC_RG11 = true;
-    }
-    if (deviceFeatures.textureCompressionBC)
-    {
-        supportedFormats.BC1_RGB = true;
-        supportedFormats.BC3_RGBA = true;
-        supportedFormats.BC4_R = true;
-        supportedFormats.BC5_RG = true;
-        supportedFormats.BC7_RGBA = true;
-    }
-    if (deviceFeatures.textureCompressionASTC_LDR)
-    {
-        supportedFormats.ASTC_4x4_RGBA = true;
-    }
-    if (deviceFeatures.textureCompressionPVRTC)
-    {
-        supportedFormats.PVRTC2_4_RGBA = true;
-    }
-    options.contentOptions.ktx2TranscodeTargets = CesiumGltf::Ktx2TranscodeTargets(supportedFormats, false);
+    options.contentOptions.ktx2TranscodeTargets = deviceFeatures.ktx2TranscodeTargets;
     if (source.url)
     {
         _tileset = std::make_unique<Cesium3DTilesSelection::Tileset>(externals, source.url.value(), options);
