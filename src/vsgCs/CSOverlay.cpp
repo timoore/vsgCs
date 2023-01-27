@@ -43,13 +43,12 @@ void CSOverlay::addToTileset(vsg::ref_ptr<TilesetNode> tilesetNode)
     options.subTileCacheBytes = this->SubTileCacheBytes;
     options.showCreditsOnScreen = this->ShowCreditsOnScreen;
     options.loadErrorCallback =
-        [this](const Cesium3DTilesSelection::RasterOverlayLoadFailureDetails&
+        [](const Cesium3DTilesSelection::RasterOverlayLoadFailureDetails&
                  details) {
             assert(
-                details.type <=
-                uint8_t(
+                int(details.type) <=
+                int(
                     Cesium3DTilesSelection::RasterOverlayLoadType::TileProvider));
-            assert(this->_pTileset == details.pTileset);
             vsg::warn(details.message);
         };
     options.rendererOptions = OverlayRendererOptions{layerNumber, alpha};
