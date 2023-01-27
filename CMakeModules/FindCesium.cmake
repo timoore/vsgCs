@@ -5,7 +5,7 @@ include(FindPackageHandleStandardArgs)
 # assume that they will be found in CESIUMNATIVE_INCLUDE_DIR
 
 #=============================================================================
-# If the user has provided ``CESIUMNATIVE_ROOT_DIR``, use it!  Choose items found
+# If the user has provided ``CESIUM_ROOT_DIR``, use it!  Choose items found
 # at this location over system locations.
 if( EXISTS "$ENV{CESIUM_ROOT_DIR}" )
   file( TO_CMAKE_PATH "$ENV{CESIUM_ROOT_DIR}" CESIUM_ROOT_DIR )
@@ -22,6 +22,11 @@ find_library(SPDLOG_LIBRARY
   NAMES spdlog
   HINTS ${CESIUM_ROOT_DIR}/lib ${CESIUM_LIBDIR}
   PATH_SUFFIXES Release Debug)
+
+find_library(SPDLOG_LIBRARY_DEBUG
+  NAMES spdlogd spdlog
+  HINTS ${CESIUM_ROOT_DIR}/lib ${CESIUM_LIBDIR}
+  PATH_SUFFIXES Debug)
 
 find_path(ASYNCPLUSPLUS_INCLUDE_DIR
   NAMES async++/ref_count.h
@@ -130,7 +135,7 @@ find_library(CESIUM_UTILITY_LIBRARY
   PATH_SUFFIXES Release Debug)
 
 find_library(CESIUM_UTILITY_LIBRARY_DEBUG
-  NAMES CesiumUtilityd CesiumUtility
+  NAMES CesiumUtilityd
   HINTS ${CESIUM_ROOT_DIR}/lib ${CESIUM_LIBDIR}
   PATH_SUFFIXES Debug)
 
@@ -238,42 +243,70 @@ add_library(cesium::Geospatial UNKNOWN IMPORTED)
 add_library(cesium::Async UNKNOWN IMPORTED)
 add_library(cesium::3DTilesSelection UNKNOWN IMPORTED)
 
+function(set_debug target debug_location)
+  if(debug_location)
+    set_target_properties(${target} PROPERTIES IMPORTED_LOCATION_DEBUG ${debug_location})
+  endif()
+endfunction()
+
 set_target_properties(spdlog PROPERTIES
   IMPORTED_LOCATION "${SPDLOG_LIBRARY}"
   INTERFACE_INCLUDE_DIRECTORIES "${SPDLOG_INCLUDE_DIR}")
+
+set_debug(spdlog "${SPDLOG_LIBRARY_DEBUG}")
 
 set_target_properties(async++ PROPERTIES
   IMPORTED_LOCATION "${ASYNCPLUSPLUS_LIBRARY}"
   INTERFACE_INCLUDE_DIRECTORIES "${ASYNCPLUSPLUS_INCLUDE_DIR}")
 
+set_debug(async++ "${ASYNCPLUSPLUS_LIBRARY_DEBUG}")
+
 set_target_properties(sqlite3 PROPERTIES
   IMPORTED_LOCATION "${SQLITE3_LIBRARY}")
+
+set_debug(sqlite3 "${SQLITE3_LIBRARY_DEBUG}")
 
 set_target_properties(s2geometry PROPERTIES
   IMPORTED_LOCATION "${S2GEOMETRY_LIBRARY}")
 
+set_debug(s2geometry "${S2GEOMETRY_LIBRARY_DEBUG}")
+
 set_target_properties(modp_b64 PROPERTIES
   IMPORTED_LOCATION "${MODP_B64_LIBRARY}")
+
+set_debug(modp_b64 "${MODP_B64_LIBRARY_DEBUG}")
 
 set_target_properties(draco PROPERTIES
   IMPORTED_LOCATION "${DRACO_LIBRARY}")
 
+set_debug(draco "${DRACO_LIBRARY_DEBUG}")
+
 set_target_properties(ktx_read PROPERTIES
   IMPORTED_LOCATION "${KTX_READ_LIBRARY}")
+
+set_debug(ktx_read "${KTX_READ_LIBRARY_DEBUG}")
 
 set_target_properties(webpdecoder PROPERTIES
   IMPORTED_LOCATION "${WEBPDECODER_LIBRARY}")
 
+set_debug(webpdecoder "${WEBPDECODER_LIBRARY_DEBUG}")
+
 set_target_properties(tinyxml2 PROPERTIES
   IMPORTED_LOCATION "${TINYXML2_LIBRARY}")
 
+set_debug(tinyxml2 "${TINYXML2_LIBRARY_DEBUG}")
+
 set_target_properties(uriparser PROPERTIES
   IMPORTED_LOCATION "${URIPARSER_LIBRARY}")
+
+set_debug(uriparser "${URIPARSER_LIBRARY_DEBUG}")
 
 set_target_properties(cesium::Utility PROPERTIES
   IMPORTED_LOCATION "${CESIUM_UTILITY_LIBRARY}"
   INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}"
   INTERFACE_LINK_LIBRARIES uriparser)
+
+set_debug(cesium::Utility "${CESIUM_UTILITY_LIBRARY_DEBUG}")
 
 target_link_libraries(cesium::JsonReader
   INTERFACE
@@ -283,6 +316,8 @@ set_target_properties(cesium::JsonReader PROPERTIES
   IMPORTED_LOCATION "${CESIUM_JSONREADER_LIBRARY}"
   INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}")
 
+set_debug(cesium::JsonReader "${CESIUM_JSONREADER_LIBRARY_DEBUG}")
+
 target_link_libraries(cesium::Async
   INTERFACE
   "cesium::Utility;async++;sqlite3;spdlog")
@@ -291,9 +326,13 @@ set_target_properties(cesium::Async PROPERTIES
   IMPORTED_LOCATION "${CESIUM_ASYNC_LIBRARY}"
   INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}")
 
+set_debug(cesium::Async "${CESIUM_ASYNC_LIBRARY_DEBUG}")
+
 set_target_properties(cesium::JsonReader PROPERTIES
   IMPORTED_LOCATION "${CESIUM_JSONREADER_LIBRARY}"
   INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}")
+
+set_debug(cesium::JsonReader "${CESIUM_JSONREADER_LIBRARY_DEBUG}")
 
 target_link_libraries(cesium::Geometry
   INTERFACE
@@ -301,9 +340,9 @@ target_link_libraries(cesium::Geometry
 
 set_target_properties(cesium::Geometry PROPERTIES
   IMPORTED_LOCATION "${CESIUM_GEOMETRY_LIBRARY}"
-  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}"
-  INTERFACE_LINK_LIBRARIES
-  cesium::Utility)
+  INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}")
+
+set_debug(cesium::Geometry "${CESIUM_GEOMETRY_LIBRARY_DEBUG}")
 
 target_link_libraries(cesium::Geospatial
   INTERFACE
@@ -314,6 +353,8 @@ target_link_libraries(cesium::Geospatial
 set_target_properties(cesium::Geospatial PROPERTIES
   IMPORTED_LOCATION "${CESIUM_GEOSPATIAL_LIBRARY}"
   INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}")
+
+set_debug(cesium::Geospatial "${CESIUM_GEOSPATIAL_LIBRARY_DEBUG}")
 
 target_link_libraries(cesium::GltfReader
   INTERFACE
@@ -329,6 +370,8 @@ set_target_properties(cesium::GltfReader PROPERTIES
   IMPORTED_LOCATION "${CESIUM_GLTFREADER_LIBRARY}"
   INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}")
 
+set_debug(cesium::GltfReader "${CESIUM_GLTFREADER_LIBRARY_DEBUG}")
+
 target_link_libraries(cesium::Gltf
   INTERFACE
   cesium::Utility)
@@ -336,6 +379,8 @@ target_link_libraries(cesium::Gltf
 set_target_properties(cesium::Gltf PROPERTIES
   IMPORTED_LOCATION "${CESIUM_GLTF_LIBRARY}"
   INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}")
+
+set_debug(cesium::Gltf "${CESIUM_GLTF_LIBRARY_DEBUG}")
 
 target_link_libraries(cesium::3DTilesSelection
   INTERFACE
@@ -355,7 +400,6 @@ target_compile_definitions(cesium::3DTilesSelection
             GLM_FORCE_XYZW_ONLY # Disable .rgba and .stpq to make it easier to view values from debugger
             GLM_FORCE_EXPLICIT_CTOR # Disallow implicit conversions between dvec3 <-> dvec4, dvec3 <-> fvec3, etc
             GLM_FORCE_SIZE_T_LENGTH # Make vec.length() and vec[idx] use size_t instead of int
-            NDEBUG # Cesium is compiled with this
           )
           
 set_target_properties(cesium::3DTilesSelection
@@ -363,4 +407,6 @@ set_target_properties(cesium::3DTilesSelection
   IMPORTED_LOCATION "${CESIUM_3DTILESSELECTION_LIBRARY}"
   INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}"
 )
+
+set_debug(cesium::3DTilesSelection "${CESIUM_3DTILESSELECTION_LIBRARY_DEBUG}")
 
