@@ -94,7 +94,7 @@ namespace
             throw std::runtime_error("Can't directly create a CSOverlay object.");
         }
         auto overlay = ref_ptr_cast<CSOverlay>(object);
-        overlay->alpha = CesiumUtility::JsonHelpers::getDoubleOrDefault(json, "alpha", 1.0);
+        overlay->alpha = static_cast<float>(CesiumUtility::JsonHelpers::getDoubleOrDefault(json, "alpha", 1.0));
         return object;
     }
 
