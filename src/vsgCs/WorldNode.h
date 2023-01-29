@@ -25,6 +25,10 @@ SOFTWARE.
 #pragma once
 
 #include <vsg/nodes/Group.h>
+// See comments elsewhere about this Windows brain damage.
+#ifndef NOGDI
+#define NOGDI
+#endif
 #include <Cesium3DTilesSelection/Tileset.h>
 #include <gsl/span>
 

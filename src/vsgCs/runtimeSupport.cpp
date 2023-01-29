@@ -85,7 +85,7 @@ namespace vsgCs
         vsg::Path filePath = vsg::findFile(filename, options);
         if (filePath.empty())
         {
-            throw std::runtime_error("Could not find " + filename);
+            throw std::runtime_error("Could not find " + filename.string());
         }
         std::fstream f(filePath);
         std::stringstream iss;
@@ -103,7 +103,7 @@ namespace vsgCs
         vsg::Path filePath = vsg::findFile(filename, options);
         if (filePath.empty())
         {
-            throw std::runtime_error("Could not find " + filename);
+            throw std::runtime_error("Could not find " + filename.string());
         }
         std::ifstream input( filePath, std::ios::binary);
         std::vector<std::byte> result;

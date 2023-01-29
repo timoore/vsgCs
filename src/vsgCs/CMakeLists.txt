@@ -1,9 +1,3 @@
-IF(VSGCS_BUILD_SHARED_LIBS)
-  ADD_DEFINITIONS(-DVSGCS_LIBRARY)
-ELSE()
-  ADD_DEFINITIONS(-DVSGCS_LIBRARY_STATIC)
-ENDIF()
-
 find_package(CURL REQUIRED)
 
 set(LIB_NAME vsgCs)
@@ -54,9 +48,21 @@ set_target_properties(${LIB_NAME} PROPERTIES
   PUBLIC_HEADER "${LIB_PUBLIC_HEADERS}"
 )
 
-target_include_directories(${LIB_NAME} PRIVATE ${CURL_INCLUDE_DIR})
+target_include_directories(${LIB_NAME} PRIVATE ${CURL_INCLUDE_DIRS})
 
-target_link_libraries(${LIB_NAME} vsg::vsg vsgImGui::vsgImGui cesium::3DTilesSelection cesium::GltfReader cesium::Gltf ${CURL_LIBRARIES})
+if(VSGCS_BUILD_SHARED_LIBS)
+  target_compile_definitions(${LIB_NAME} PRIVATE VSGCS_LIBRARY)
+else()
+  target_compile_definitions(${LIB_NAME} PUBLIC VSGCS_LIBRARY_STATIC)
+endif()
+
+# This important define should probably be in the import definition
+# for spdlog in FindCesium.cmake. Without it there all sorts of
+# multiple definition errors.
+
+target_compile_definitions(${LIB_NAME} PUBLIC SPDLOG_COMPILED_LIB)
+
+target_link_libraries(${LIB_NAME} vsg::vsg vsgImGui::vsgImGui cesium::3DTilesSelection cesium::GltfReader cesium::Gltf ${CURL_LIBRARIES} spdlog)
 
 install(TARGETS vsgCs EXPORT vsgCsTargets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
