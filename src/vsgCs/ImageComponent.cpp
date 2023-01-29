@@ -118,7 +118,7 @@ void ImageComponent::compile(vsg::Context& context)
 bool ImageComponent::operator()()
 {
     ImGui::Image(static_cast<ImTextureID>(descriptorSet->vk(_window->getDevice()->deviceID)),
-                 ImVec2(width, height));
+                 ImVec2(static_cast<float>(width), static_cast<float>(height)));
     return true;
 }
 

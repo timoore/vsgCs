@@ -14,6 +14,13 @@ SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${vsgCs_SOURCE_DIR}/CMakeModules")
 # set the use of C++17 globally as all examples require it
 set(CMAKE_CXX_STANDARD 17)
 
+# template madness
+
+if (MSVC)
+    add_compile_options(/bigobj)
+endif()
+
+option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
 # Find Vulkan and the VSG
 if (VULKAN_SDK)

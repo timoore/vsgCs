@@ -34,6 +34,8 @@ SOFTWARE.
 #include <CesiumAsync/CachingAssetAccessor.h>
 #include <CesiumAsync/SqliteCache.h>
 
+#include <spdlog/spdlog.h>
+
 using namespace vsgCs;
 
 vsg::ref_ptr<vsg::Options> RuntimeEnvironment::initializeOptions(vsg::CommandLine &arguments,

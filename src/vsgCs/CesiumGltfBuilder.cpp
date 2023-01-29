@@ -29,6 +29,12 @@ SOFTWARE.
 #include "LoadGltfResult.h"
 #include "runtimeSupport.h"
 
+// Some include file in Cesium (actually, it's spdlog.h) unleashes the hell of windows.h. We need to
+// turn off GDI defines to avoid a redefinition of the GLSL constant OPAQUE.
+#ifndef NOGDI
+#define NOGDI
+#endif
+
 #include <CesiumGltf/AccessorView.h>
 #include <CesiumGltf/ExtensionKhrTextureBasisu.h>
 #include <CesiumGltf/ExtensionTextureWebp.h>
@@ -142,13 +148,13 @@ namespace
         switch (topology)
         {
         case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST:
-            mapTriangleList(positions->size(), setNormals);
+            mapTriangleList(static_cast<uint32_t>(positions->size()), setNormals);
             return true;
         case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY:
-            mapTriangleStrip(positions->size(), setNormals);
+            mapTriangleStrip(uint32_t(positions->size()), setNormals);
             return true;
         case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN:
-            mapTriangleFan(positions->size(), setNormals);
+            mapTriangleFan(uint32_t(positions->size()), setNormals);
             return true;
         default:
             return false;
@@ -384,7 +390,7 @@ namespace
             throw std::runtime_error("invalid accessor view");
         }
         auto result = TArray::create(indicesView.size());
-        for (int i = 0; i < indicesView.size(); ++i)
+        for (int64_t i = 0; i < indicesView.size(); ++i)
         {
             for (size_t j = 0; j < AccessorViewTraits<TA>::size; ++j)
             {
@@ -885,7 +891,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     {
         auto vd = vsg::VertexDraw::create();
         vd->assignArrays(vertexArrays);
-        vd->vertexCount = positions->valueCount();
+        vd->vertexCount = static_cast<uint32_t>(positions->valueCount());
         vd->instanceCount = 1;
         drawCommand = vd;
     }
@@ -983,19 +989,19 @@ ModelBuilder::loadMaterial(const CesiumGltf::Material* material)
         auto const& cesiumPbr = material->pbrMetallicRoughness.value();
         for (int i = 0; i < 3; ++i)
         {
-            pbr.baseColorFactor[i] = cesiumPbr.baseColorFactor[i];
+            pbr.baseColorFactor[i] = static_cast<float>(cesiumPbr.baseColorFactor[i]);
         }
         if (cesiumPbr.baseColorFactor.size() > 3)
         {
-            pbr.baseColorFactor[3] = cesiumPbr.baseColorFactor[3];
+            pbr.baseColorFactor[3] = static_cast<float>(cesiumPbr.baseColorFactor[3]);
         }
         if (cesiumPbr.metallicFactor >= 0.0)
         {
-            pbr.metallicFactor = cesiumPbr.metallicFactor;
+            pbr.metallicFactor = static_cast<float>(cesiumPbr.metallicFactor);
         }
         if (cesiumPbr.roughnessFactor >= 0.0)
         {
-            pbr.roughnessFactor = cesiumPbr.roughnessFactor;
+            pbr.roughnessFactor = static_cast<float>(cesiumPbr.roughnessFactor);
         }
         loadMaterialTexture(convertedMat, "diffuseMap", cesiumPbr.baseColorTexture, true);
         loadMaterialTexture(convertedMat, "mrMap", cesiumPbr.metallicRoughnessTexture, false);
@@ -1309,7 +1315,7 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMap
     }
     vsg::Data::Properties props;
     props.format = pixelFormat;
-    props.maxNumMipmaps = image.mipPositions.size();
+    props.maxNumMipmaps = static_cast<uint8_t>(image.mipPositions.size());
     std::tie(props.blockWidth, props.blockHeight) = getBlockSize(pixelFormat);
     props.origin = vsg::BOTTOM_LEFT;
     // Assume that the ImageCesium raw format will be fine to upload into Vulkan, except for
@@ -1387,7 +1393,7 @@ vsg::ref_ptr<vsg::Sampler> makeSampler(VkSamplerAddressMode addressX,
     result->addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
     result->anisotropyEnable = VK_TRUE;
     result->maxAnisotropy = 16.0f;
-    result->maxLod = maxNumMipMaps;
+    result->maxLod = static_cast<float>(maxNumMipMaps);
     return result;
 }
 

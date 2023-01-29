@@ -27,6 +27,7 @@ SOFTWARE.
 #include <rapidjson/document.h>
 #include <vsg/io/Logger.h>
 
+#include <algorithm>
 #include <map>
 #include <string>
 
@@ -51,7 +52,7 @@ namespace vsgCs
             vsg::error("Error parsing json: error code ", document.GetParseError(),
                        " at byte ", document.GetErrorOffset(),
                        "\n Source:\n",
-                       std::string(source.data(), source.data() + std::min(128ul, source.size())));
+                       std::string(source.data(), source.data() + std::min(size_t(128), source.size())));
             throw std::runtime_error("JSON parse error");
         }
         obj.init(document);
