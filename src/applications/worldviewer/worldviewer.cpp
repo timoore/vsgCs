@@ -37,6 +37,8 @@ SOFTWARE.
 #include <vsgImGui/SendEventsToImGui.h>
 #include <vsgImGui/imgui.h>
 
+#include <gsl/util>
+
 #include <algorithm>
 #include <chrono>
 #include <iostream>
@@ -78,17 +80,26 @@ int main(int argc, char** argv)
             usage(argv[0]);
             return 0;
         }
-        // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options to use when reading and writing files.
+        // set up vsg::Options to pass in filepaths and ReaderWriter's and other IO related options
+        // to use when reading and writing files.
+        // vsgCs::RuntimeEnvironment manages parsing of common arguments, initialization of the
+        // Vulkan environment, and the Cesium ion token (if any).
         auto environment = vsgCs::RuntimeEnvironment::get();
         auto window = environment->openWindow(arguments, "worldviewer");
 #ifdef vsgXchange_FOUND
-        // add vsgXchange's support for reading and writing 3rd party file formats
+        // add vsgXchange's support for reading and writing 3rd party file formats. If vsgXchange
+        // isn't found, then we will only be able to read .vsgt models.
         environment->options->add(vsgXchange::all::create());
         arguments.read(environment->options);
 #endif
+        // The world file specifies the tilesets to display.
         auto worldFile = arguments.value(std::string(), "--world-file");
+        // numFrames and pathFilename come from vsgViewer. They provide a way to display a
+        // "flythrough." At the moment they are not useful because a scene will usually take some
+        // time to load.
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value(std::string(), "-p");
+        // Options for the VSG trackball manipulator
         auto horizonMountainHeight = arguments.value(0.0, "--hmh");
         bool useEllipsoidPerspective = !arguments.read({"--disble-EllipsoidPerspective", "--dep"});
 
@@ -102,8 +113,6 @@ int main(int argc, char** argv)
         {
             vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
         }
-        auto tilesetUrl = arguments.value(std::string(), "--tileset-url");
-        auto ionEndpointUrl = arguments.value(std::string(), "--ion-endpoint-url");
         bool useHeadlight = !(arguments.read("--no-headlight"));
 
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
@@ -117,6 +126,7 @@ int main(int argc, char** argv)
         vsg_scene->addChild(ambientLight);
         if (!useHeadlight)
         {
+            // Noon GMT on a summer day
             auto directionalLight = vsg::DirectionalLight::create();
             directionalLight->name = "directional";
             directionalLight->color.set(1.0, 1.0, 1.0);
@@ -125,7 +135,8 @@ int main(int argc, char** argv)
             vsg_scene->addChild(directionalLight);
         }
 
-        // read any vsg files
+        // Read any vsg files. This application's coordinate system is WGS84 ECEF, with Z pointing
+        // towards north, so an arbitrary model is not going to show up in a useful position.
         for (int i = 1; i < argc; ++i)
         {
             vsg::Path filename = arguments[i];
@@ -149,9 +160,9 @@ int main(int argc, char** argv)
             vsg::fatal("no world file");
         }
         auto worldJson = vsgCs::readFile(worldFile);
-        
+        // Do early cesium-native initialization
         vsgCs::startup();
-        // create the viewer and assign window(s) to it
+        // create the VSG viewer and assign window(s) to it
         auto viewer = vsg::Viewer::create();
 
         if (!window)
@@ -163,19 +174,14 @@ int main(int argc, char** argv)
         auto worldNode
             = vsgCs::ref_ptr_cast<vsgCs::WorldNode>(vsgCs::JSONObjectFactory::get()
                                                     ->buildFromSource(worldJson));
+        // VSG's EllipsoidModel provides ellipsoid parameters (e.g. WGS84), mostly for the benefit
+        // of the trackball manipulator.
         auto ellipsoidModel = vsg::EllipsoidModel::create();
         worldNode->setObject("EllipsoidModel", ellipsoidModel);
         vsg_scene->addChild(worldNode);
         viewer->addWindow(window);
+        // vsgCS::RuntimeEnvironment needs the vsg::Viewer object for creation of Vulkan objects
         environment->setViewer(viewer);
-        // compute the bounds of the scene graph to help position camera
-        // XXX not yet
-#if 0
-        vsg::ComputeBounds computeBounds;
-        vsg_scene->accept(computeBounds);
-        vsg::dvec3 centre = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
-        double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.6;
-#endif
         vsg::dvec3 centre(0.0, 0.0, 0.0);
         double radius = ellipsoidModel->radiusEquator();
 
@@ -200,6 +206,7 @@ int main(int argc, char** argv)
         }
         else
         {
+            // Establish a viewpoint when enough of the world has been loaded to know its bounds.
             lookAt = vsg::LookAt::create(centre + vsg::dvec3(radius * 3.5, 0.0, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
             setViewpointAfterLoad = true;
         }
@@ -213,10 +220,14 @@ int main(int argc, char** argv)
             perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
         }
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
+        // Create this application's user interface, including the trackball manipulator and the
+        // graphical overlay.
         auto ui = vsgCs::UI::create();
         ui->createUI(window, viewer, camera, ellipsoidModel, environment->options, true);
+        // Basic VSG objects for rendering
         auto commandGraph = vsg::CommandGraph::create(window);
         auto renderGraph = vsg::RenderGraph::create(window);
+        // The classic VSG background, translated into sRGB values.
         renderGraph->setClearValues({{0.02899f, 0.02899f, 0.13321f}});
         commandGraph->addChild(renderGraph);
 
@@ -227,14 +238,18 @@ int main(int argc, char** argv)
         }
         view->addChild(vsg_scene);
         renderGraph->addChild(view);
-
+        // Attach the ImGui graphical interface
         renderGraph->addChild(ui->getImGui());
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
+        // Compile everything we can at this point.
         viewer->compile();
         ui->compile(window, viewer);
-
+        // Perform any late initialization of TilesetNode objects. Most importantly, this tracks VSG
+        // cameras so that they can be used by cesium-native to determine visible tiles.
         worldNode->initialize(viewer);
-        
+        auto lastAct = gsl::finally([worldNode]() {
+            vsgCs::shutdown();
+            worldNode->shutdown();});
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {
@@ -248,7 +263,7 @@ int main(int argc, char** argv)
             }
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();
-
+            // XXX This should be moved to vsg::Viewer update operation.
             environment->update();
             viewer->update();
 
@@ -256,8 +271,6 @@ int main(int argc, char** argv)
 
             viewer->present();
         }
-        vsgCs::shutdown();
-        worldNode->shutdown();
     }
     catch (const vsg::Exception& ve)
     {
