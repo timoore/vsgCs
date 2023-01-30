@@ -417,10 +417,11 @@ namespace
             for (rapidjson::SizeType i = 0; i < valueJson.Size(); ++i)
             {
                 const auto& element = valueJson[i];
-                vsg::ref_ptr<CSOverlay> overlay = ref_ptr_cast<CSOverlay>(factory->build(element));
+                auto built = factory->build(element);
+                vsg::ref_ptr<CSOverlay> overlay = ref_ptr_cast<CSOverlay>(built);
                 if (!overlay)
                 {
-                    vsg::error("expected CSOverly, got ", overlay->className());
+                    vsg::error("expected CSOverly, got ", built->className());
                     break;
                 }
                 overlay->layerNumber = i;
