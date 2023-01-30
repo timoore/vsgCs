@@ -1,4 +1,4 @@
-vsgCs  — Cesium ion and 3D Tiles for VSG
+vsgCs  —  3D Tiles and Cesium ion for VSG
 =====
 vsgCs is a library for using [3D
 Tiles](https://github.com/CesiumGS/3d-tiles) and other geospatial
