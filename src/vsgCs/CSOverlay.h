@@ -60,16 +60,16 @@ namespace vsgCs
         void removeFromTileset(vsg::ref_ptr<TilesetNode> tilesetNode);
         virtual Cesium3DTilesSelection::RasterOverlay* createOverlay(
             const Cesium3DTilesSelection::RasterOverlayOptions& options = {}) = 0;
-        CesiumUtility::IntrusivePointer<Cesium3DTilesSelection::RasterOverlay>& getOverlay()
+        Cesium3DTilesSelection::RasterOverlay* getOverlay()
         {
             return _rasterOverlay;
         }
-        const CesiumUtility::IntrusivePointer<Cesium3DTilesSelection::RasterOverlay>& getOverlay() const
+        const  Cesium3DTilesSelection::RasterOverlay* getOverlay() const
         {
             return _rasterOverlay;
         }
     protected:
-        CesiumUtility::IntrusivePointer<Cesium3DTilesSelection::RasterOverlay> _rasterOverlay;
+        Cesium3DTilesSelection::RasterOverlay* _rasterOverlay;
         int32_t _overlaysBeingDestroyed = 0;
     };
 
