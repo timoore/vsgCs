@@ -93,6 +93,24 @@ namespace vsgCs
                                         const std::string& typeOverride = std::string(),
                                         vsg::ref_ptr<vsg::Object> object = {});
         /**
+         * @brief Build or initialize an object from a JSON source (e.g. std::string).
+         */
+        template<typename TSource, typename TDest = rapidjson::Document>
+        vsg::ref_ptr<vsg::Object> buildFromSource(TSource&& source)
+        {
+            TDest document;
+            document.Parse(source.data(), source.size());
+            if (document.HasParseError())
+            {
+                vsg::error("Error parsing json: error code ", document.GetParseError(),
+                           " at byte ", document.GetErrorOffset(),
+                           "\n Source:\n",
+                           std::string(source.data(), source.data() + std::min(size_t(128), source.size())));
+                throw std::runtime_error("JSON parse error");
+            }
+            return this->build(document);
+        }
+        /**
          * @brief get the standard factory
          */
         static vsg::ref_ptr<JSONObjectFactory> get();

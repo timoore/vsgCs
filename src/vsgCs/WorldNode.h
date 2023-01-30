@@ -34,6 +34,7 @@ SOFTWARE.
 
 #include "Export.h"
 #include "runtimeSupport.h"
+#include "jsonUtils.h"
 
 namespace vsgCs
 {
@@ -42,7 +43,7 @@ namespace vsgCs
         public:
         WorldNode();
         // Init (create TilesetNode objects) from Json data
-        void init(const rapidjson::Value& worldJson);
+        void init(const rapidjson::Value& worldJson, JSONObjectFactory* factory = nullptr);
         /**
          * @brief Load tilesets, set up recurring VSG tasks, and perform any other necessary
          * initialization. This calls updateViews().

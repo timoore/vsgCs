@@ -159,8 +159,10 @@ int main(int argc, char** argv)
             std::cout << "Could not create windows." << std::endl;
             return 1;
         }
-        auto worldNode = vsgCs::WorldNode::create();
-        vsgCs::initFromJSON(*worldNode, worldJson);
+        // Create the World with its tilesets
+        auto worldNode
+            = vsgCs::ref_ptr_cast<vsgCs::WorldNode>(vsgCs::JSONObjectFactory::get()
+                                                    ->buildFromSource(worldJson));
         auto ellipsoidModel = vsg::EllipsoidModel::create();
         worldNode->setObject("EllipsoidModel", ellipsoidModel);
         vsg_scene->addChild(worldNode);

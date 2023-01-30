@@ -24,14 +24,18 @@ WorldNode::WorldNode()
 
 namespace
 {
-    vsg::ref_ptr<TilesetNode> makeTilesetNode(const rapidjson::Value& tsObject)
+    vsg::ref_ptr<TilesetNode> makeTilesetNode(const rapidjson::Value& tsObject, JSONObjectFactory* factory)
     {
-        return ref_ptr_cast<TilesetNode>(JSONObjectFactory::get()->build(tsObject));
+        return ref_ptr_cast<TilesetNode>(factory->build(tsObject));
     }
 }
 
-void WorldNode::init(const rapidjson::Value& worldJson)
+void WorldNode::init(const rapidjson::Value& worldJson, JSONObjectFactory* factory)
 {
+    if (!factory)
+    {
+        factory = JSONObjectFactory::get();
+    }
     auto tilesetParent = ref_ptr_cast<vsg::StateGroup>(children[0]);
     auto tilesetsItr = worldJson.FindMember("tilesets");
     if (tilesetsItr == worldJson.MemberEnd() || !tilesetsItr->value.IsArray())
@@ -42,7 +46,7 @@ void WorldNode::init(const rapidjson::Value& worldJson)
     const auto& tilesets = tilesetsItr->value;
     for (rapidjson::SizeType i = 0; i < tilesets.Size(); ++i)
     {
-        auto tilesetNode = makeTilesetNode(tilesets[i].GetObject());
+        auto tilesetNode = makeTilesetNode(tilesets[i].GetObject(), factory);
         tilesetParent->addChild(tilesetNode);
     }
 }
@@ -90,4 +94,22 @@ const Cesium3DTilesSelection::Tile* WorldNode::getRootTile(size_t tileset)
         return tilesetNode->getTileset()->getRootTile();
     }
     return nullptr;
+}
+
+namespace
+{
+    vsg::ref_ptr<vsg::Object> buildWorldNode(const rapidjson::Value& json,
+                                               JSONObjectFactory* factory,
+                                               vsg::ref_ptr<vsg::Object> object)
+    {
+        if (!object)
+        {
+            object = WorldNode::create();
+        }
+        auto world = ref_ptr_cast<WorldNode>(object);
+        world->init(json, factory);
+        return world;
+    }
+
+    JSONObjectFactory::Registrar r("World", buildWorldNode);
 }

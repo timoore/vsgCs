@@ -1,0 +1,9 @@
+{ "Type": "World",
+  "comment": "The Cesium tutorial AGI_HQ tileset. The Asset ID is from my ion account.",
+  "tilesets": [
+      {
+      "Type": "Tileset",
+      "ionAssetID":1418857
+  }
+  ]
+}
