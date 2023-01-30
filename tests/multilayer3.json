@@ -1,9 +1,11 @@
 { "Type": "World",
-  "comment": "multilayer test",
+  "comment": "3 layer test",
   "tilesets": [
       { "Type": "Tileset",
         "ionAssetID": 1,
-        "overlays": [{ "Type": "IonRasterOverlay",
+        "overlays": [{ "Type": "DebugColorizeTilesRasterOverlay",
+                       "alpha": 0.5},
+                     { "Type": "IonRasterOverlay",
                        "alpha": 0.5,
                        "assetId": 3812,
                        "comment": "Black Marble"},

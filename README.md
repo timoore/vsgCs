@@ -21,7 +21,10 @@ package, which also "powers Cesium's runtime integrations for
 - Streaming of geospatial assets into a VSG scene graph
   - 3D Tiles tilesets with [glTF](https://www.khronos.org/gltf/) models
   - Cesium ion assets
-  - image overlays
+  
+- Multiple tilesets in a scene
+- Image overlays on tilesets
+  - Multiple layered overlays with individual alpha values
 
 - Whole-Earth terrain paging
 - Example viewing application
@@ -35,7 +38,7 @@ package, which also "powers Cesium's runtime integrations for
 Follow the installation instructions for:
 - [VulkanSceneGraph](https://github.com/vsg-dev/VulkanSceneGraph). In
   particular, you will need the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home)
-  from LunarG.
+  from LunarG. The Vulkan SDK debugging libraries are required to make a Debug configuration of vsgCS. 
 - [vsgImGui](https://github.com/vsg-dev/vsgImGui)
 
 #### Cesium Native
@@ -43,14 +46,14 @@ Follow the installation instructions for:
 Download  [Cesium Native](https://github.com/CesiumGS/cesium-native),
 follow its compilation instructions, and install. 
 
-Note: if you build a debug version of Cesium Native, you must remove
-the NDEBUG flag from vsgCs compilation; see
-CMakeModules/FindCesium.cmake.
+Note: In order to check out Cesium Native from git, you will need to
+have the git-lfs component installed. This comes with Git for Windows
+but is not installed by default on Linux.
 
-### Command line build instractions:
+### Command line build instructions:
 
 To build and install the static library (libvsgCs.a / libvsgCs.lib) and sample
-application (csclient):
+application (worldviewer):
 ```
     git clone https://github.com/timoore/vsgCs.git
     mkdir build # or wherever you like
@@ -86,24 +89,24 @@ the "Access Tokens" page of Cesium ion, copy your token. while it can
 be passed on the command line to csclient, it is more convenient to
 store it in a file e.g., `.cesiumiontoken` in your home directory.
 
-### `csclient`
+### `worldviewer`
 
-The `csclient` program demonstrates the basic features of vsgCs. To
+The `worldviewer` program demonstrates the basic features of vsgCs. To
 view the world:
 
 ```
-csclient --ion-asset 1 --ion-overlay 2 --ion-token-file ~/.cesiumiontoken
+worldviewer --ion-token-file ~/.cesiumiontoken --world-file vsgCs/tests/csterrain.json
 ```
 
 which should produce:
 
 <img src="doc/img/world.png" alt="the world">
 
-`csclient` also displays discrete 3D Tiles tilesets. In my Cesium ion
+`worldviewer` also displays discrete 3D Tiles tilesets. In my Cesium ion
 account the AGI building has asset id 1418857, so:
 
 ```
-csclient --ion-asset 1418857 --ion-token-file ~/.cesiumiontoken
+worldviewer --ion-asset 1418857 --ion-token-file ~/.cesiumiontoken
 ```
 
 produces
@@ -112,11 +115,27 @@ produces
 
 ---
 
+## JSON input files
+
+vsgCs and the `worldviwer` program can read a simple JSON description
+of the tilesets and overlays to include in a scene. See the
+[tests](tests) directory for examples. These include:
+
+* [csterrain.json](tests/csterrain.json) Cesium World Terrain with
+  Bing images
+* [color-debug-overlay.json](tests/color-debug-overlay.json) Debugging
+  layer shows tile extents
+* [multilayer.json](tests/multilayer.json) Multiple layers
+* [osm-buildings.json](tests/osm-buildings.json) The world with OSM buildings
+* [agi.json](tests/agi.json) The ion tutorial tileset
+
+---
+
 ## Status
 
-vsgCs is not yet a mature project. It has not been tested on Windows,
-but patches (if needed) are welcome! `csclient` may crash, and take
-your machine down with it. The `--debug` flag is recommended if you do
-any development with vsgCs. There are many bugs to fix and features to
-implement, so stay tuned!
+vsgCs and `worldviewer` have been tested with the Cesium World Terrain
+and other imagery and tilesets available in the Cesium ion Asset
+Depot. The OSM Buildings tileset works. For future directions, check
+out our [roadmap](doc/ROADMAP.md). Enjoy!
 
+<img src="doc/img/london.png" alt="London, England">

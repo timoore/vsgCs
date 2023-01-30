@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.11)
 
 project(vsgCs
-    VERSION 0.0.2
+    VERSION 0.2.0
     DESCRIPTION "VSG library for rendering 3D Tiles and Cesium assets"
     LANGUAGES CXX C
 )
