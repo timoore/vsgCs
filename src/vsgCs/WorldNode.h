@@ -25,7 +25,7 @@ SOFTWARE.
 #pragma once
 
 #include <vsg/nodes/Group.h>
-// See comments elsewhere about this Windows brain damage.
+// See comments elsewhere about this Windows brokeness.
 #ifndef NOGDI
 #define NOGDI
 #endif

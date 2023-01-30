@@ -13,7 +13,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #pragma once
 
 #include <vsg/all.h>
-// See comments elsewhere about this Windows brain damage.
+// See comments elsewhere about this Windows brokeness.
 #ifndef NOGDI
 #define NOGDI
 #endif
