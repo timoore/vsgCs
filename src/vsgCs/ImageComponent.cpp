@@ -32,57 +32,14 @@ using namespace vsgCs;
 
 namespace
 {
-    vsg::ref_ptr<vsg::DescriptorSet> makeImageDescriptorSet(vsg::ref_ptr<vsg::Data> texData)
-    {
-        // Code stolen from vsgviewer's createTextureQuad. I don't know if our own code would have
-        // any advantage here.
-        // We really only care about creating a 32 bit texture format if needed.
-        struct ConvertToRGBA : public vsg::Visitor
-    {
-        vsg::ref_ptr<vsg::Data> textureData;
-
-        void apply(vsg::Data& data) override
-        {
-            textureData = &data;
-        }
-
-        void apply(vsg::ubvec3Array2D& uba) override
-        {
-            vsg::Data::Properties newProps;
-            newProps.format  = VK_FORMAT_R8G8B8A8_UNORM;
-            if (uba.properties.format == VK_FORMAT_R8G8B8_SRGB)
-            {
-                newProps.format = VK_FORMAT_R8G8B8A8_SRGB;
-            }
-            else if (uba.properties.format != VK_FORMAT_R8G8B8_UNORM)
-            {
-                vsg::warn("Don't know what to do with format ", uba.properties.format);
-
-            }
-            auto rgba = vsg::ubvec4Array2D::create(uba.width(), uba.height(), newProps);
-            auto dest_itr = rgba->begin();
-            for (auto& v : uba)
-            {
-                (*dest_itr++).set(v.r, v.g, v.b, 255);
-            }
-            textureData = rgba;
-
-        }
-        vsg::ref_ptr<vsg::Data> convert(vsg::ref_ptr<vsg::Data> data)
-        {
-            data->accept(*this);
-            return textureData;
-        }
-
-    } convertToRGBA;
-        auto textureData = convertToRGBA.convert(texData);
-    if (!textureData) return {};
-        // set up graphics pipeline
-
-    vsg::DescriptorSetLayoutBindings descriptorBindings{
+    static vsg::DescriptorSetLayoutBindings descriptorBindings{
         {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr} // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
     };
 
+    vsg::ref_ptr<vsg::DescriptorSet> makeImageDescriptorSet(vsg::ref_ptr<vsg::Data> textureData)
+    {
+    if (!textureData) return {};
+    // set up graphics pipeline
     auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
     // create texture image and associated DescriptorSets and binding
     auto sampler = vsg::Sampler::create();
@@ -90,8 +47,19 @@ namespace
     sampler->addressModeU = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler->addressModeV = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
     sampler->addressModeW = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-    auto texture = vsg::DescriptorImage::create(sampler, textureData, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    auto texture = vsg::DescriptorImage::create(sampler, textureData, 0, 0,
+                                                VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
+    auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
+    return descriptorSet;
+    }
 
+    vsg::ref_ptr<vsg::DescriptorSet> makeImageDescriptorSet(vsg::ref_ptr<vsg::ImageInfo> info)
+    {
+    if (!info->imageView->image->data) return {};
+    // set up graphics pipeline
+    auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
+    // create texture image and associated DescriptorSets and binding
+    auto texture = vsg::DescriptorImage::create(info, 0, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER);
     auto descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{texture});
     return descriptorSet;
     }
@@ -103,6 +71,16 @@ ImageComponent::ImageComponent(vsg::ref_ptr<vsg::Window> window,
 {
     
     descriptorSet = makeImageDescriptorSet(texData);
+}
+
+ImageComponent::ImageComponent(vsg::ref_ptr<vsg::Window> window,
+                               vsg::ref_ptr<vsg::ImageInfo> info)
+    : _window(window)
+{
+    auto data = info->imageView->image->data;
+    height = data->height();
+    width = data->width();
+    descriptorSet = makeImageDescriptorSet(info);
 }
 
 void ImageComponent::compile(vsg::Context& context)

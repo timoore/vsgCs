@@ -105,7 +105,16 @@ namespace vsgCs
      * This returns vsg::Data because the vsg::Array2D template class does not have a more specific
      * superclass.
      */
-    vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMaps, bool sRGB);
+    vsg::ref_ptr<vsg::Data> VSGCS_EXPORT loadImage(CesiumGltf::ImageCesium& image, bool useMipMaps, bool sRGB);
+
+    /**
+     * @brief create a VSG sampler.
+     */
+    vsg::ref_ptr<vsg::Sampler> VSGCS_EXPORT makeSampler(VkSamplerAddressMode addressX,
+                                                        VkSamplerAddressMode addressY,
+                                                        VkFilter minFilter,
+                                                        VkFilter maxFilter,
+                                                        int maxNumMipMaps);
 
     class VSGCS_EXPORT CesiumGltfBuilder : public vsg::Inherit<vsg::Object, CesiumGltfBuilder>
     {

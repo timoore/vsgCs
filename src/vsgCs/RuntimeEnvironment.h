@@ -99,6 +99,13 @@ namespace vsgCs
          */
         std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> getTilesetExternals();
 
+        std::shared_ptr<CesiumAsync::IAssetAccessor> getAssetAccessor()
+        {
+            return getTilesetExternals()->pAssetAccessor;
+        }
+
+        vsg::ref_ptr<vsg::Viewer> getViewer();
+
         /**
          * @brief Update the environment for a new frame.
          *

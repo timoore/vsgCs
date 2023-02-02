@@ -94,6 +94,30 @@ namespace vsgCs
 
     vsg::ref_ptr<vsg::Data> readImageFile(const vsg::Path& filename,
                                           vsg::ref_ptr<const vsg::Options> options);
+
+
+    /**
+     * @brief Create an image from binary data.
+     */
+    vsg::ref_ptr<vsg::ImageInfo>
+    makeImage(gsl::span<const std::byte> data, bool useMipMaps, bool sRGB,
+              VkSamplerAddressMode addressX = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+              VkSamplerAddressMode addressY = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+              VkFilter minFilter = VK_FILTER_LINEAR,
+              VkFilter maxFilter = VK_FILTER_LINEAR);
+
+    struct ReadRemoteImageResult
+    {
+        vsg::ref_ptr<vsg::ImageInfo> info;
+        std::vector<std::string> errors{};
+    };
+
+    /**
+     * @brief Read an image from a URL asynchronously.
+     */
+    CesiumAsync::Future<ReadRemoteImageResult>
+    readRemoteImage(const std::string& url, bool compile = true);
+
     /**
      * @brief Creates a vsg::ref_ptr to a subclass using dynamic_cast from another ref_ptr.
      *

@@ -23,12 +23,14 @@ SOFTWARE.
 </editor-fold> */
 
 #include "CesiumGltfBuilder.h"
+#include "CompilableImage.h"
 #include "OpThreadTaskProcessor.h"
 #include "runtimeSupport.h"
 #include "RuntimeEnvironment.h"
 
 #include <Cesium3DTilesSelection/registerAllTileContentTypes.h>
 #include <Cesium3DTilesSelection/Tile.h>
+#include <CesiumAsync/IAssetResponse.h>
 #include <CesiumGltfReader/GltfReader.h>
 
 namespace vsgCs
@@ -141,6 +143,31 @@ namespace vsgCs
         return loadImage(result.image.value(), false, true);
     }
 
+    vsg::ref_ptr<vsg::ImageInfo> makeImage(gsl::span<const std::byte> data, bool useMipMaps, bool sRGB,
+                                           VkSamplerAddressMode addressX,
+                                           VkSamplerAddressMode addressY,
+                                           VkFilter minFilter,
+                                           VkFilter maxFilter)
+    {
+        auto env = RuntimeEnvironment::get();
+        CesiumGltfReader::ImageReaderResult result
+            = CesiumGltfReader::GltfReader::readImage(data, env->features.ktx2TranscodeTargets);
+        if (!result.image.has_value())
+        {
+            vsg::warn("Could not read image data :");
+            for (auto& msg : result.errors)
+            {
+                vsg::warn("readImage: ", msg);
+            }
+            return {};
+        }
+        auto imageData = loadImage(result.image.value(), useMipMaps, sRGB);
+        auto sampler = makeSampler(addressX, addressY, minFilter, maxFilter,
+                                   imageData->properties.maxNumMipmaps);
+        env->options->sharedObjects->share(sampler);
+        return vsg::ImageInfo::create(sampler, imageData);
+    }
+
     std::optional<uint32_t> getUintSuffix(const std::string& prefix, const std::string& data)
     {
         if (prefix.size() >= data.size())
@@ -154,5 +181,54 @@ namespace vsgCs
             return static_cast<uint32_t>(val);
         }
         return {};
+    }
+
+    CesiumAsync::Future<ReadRemoteImageResult> readRemoteImage(const std::string& url, bool compile)
+    {
+        const static std::vector<CesiumAsync::IAssetAccessor::THeader> headers;
+        auto env = RuntimeEnvironment::get();
+        return env->getAssetAccessor()
+            ->get(getAsyncSystem(), url, headers)
+            .thenInWorkerThread(
+                [env, compile](std::shared_ptr<CesiumAsync::IAssetRequest>&& pRequest)
+                {
+                    const CesiumAsync::IAssetResponse* pResponse = pRequest->response();
+                    if (pResponse == nullptr)
+                    {
+                        return ReadRemoteImageResult{{},
+                                                     {"Image request for " + pRequest->url() + " failed."}};
+                    }
+                    if (pResponse->statusCode() != 0 &&
+                        (pResponse->statusCode() < 200 ||
+                         pResponse->statusCode() >= 300))
+                    {
+                        std::string message = "Image response code " +
+                            std::to_string(pResponse->statusCode()) +
+                            " for " + pRequest->url();
+                        return ReadRemoteImageResult{{}, {message}};
+                    }
+                    if (pResponse->data().empty())
+                    {
+                        return ReadRemoteImageResult{{},
+                                                     {"Image response for " + pRequest->url()
+                                                      + " is empty."}};
+                    }
+                    auto imageInfo = makeImage(pResponse->data(), true, true);
+                    if (!imageInfo)
+                    {
+                        return ReadRemoteImageResult{{}, {"makeImage failed"}};
+                    }
+                    if (compile)
+                    {
+                        auto compilable = CompilableImage::create(imageInfo);
+                        // The CompileResult details shouldn't be relevant to compiling an image.
+                        auto compileResult = env->getViewer()->compileManager->compile(compilable);
+                        if (!compileResult)
+                        {
+                            return ReadRemoteImageResult{{}, {"makeImage failed"}};
+                        }
+                    }
+                    return ReadRemoteImageResult{imageInfo, {}};
+                });
     }
 }

@@ -169,7 +169,7 @@ inline VkDescriptorSetLayoutBinding getVk(const vsg::UniformBinding& binding)
 }
 
 CesiumGltfBuilder::CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions)
-    : _sharedObjects(vsg::SharedObjects::create()),
+    : _sharedObjects(create_or<vsg::SharedObjects>(vsgOptions->sharedObjects)),
       _pbrShaderSet(pbr::makeShaderSet(vsgOptions)),
       _vsgOptions(vsgOptions)
 {
@@ -1371,30 +1371,33 @@ vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRG
     }
 }
 
-vsg::ref_ptr<vsg::Sampler> makeSampler(VkSamplerAddressMode addressX,
-                                       VkSamplerAddressMode addressY,
-                                       VkFilter minFilter,
-                                       VkFilter maxFilter,
-                                       int maxNumMipMaps)
+namespace vsgCs
 {
-    auto result = vsg::Sampler::create();
-    if (maxNumMipMaps > 1)
+    vsg::ref_ptr<vsg::Sampler> makeSampler(VkSamplerAddressMode addressX,
+                                           VkSamplerAddressMode addressY,
+                                           VkFilter minFilter,
+                                           VkFilter maxFilter,
+                                           int maxNumMipMaps)
     {
-        result->mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        auto result = vsg::Sampler::create();
+        if (maxNumMipMaps > 1)
+        {
+            result->mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        }
+        else
+        {
+            result->mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        }
+        result->minFilter = minFilter;
+        result->magFilter = maxFilter;
+        result->addressModeU = addressX;
+        result->addressModeV = addressY;
+        result->addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        result->anisotropyEnable = VK_TRUE;
+        result->maxAnisotropy = 16.0f;
+        result->maxLod = static_cast<float>(maxNumMipMaps);
+        return result;
     }
-    else
-    {
-        result->mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-    }
-    result->minFilter = minFilter;
-    result->magFilter = maxFilter;
-    result->addressModeU = addressX;
-    result->addressModeV = addressY;
-    result->addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    result->anisotropyEnable = VK_TRUE;
-    result->maxAnisotropy = 16.0f;
-    result->maxLod = static_cast<float>(maxNumMipMaps);
-    return result;
 }
 
 vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumTextureSource&& imageSource,

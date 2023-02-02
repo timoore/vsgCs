@@ -36,13 +36,13 @@ namespace vsgCs
     {
     public:
         ImageComponent(vsg::ref_ptr<vsg::Window> window, vsg::ref_ptr<vsg::Data> texData);
+        ImageComponent(vsg::ref_ptr<vsg::Window> window, vsg::ref_ptr<vsg::ImageInfo> info);
         bool operator()();
         void compile(vsg::Context& context) override;
         void record(vsg::CommandBuffer& commandBuffer) const override;
         vsg::ref_ptr<vsg::DescriptorSet> descriptorSet;
         uint32_t height;
         uint32_t width;
-    protected:
         vsg::ref_ptr<vsg::Window> _window;
     };
 }

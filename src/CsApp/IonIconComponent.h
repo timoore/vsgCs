@@ -24,9 +24,16 @@ SOFTWARE.
 
 #pragma once
 
+#include "vsgCs/runtimeSupport.h"
 #include <vsgImGui/RenderImGui.h>
 #include <vsgImGui/SendEventsToImGui.h>
 #include "vsgCs/ImageComponent.h"
+
+#include <CesiumAsync/Future.h>
+
+#include <map>
+#include <string>
+#include <optional>
 
 namespace CsApp
 {
@@ -39,5 +46,14 @@ namespace CsApp
         bool usesIon;
     protected:
         vsg::ref_ptr<vsgCs::ImageComponent> ionLogo;
+        // level of indirection because of deleted Future constructors?
+        using ImageFuture = CesiumAsync::Future<vsgCs::ReadRemoteImageResult>;
+        struct RemoteImage
+        {
+            std::shared_ptr<ImageFuture> imageResult;
+            vsg::ref_ptr<vsgCs::ImageComponent> component;
+        };
+        std::map<std::string, RemoteImage> imageCache;
+        vsg::ref_ptr<vsgCs::ImageComponent> getImage(std::string url);
     };
 }

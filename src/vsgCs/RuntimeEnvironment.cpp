@@ -57,6 +57,7 @@ vsg::ref_ptr<vsg::Options> RuntimeEnvironment::initializeOptions(vsg::CommandLin
     {
         options->operationThreads = vsg::OperationThreads::create(numOperationThreads);
     }
+    options->sharedObjects = vsg::SharedObjects::create();
     return options;
 }
 
@@ -245,15 +246,14 @@ void RuntimeEnvironment::setViewer(vsg::ref_ptr<vsg::Viewer> viewer)
         throw std::logic_error("No resource preparer!");
     }
     resourcePrep->viewer = viewer;
-#if 0
-    if (!viewer->compileManager)
-    {
-        vsg::warn("RuntimeEnvironment::setViewer(): installing compile manager");
-        viewer->compileManager = vsg::CompileManager::create(*viewer,
-                                                             vsg::ref_ptr<vsg::ResourceHints>());
-    }
-#endif
+}
 
+vsg::ref_ptr<vsg::Viewer> RuntimeEnvironment::getViewer()
+{
+    auto externals = getTilesetExternals();
+    auto resourcePrep = std::dynamic_pointer_cast<vsgResourcePreparer>(externals->pPrepareRendererResources);
+    vsg::ref_ptr<vsg::Viewer> viewer = resourcePrep->viewer;
+    return viewer;
 }
 
 std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> RuntimeEnvironment::getTilesetExternals()
