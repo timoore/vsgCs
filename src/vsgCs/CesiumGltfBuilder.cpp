@@ -1079,6 +1079,51 @@ ModelBuilder::operator()()
     return resultNode;
 }
 
+// Hold Raster data that we can attach to the VSG tile in order to easily find
+// it later.
+//
+
+struct RasterData
+{
+    std::string name;
+    vsg::ref_ptr<vsg::ImageInfo> rasterImage;
+    pbr::OverlayParams overlayParams;
+};
+
+struct Rasters : public vsg::Inherit<vsg::Object, Rasters>
+{
+    Rasters(size_t numOverlays)
+        : overlayRasters(numOverlays)
+    {
+    }
+    std::vector<RasterData> overlayRasters;
+};
+
+vsg::ref_ptr<vsg::StateCommand> makeTilesetStateCommand(CesiumGltfBuilder& builder, Rasters& rasters)
+{
+    vsg::ImageInfoList rasterImages(rasters.overlayRasters.size());
+    // The topology doesn't matter because the pipeline layouts of shader versions are compatible.
+    vsg::ref_ptr<DescriptorSetConfigurator> descriptorBuilder
+        = DescriptorSetConfigurator::create(1, builder.getOrCreatePbrShaderSet));
+    std::vector<pbr::OverlayParams> overlayParams(rasters.overlayRasters.size());
+    for (size_t i = 0; i < rasters.overlayRasters.size(); ++i)
+    {
+        const auto& rasterData = rasters.overlayRasters[i];
+        rasterImages[i] = rasterData.rasterImage.valid()
+            ? rasterData.rasterImage : builder.getDefaultTexture();
+        overlayParams[i] = rasterData.overlayParams;
+    }
+    descriptorBuilder->assignTexture("overlayTextures", rasterImages);
+    auto ubo = pbr::makeOverlayData(overlayParams);
+    descriptorBuilder->assignUniform("tileParams", ubo);
+    descriptorBuilder->init();
+    auto bindDescriptorSet
+            = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                             builder.getOverlayPipelineLayout(), 1,
+                                             descriptorBuilder->descriptorSet);
+    return bindDescriptorSet;
+ }
+
 
 vsg::ref_ptr<vsg::Group>
 CesiumGltfBuilder::load(CesiumGltf::Model* model, const CreateModelOptions& options)
@@ -1106,7 +1151,14 @@ vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::Tile
     auto tileStateGroup = vsg::StateGroup::create();
     auto bindViewDescriptorSets = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS,
                                                                       _overlayPipelineLayout, 0);
+    // Make uniforms (tile and raster parameters) and default textures for the tile.
+
+    auto rasters = Rasters::create(pbr::maxOverlays);
+    transformNode->setObject("vsgCs_rasterData", rasters);
+
     tileStateGroup->add(bindViewDescriptorSets);
+    auto command = makeTilesetStateCommand(*this, *rasters);
+    tileStateGroup->add(command);
     tileStateGroup->addChild(modelNode);
     transformNode->addChild(tileStateGroup);
     return transformNode;
@@ -1555,53 +1607,6 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
     return vsg::ImageInfo::create(sampler, data);
 }
 
-// Hold Raster data that we can attach to the VSG tile in order to easily find
-// it later.
-//
-// XXX It doesn't make sense to assign named slots for overlays. We should do it
-// by index into a list of overlays.
-
-struct RasterData
-{
-    std::string name;
-    vsg::ref_ptr<vsg::ImageInfo> rasterImage;
-    pbr::OverlayParams overlayParams;
-};
-
-struct Rasters : public vsg::Inherit<vsg::Object, Rasters>
-{
-    Rasters(size_t numOverlays)
-        : overlayRasters(numOverlays)
-    {
-    }
-    std::vector<RasterData> overlayRasters;
-    vsg::ref_ptr<vsg::StateCommand> makeRastersCommand(CesiumGltfBuilder& builder);
-};
-
-vsg::ref_ptr<vsg::StateCommand> Rasters::makeRastersCommand(CesiumGltfBuilder& builder)
-{
-    vsg::ImageInfoList rasterImages(overlayRasters.size());
-    vsg::ref_ptr<DescriptorSetConfigurator> descriptorBuilder
-        = DescriptorSetConfigurator::create(1, builder.getOrCreatePbrShaderSet());
-    std::vector<pbr::OverlayParams> overlayParams(overlayRasters.size());
-    for (size_t i = 0; i < overlayRasters.size(); ++i)
-    {
-        const auto& rasterData = overlayRasters[i];
-        rasterImages[i] = rasterData.rasterImage.valid()
-            ? rasterData.rasterImage : builder.getDefaultTexture();
-        overlayParams[i] = rasterData.overlayParams;
-    }
-    descriptorBuilder->assignTexture("overlayTextures", rasterImages);
-    auto ubo = pbr::makeOverlayData(overlayParams);
-    descriptorBuilder->assignUniform("overlayParams", ubo);
-    descriptorBuilder->init();
-    auto bindDescriptorSet
-            = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                             builder.getOverlayPipelineLayout(), 1,
-                                             descriptorBuilder->descriptorSet);
-    return bindDescriptorSet;
- }
-
 ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection::Tile&,
                                                     vsg::ref_ptr<vsg::Node> node,
                                                     int32_t overlayTextureCoordinateID,
@@ -1633,7 +1638,7 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
     rasterData.overlayParams.coordIndex = overlayTextureCoordinateID;
     rasterData.overlayParams.enabled = 1;
     rasterData.overlayParams.alpha = resource->overlayOptions.alpha;
-    auto command = rasters->makeRastersCommand(*this);
+    auto command = makeTilesetStateCommand(*this, *rasters);
     // XXX Should check data or something in the state command instead of relying on the number of
     // commands in the group.
     auto& stateCommands = stateGroup->stateCommands;
@@ -1683,7 +1688,7 @@ CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile&,
     {
         rasterData.rasterImage = {}; // ref to rasterImage is still held by the old StateCommand
         rasterData.overlayParams.enabled = 0;
-        auto newCommand = rasters->makeRastersCommand(*this);
+        auto newCommand = makeTilesetStateCommand(*this, *rasters);
         vsg::ref_ptr<vsg::Command> oldCommand;
         // XXX Should check data or something in the state command instead of relying on the number of
         // commands in the group.

@@ -34,8 +34,6 @@ layout(set = 2, binding = 5) uniform sampler2D specularMap;
 
 layout(constant_id = 0) const int maxOverlays = 4;
 
-#ifdef VSGCS_OVERLAY_MAPS
-
 struct OverlayParamBlock
 {
   vec2 translation;
@@ -46,13 +44,12 @@ struct OverlayParamBlock
   // 4 bytes padding
 };
 
-layout(set = 1, binding = 0) uniform OverlayParams
+layout(set = 1, binding = 0) uniform TileParams
   {
     OverlayParamBlock params[maxOverlays];
-  } overlayParams;
+  } tileParams;
 
 layout(set = 1, binding = 1) uniform sampler2D overlayTextures[maxOverlays];
-#endif
 
 // Texture coordinates are assumed to have the OpenGL / glTF origin i.e., lower left.
 vec4 cstexture(sampler2D texmap, vec2 coords)
@@ -78,6 +75,7 @@ layout(set = 0, binding = 0) uniform LightData
 } lightData;
 
 layout(location = 0) in vec3 eyePos;
+// normalDir and viewDir are not normalized on input
 #ifdef VSGCS_FLAT_SHADING
 layout(location = 1) flat in vec3 normalDir;
 #else
@@ -92,9 +90,9 @@ layout(location = 0) out vec4 outColor;
 #ifdef VSGCS_OVERLAY_MAPS
 vec4 overlayTexture(uint overlayNum)
 {
-    vec2 coords = texCoord[overlayParams.params[overlayNum].coordIndex + 2];
-    coords = coords * overlayParams.params[overlayNum].scale;
-    coords = coords + overlayParams.params[overlayNum].translation;
+    vec2 coords = texCoord[tileParams.params[overlayNum].coordIndex + 2];
+    coords = coords * tileParams.params[overlayNum].scale;
+    coords = coords + tileParams.params[overlayNum].translation;
     coords.t = 1.0 - coords.t;
     return texture(overlayTextures[overlayNum], coords);
 }
@@ -368,10 +366,10 @@ void main()
 #ifdef VSGCS_OVERLAY_MAPS
     for (int i = maxOverlays - 1; i >= 0; --i)
     {
-        if (overlayParams.params[i].enabled != 0)
+        if (tileParams.params[i].enabled != 0)
         {
             vec4 overlayColor = overlayTexture(i);
-            float overlayAlpha = overlayParams.params[i].alpha * overlayColor.a;
+            float overlayAlpha = tileParams.params[i].alpha * overlayColor.a;
 
             baseColor.rgb = overlayColor.rgb * overlayAlpha + baseColor.rgb * (1.0 - overlayAlpha);
             baseColor.a = overlayAlpha  + baseColor.a * (1.0 - overlayAlpha);
