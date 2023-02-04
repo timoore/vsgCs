@@ -35,6 +35,7 @@ namespace vsgCs
 
         vsg::ref_ptr<vsg::Data> makeOverlayData(const gsl::span<OverlayParams> overlayUniformMem);
         vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(vsg::ref_ptr<const vsg::Options> options = {});
+        vsg::ref_ptr<vsg::ShaderSet> makePointShaderSet(vsg::ref_ptr<const vsg::Options> options = {});
     }
 
 }

@@ -171,6 +171,7 @@ inline VkDescriptorSetLayoutBinding getVk(const vsg::UniformBinding& binding)
 CesiumGltfBuilder::CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions)
     : _sharedObjects(create_or<vsg::SharedObjects>(vsgOptions->sharedObjects)),
       _pbrShaderSet(pbr::makeShaderSet(vsgOptions)),
+      _pbrPointShaderSet(pbr::makePointShaderSet(vsgOptions)),
       _vsgOptions(vsgOptions)
 {
     std::set<std::string> shaderDefines;
@@ -181,9 +182,16 @@ CesiumGltfBuilder::CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions)
     _defaultTexture = makeDefaultTexture();
 }
 
-vsg::ref_ptr<vsg::ShaderSet> CesiumGltfBuilder::getOrCreatePbrShaderSet()
+vsg::ref_ptr<vsg::ShaderSet> CesiumGltfBuilder::getOrCreatePbrShaderSet(VkPrimitiveTopology topology)
 {
-    return _pbrShaderSet;
+    if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+    {
+        return _pbrPointShaderSet;
+    }
+    else
+    {
+        return _pbrShaderSet;
+    }
 }
 
 ModelBuilder::ModelBuilder(CesiumGltfBuilder* builder, CesiumGltf::Model* model,
@@ -500,9 +508,6 @@ namespace
         }
     };
 
-    // XXX Should this do conversion to supported format types, or would it be cleaner to do the
-    // conversion from the created Array?
-
     bool gltfToVk(int32_t mode, VkPrimitiveTopology& topology)
     {
         bool valid = true;
@@ -787,18 +792,20 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     }
 
     std::string name = makeName(mesh, primitive);
-    int materialID = primitive->material;
-    auto convertedMaterial = loadMaterial(materialID);
-    auto mat = convertedMaterial->descriptorConfig;
-    auto config = MultisetPipelineConfigurator::create(mat->shaderSet);
-    config->defines() = mat->defines;
-    bool generateTangents = convertedMaterial->texInfo.count("normalMap") != 0
-        && primitive->attributes.count("TANGENT") == 0;
-    if (!gltfToVk(primitive->mode, config->inputAssemblyState->topology))
+    VkPrimitiveTopology topology;
+    if (!gltfToVk(primitive->mode, topology))
     {
         vsg::warn(name, ": Can't map glTF mode ", primitive->mode, " to Vulkan topology");
         return {};
     }
+    int materialID = primitive->material;
+    auto convertedMaterial = loadMaterial(materialID, topology);
+    auto mat = convertedMaterial->descriptorConfig;
+    auto config = MultisetPipelineConfigurator::create(mat->shaderSet);
+    config->inputAssemblyState->topology = topology;
+    config->defines() = mat->defines;
+    bool generateTangents = convertedMaterial->texInfo.count("normalMap") != 0
+        && primitive->attributes.count("TANGENT") == 0;
     const Accessor* indicesAccessor = Model::getSafe(&_model->accessors, primitive->indices);
     const Accessor* normalAccessor = getAccessor(_model, primitive, "NORMAL");
     bool hasNormals = normalAccessor != nullptr;
@@ -808,19 +815,26 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     vsg::DataList vertexArrays;
     auto positions = createData(_model, pPositionAccessor, expansionIndices);
     config->assignArray(vertexArrays, "vsg_Vertex", VK_VERTEX_INPUT_RATE_VERTEX, positions);
-    vsg::ref_ptr<vsg::vec3Array> normals;
     if (normalAccessor)
     {
-        normals = ref_ptr_cast<vsg::vec3Array>(createData(_model, normalAccessor, expansionIndices));
+        config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX,
+                            ref_ptr_cast<vsg::vec3Array>(createData(_model, normalAccessor, expansionIndices)));
+    }
+    else if (config->inputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+    {
+        config->shaderHints->defines.insert("VSGCS_BILLBOARD_NORMAL");
+        // Won't be used unless we have a bizzare case of points and displacement map
+        auto normal = vsg::vec3Value::create(vsg::vec3(0.0f, 1.0f, 0.0f));
+        config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_INSTANCE, normal);
     }
     else
     {
         auto posArray = ref_ptr_cast<vsg::vec3Array>(positions);
-        normals = vsg::vec3Array::create(posArray->size());
+        auto normals = vsg::vec3Array::create(posArray->size());
         generateNormals(posArray, normals, config->inputAssemblyState->topology);
         config->shaderHints->defines.insert("VSGCS_FLAT_SHADING");
+        config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX, normals);
     }
-    config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX, normals);
 
     // XXX
     // The VSG PBR shader doesn't use vertex tangent data, so we will skip the Cesium Unreal hair
@@ -965,7 +979,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
 }
 
 vsg::ref_ptr<ModelBuilder::ConvertedMaterial>
-ModelBuilder::loadMaterial(const CesiumGltf::Material* material)
+ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopology topology)
 {
     auto convertedMat = ConvertedMaterial::create();
     convertedMat->descriptorConfig = DescriptorSetConfigurator::create();
@@ -983,7 +997,7 @@ ModelBuilder::loadMaterial(const CesiumGltf::Material* material)
         convertedMat->descriptorConfig->blending = true;
         pbr.alphaMaskCutoff = 0.0f;
     }
-    convertedMat->descriptorConfig->shaderSet = _builder->getOrCreatePbrShaderSet();
+    convertedMat->descriptorConfig->shaderSet = _builder->getOrCreatePbrShaderSet(topology);
     if (material->pbrMetallicRoughness)
     {
         auto const& cesiumPbr = material->pbrMetallicRoughness.value();
@@ -1018,26 +1032,28 @@ ModelBuilder::loadMaterial(const CesiumGltf::Material* material)
 }
 
 vsg::ref_ptr<ModelBuilder::ConvertedMaterial>
-ModelBuilder::loadMaterial(int i)
+ModelBuilder::loadMaterial(int i, VkPrimitiveTopology topology)
 {
+    int topoIndex = topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST ? 1 : 0;
+
     if (i < 0 || static_cast<unsigned>(i) >= _model->materials.size())
     {
-        if (!_defaultMaterial)
+        if (!_defaultMaterial[topoIndex])
         {
-            _defaultMaterial = ConvertedMaterial::create();
-            _defaultMaterial->descriptorConfig = DescriptorSetConfigurator::create();
-            _defaultMaterial->descriptorConfig->shaderSet = _builder->getOrCreatePbrShaderSet();
+            _defaultMaterial[topoIndex] = ConvertedMaterial::create();
+            _defaultMaterial[topoIndex]->descriptorConfig = DescriptorSetConfigurator::create();
+            _defaultMaterial[topoIndex]->descriptorConfig->shaderSet = _builder->getOrCreatePbrShaderSet(topology);
             vsg::PbrMaterial pbr;
-            _defaultMaterial->descriptorConfig->assignUniform("material",
-                                                              vsg::PbrMaterialValue::create(pbr));
+            _defaultMaterial[topoIndex]->descriptorConfig->assignUniform("material",
+                                                                         vsg::PbrMaterialValue::create(pbr));
         }
-        return _defaultMaterial;
+        return _defaultMaterial[topoIndex];
     }
-    if (!_convertedMaterials[i])
+    if (!_convertedMaterials[i][topoIndex])
     {
-        _convertedMaterials[i] = loadMaterial(&_model->materials[i]);
+        _convertedMaterials[i][topoIndex] = loadMaterial(&_model->materials[i], topology);
     }
-    return _convertedMaterials[i];
+    return _convertedMaterials[i][topoIndex];
 }
 
 vsg::ref_ptr<vsg::Group>
@@ -1104,7 +1120,8 @@ vsg::ref_ptr<vsg::StateCommand> makeTilesetStateCommand(CesiumGltfBuilder& build
     vsg::ImageInfoList rasterImages(rasters.overlayRasters.size());
     // The topology doesn't matter because the pipeline layouts of shader versions are compatible.
     vsg::ref_ptr<DescriptorSetConfigurator> descriptorBuilder
-        = DescriptorSetConfigurator::create(1, builder.getOrCreatePbrShaderSet));
+        = DescriptorSetConfigurator::create(1, builder.getOrCreatePbrShaderSet(
+                                                VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST));
     std::vector<pbr::OverlayParams> overlayParams(rasters.overlayRasters.size());
     for (size_t i = 0; i < rasters.overlayRasters.size(); ++i)
     {

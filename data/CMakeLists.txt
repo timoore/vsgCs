@@ -2,6 +2,7 @@ set(IMAGE_FILES
   images/Cesium_ion_256.png)
 set(SHADER_FILES
   shaders/csstandard.vert
+  shaders/cspoint.vert
   shaders/csstandard_pbr.frag)
 
 install(FILES ${IMAGE_FILES}

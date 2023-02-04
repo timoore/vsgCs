@@ -1,0 +1,15 @@
+{ "Type": "World",
+  "tilesets": [
+      { "Type": "Tileset",
+        "ionAssetID": 1,
+        "overlays": [{ "Type": "IonRasterOverlay",
+                       "assetId": 2}]
+      },
+      { "Type":"Tileset",
+        "ionAssetID": 43978,
+        "overlays": [{ "Type": "IonRasterOverlay",
+                       "assetId": 2}]
+
+      }
+  ]
+} 

@@ -39,21 +39,8 @@ namespace vsgCs {
             return result;
         }
 
-        vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(vsg::ref_ptr<const vsg::Options> options)
+        vsg::ref_ptr<vsg::ShaderSet> makeShaderSetAux(vsg::ref_ptr<vsg::ShaderSet> shaderSet)
         {
-            auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard.vert", options);
-            auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard_pbr.frag", options);
-
-            if (!vertexShader || !fragmentShader)
-            {
-                vsg::fatal("pbr::makeShaderSet(...) could not find shaders.");
-                return {};
-            }
-            vsg::ShaderStage::SpecializationConstants specializationContexts{
-                {0, vsg::intValue::create(maxOverlays)}, // numTiles
-            };
-            auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
-
             shaderSet->addAttributeBinding("vsg_Vertex", "", 0, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
             shaderSet->addAttributeBinding("vsg_Normal", "", 1, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
 
@@ -75,8 +62,7 @@ namespace vsgCs {
             shaderSet->addUniformBinding("tileParams", "", 1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
             shaderSet->addUniformBinding("overlayTextures", "", 1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxOverlays, VK_SHADER_STAGE_FRAGMENT_BIT, {});
             // additional defines
-            shaderSet->optionalDefines = {"VSG_GREYSACLE_DIFFUSE_MAP", "VSG_TWO_SIDED_LIGHTING", "VSG_WORKFLOW_SPECGLOSS",
-                                          "VSGCS_FLAT_SHADING"};
+            shaderSet->optionalDefines = {"VSG_GREYSACLE_DIFFUSE_MAP", "VSG_TWO_SIDED_LIGHTING", "VSG_WORKFLOW_SPECGLOSS"};
 
             shaderSet->addPushConstantRange("pc", "", VK_SHADER_STAGE_VERTEX_BIT, 0, 128);
 
@@ -86,7 +72,48 @@ namespace vsgCs {
 
             return shaderSet;
         }
-    }
 
+        vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(vsg::ref_ptr<const vsg::Options> options)
+        {
+            auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard.vert", options);
+            auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard_pbr.frag", options);
+
+            if (!vertexShader || !fragmentShader)
+            {
+                vsg::fatal("pbr::makeShaderSet(...) could not find shaders.");
+                return {};
+            }
+            auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
+
+            vsg::ShaderStage::SpecializationConstants specializationConstats{
+                {0, vsg::intValue::create(maxOverlays)}, // numTiles
+            };
+
+            makeShaderSetAux(shaderSet);
+            shaderSet->optionalDefines.insert({"VSGCS_FLAT_SHADING", "VSGCS_BILLBOARD_NORMAL"});
+            return shaderSet;
+        }
+
+        vsg::ref_ptr<vsg::ShaderSet> makePointShaderSet(vsg::ref_ptr<const vsg::Options> options)
+        {
+            auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/cspoint.vert", options);
+            auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard_pbr.frag", options);
+
+            if (!vertexShader || !fragmentShader)
+            {
+                vsg::fatal("pbr::makeShaderSet(...) could not find shaders.");
+                return {};
+            }
+            auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
+
+            vsg::ShaderStage::SpecializationConstants specializationConstats{
+                {0, vsg::intValue::create(maxOverlays)}, // numTiles
+            };
+
+            makeShaderSetAux(shaderSet);
+            shaderSet->optionalDefines.insert("VSGCS_BILLBOARD_NORMAL");
+            return shaderSet;
+        }
+    }
 }
 

@@ -36,6 +36,8 @@ SOFTWARE.
 #include "Export.h"
 #include "DescriptorSetConfigurator.h"
 
+#include <array>
+
 // Build a VSG scenegraph from a Cesium Gltf Model object.
 
 namespace vsgCs
@@ -140,7 +142,7 @@ namespace vsgCs
                                                  VkFilter maxFilter,
                                                  bool useMipMaps,
                                                  bool sRGB);
-        vsg::ref_ptr<vsg::ShaderSet> getOrCreatePbrShaderSet();
+        vsg::ref_ptr<vsg::ShaderSet> getOrCreatePbrShaderSet(VkPrimitiveTopology topology);
 
         ModifyRastersResult attachRaster(const Cesium3DTilesSelection::Tile& tile,
                                          vsg::ref_ptr<vsg::Node> node,
@@ -169,6 +171,7 @@ namespace vsgCs
         static vsg::ref_ptr<vsg::ImageInfo> makeDefaultTexture();
         vsg::ref_ptr<vsg::SharedObjects> _sharedObjects;
         vsg::ref_ptr<vsg::ShaderSet> _pbrShaderSet;
+        vsg::ref_ptr<vsg::ShaderSet> _pbrPointShaderSet;
         vsg::ref_ptr<vsg::Options> _vsgOptions;
         vsg::ref_ptr<vsg::PipelineLayout> _viewParamsPipelineLayout;
         vsg::ref_ptr<vsg::PipelineLayout> _overlayPipelineLayout;
@@ -186,8 +189,8 @@ namespace vsgCs
         vsg::ref_ptr<vsg::Node> loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
                                               const CesiumGltf::Mesh* mesh = nullptr);
         struct ConvertedMaterial;
-        vsg::ref_ptr<ConvertedMaterial> loadMaterial(const CesiumGltf::Material* material);
-        vsg::ref_ptr<ConvertedMaterial> loadMaterial(int i);
+        vsg::ref_ptr<ConvertedMaterial> loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopology topology);
+        vsg::ref_ptr<ConvertedMaterial> loadMaterial(int i, VkPrimitiveTopology topology);
         vsg::ref_ptr<vsg::Data> loadImage(int i, bool useMipMaps, bool sRGB);
         vsg::ref_ptr<vsg::ImageInfo> loadTexture(const CesiumGltf::Texture& texture, bool sRGB);
         template<typename TI>
@@ -232,7 +235,7 @@ namespace vsgCs
             vsg::ref_ptr<DescriptorSetConfigurator> descriptorConfig;
             std::map<std::string, TexInfo> texInfo;
         };
-        std::vector<vsg::ref_ptr<ConvertedMaterial>> _convertedMaterials;
+        std::vector<std::array<vsg::ref_ptr<ConvertedMaterial>, 2>> _convertedMaterials;
         struct ImageData
         {
             vsg::ref_ptr<vsg::Data> image;
@@ -240,7 +243,7 @@ namespace vsgCs
             bool sRGB = false;
         };
         std::vector<ImageData> _loadedImages;
-        vsg::ref_ptr<ConvertedMaterial> _defaultMaterial;
+        vsg::ref_ptr<ConvertedMaterial> _defaultMaterial[2];
 
     };
 }
