@@ -6,6 +6,7 @@ set(LIB_PUBLIC_HEADERS
   ${GENERATED_HEADERS_DIR}/vsgCs/Config.h
   CSDebugColorizeTilesOverlay.h
   CSOverlay.h
+  CsView.h
   CesiumGltfBuilder.h
   Export.h
   ImageComponent.h
@@ -13,6 +14,7 @@ set(LIB_PUBLIC_HEADERS
   LoadGltfResult.h
   RuntimeEnvironment.h
   TilesetNode.h
+  ViewDependentStateExt.h
   vsgResourcePreparer.h
   runtimeSupport.h
   WorldNode.h
@@ -22,6 +24,7 @@ set(SOURCES
   ${LIB_PUBLIC_HEADERS}
   CSDebugColorizeTilesOverlay.cpp
   CSOverlay.cpp
+  CsView.cpp
   CesiumGltfBuilder.cpp
   CompilableImage.cpp
   DescriptorSetConfigurator.cpp
@@ -33,6 +36,7 @@ set(SOURCES
   TilesetNode.cpp
   UrlAssetAccessor.cpp
   runtimeSupport.cpp
+  ViewDependentStateExt.cpp
   vsgResourcePreparer.cpp
   pbr.cpp
   WorldNode.cpp

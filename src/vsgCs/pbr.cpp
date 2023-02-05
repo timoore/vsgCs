@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "pbr.h"
 #include "runtimeSupport.h"
+#include "ViewDependentStateExt.h"
 
 #include <vsg/core/Array.h>
 #include <vsg/core/Array2D.h>
@@ -59,6 +60,7 @@ namespace vsgCs {
             shaderSet->addUniformBinding("specularMap", "VSG_SPECULAR_MAP", 2, 5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
             shaderSet->addUniformBinding("material", "", 2, 10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::PbrMaterialValue::create());
             shaderSet->addUniformBinding("lightData", "", 0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
+            shaderSet->addUniformBinding("viewData", "", 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 ,VK_SHADER_STAGE_VERTEX_BIT, vsg::ubyteArray::create(sizeof(viewport)));
             shaderSet->addUniformBinding("tileParams", "", 1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
             shaderSet->addUniformBinding("overlayTextures", "", 1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxOverlays, VK_SHADER_STAGE_FRAGMENT_BIT, {});
             // additional defines
