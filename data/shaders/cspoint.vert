@@ -2,7 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
 
-#pragma import_defines (VSGCS_BILLBOARD_NORMAL)
+#pragma import_defines (VSGCS_BILLBOARD_NORMAL, VSGCS_SIZE_TO_ERROR)
 
 #include "descriptor_defs.glsl"
 
@@ -24,14 +24,15 @@ layout(location = 2) out vec4 vertexColor;
 layout(location = 3) out vec3 viewDir;
 layout(location = 4) out vec2 texCoord[4];
 
+layout(set = VIEW_DESCRIPTOR_SET, binding = 1) uniform ViewportParams
+{
+    vec4 viewportExtent;     // x, y, width, height
+    ivec4 scissorExtent;     // offset x, offset y, width, height
+    vec2 depthExtent;        // minDepth, maxDepth
+} viewportParams;
 
 out gl_PerVertex{ vec4 gl_Position; float gl_PointSize; };
 
-// Texture coordinates are assumed to have the OpenGL / glTF origin i.e., lower left.
-vec4 cstexture(sampler2D texmap, vec2 coords)
-{
-    return texture(texmap, vec2(coords.s, 1.0 - coords.t));
-}
 
 // VSG_BILLBOARD_NORMAL orients the normal to face the viewer.
 
@@ -44,7 +45,13 @@ void main()
     gl_Position = (pc.projection * pc.modelView) * vertex;
     gl_PointSize = 1.0;
     eyePos = (pc.modelView * vertex).xyz;
-
+#ifdef VSGCS_SIZE_TO_ERROR
+    vec4 displaced = vec4(eyePos, 1.0) + vec4(tileParams.geometricError, 0.0, 0.0, 0.0);
+    vec4 screenDisplaced = pc.projection * displaced;
+    float ndcRadius = screenDisplaced.x / screenDisplaced.w - gl_Position.x / gl_Position.w;
+    float screenRadius = ndcRadius / 2.0 * viewportParams.viewportExtent.z;
+    gl_PointSize = min(2.0 * screenRadius, tileParams.maxPointSize);
+#endif
     viewDir = - (pc.modelView * vertex).xyz;
 #ifdef VSGCS_BILLBOARD_NORMAL
     normalDir = eyePos;         // -viewDir

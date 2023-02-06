@@ -804,8 +804,12 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     auto convertedMaterial = loadMaterial(materialID, topology);
     auto mat = convertedMaterial->descriptorConfig;
     auto config = MultisetPipelineConfigurator::create(mat->shaderSet);
-    config->inputAssemblyState->topology = topology;
     config->defines() = mat->defines;
+    config->inputAssemblyState->topology = topology;
+    if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+    {
+        config->defines().insert("VSGCS_SIZE_TO_ERROR");
+    }
     bool generateTangents = convertedMaterial->texInfo.count("normalMap") != 0
         && primitive->attributes.count("TANGENT") == 0;
     const Accessor* indicesAccessor = Model::getSafe(&_model->accessors, primitive->indices);
@@ -824,7 +828,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     }
     else if (config->inputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
     {
-        config->shaderHints->defines.insert("VSGCS_BILLBOARD_NORMAL");
+        config->defines().insert("VSGCS_BILLBOARD_NORMAL");
         // Won't be used unless we have a bizzare case of points and displacement map
         auto normal = vsg::vec3Value::create(vsg::vec3(0.0f, 1.0f, 0.0f));
         config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_INSTANCE, normal);
@@ -1134,7 +1138,8 @@ vsg::ref_ptr<vsg::StateCommand> makeTileStateCommand(CesiumGltfBuilder& builder,
         overlayParams[i] = rasterData.overlayParams;
     }
     descriptorBuilder->assignTexture("overlayTextures", rasterImages);
-    auto ubo = pbr::makeTileData(tile.getGeometricError(), overlayParams);
+    auto ubo = pbr::makeTileData(tile.getGeometricError(), std::min(builder.getFeatures().pointSizeRange[1], 4.0f),
+                                 overlayParams);
     descriptorBuilder->assignUniform("tileParams", ubo);
     descriptorBuilder->init();
     auto bindDescriptorSet

@@ -23,7 +23,8 @@ struct OverlayParamBlock
 layout(set = TILE_DESCRIPTOR_SET, binding = 0) uniform TileParams 
 {
   float geometricError;
-  // 12 bytes padding
+  float maxPointSize;
+  // 8 bytes padding
   OverlayParamBlock params[4];
 } tileParams;
 

@@ -33,10 +33,12 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace vsgCs {
     namespace pbr
     {
-        vsg::ref_ptr<vsg::Data> makeTileData(float geometricError, const gsl::span<OverlayParams> overlayUniformMem)
+        vsg::ref_ptr<vsg::Data> makeTileData(float geometricError, float maxPointSize,
+                                             const gsl::span<OverlayParams> overlayUniformMem)
         {
             vsg::vec4 tileScratch;
             tileScratch[0] = geometricError;
+            tileScratch[1] = maxPointSize;
             auto result = vsg::ubyteArray::create(sizeof(vsg::vec4) + overlayUniformMem.size_bytes());
             memcpy(&(*result)[0], &tileScratch, sizeof(tileScratch));
             memcpy(&(*result)[sizeof(tileScratch)], &overlayUniformMem[0], overlayUniformMem.size_bytes());
@@ -128,7 +130,7 @@ namespace vsgCs {
             };
 
             makeShaderSetAux(shaderSet);
-            shaderSet->optionalDefines.insert("VSGCS_BILLBOARD_NORMAL");
+            shaderSet->optionalDefines.insert({"VSGCS_BILLBOARD_NORMAL", "VSGCS_SIZE_TO_ERROR"});
             return shaderSet;
         }
     }

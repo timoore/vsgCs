@@ -169,6 +169,10 @@ namespace vsgCs
         {
             return _overlayPipelineLayout;
         }
+        const DeviceFeatures& getFeatures()
+        {
+            return _deviceFeatures;
+        }
     protected:
         static vsg::ref_ptr<vsg::ImageInfo> makeDefaultTexture();
         vsg::ref_ptr<vsg::SharedObjects> _sharedObjects;
