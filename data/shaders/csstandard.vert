@@ -1,5 +1,6 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive : enable 
 
 #pragma import_defines (VSG_INSTANCE_POSITIONS, VSG_DISPLACEMENT_MAP, VSGCS_FLAT_SHADING, VSGCS_BILLBOARD_NORMAL)
 

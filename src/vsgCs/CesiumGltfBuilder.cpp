@@ -1118,7 +1118,7 @@ struct Rasters : public vsg::Inherit<vsg::Object, Rasters>
 };
 
 vsg::ref_ptr<vsg::StateCommand> makeTileStateCommand(CesiumGltfBuilder& builder, const Rasters& rasters,
-                                                        const Cesium3DTilesSelection::Tile&)
+                                                        const Cesium3DTilesSelection::Tile& tile)
 {
     vsg::ImageInfoList rasterImages(rasters.overlayRasters.size());
     // The topology doesn't matter because the pipeline layouts of shader versions are compatible.
@@ -1134,7 +1134,7 @@ vsg::ref_ptr<vsg::StateCommand> makeTileStateCommand(CesiumGltfBuilder& builder,
         overlayParams[i] = rasterData.overlayParams;
     }
     descriptorBuilder->assignTexture("overlayTextures", rasterImages);
-    auto ubo = pbr::makeOverlayData(overlayParams);
+    auto ubo = pbr::makeTileData(tile.getGeometricError(), overlayParams);
     descriptorBuilder->assignUniform("tileParams", ubo);
     descriptorBuilder->init();
     auto bindDescriptorSet

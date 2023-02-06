@@ -33,10 +33,13 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace vsgCs {
     namespace pbr
     {
-        vsg::ref_ptr<vsg::Data> makeOverlayData(const gsl::span<OverlayParams> overlayUniformMem)
+        vsg::ref_ptr<vsg::Data> makeTileData(float geometricError, const gsl::span<OverlayParams> overlayUniformMem)
         {
-            auto result = vsg::ubyteArray::create(overlayUniformMem.size_bytes());
-            memcpy(&(*result)[0], &overlayUniformMem[0], overlayUniformMem.size_bytes());
+            vsg::vec4 tileScratch;
+            tileScratch[0] = geometricError;
+            auto result = vsg::ubyteArray::create(sizeof(vsg::vec4) + overlayUniformMem.size_bytes());
+            memcpy(&(*result)[0], &tileScratch, sizeof(tileScratch));
+            memcpy(&(*result)[sizeof(tileScratch)], &overlayUniformMem[0], overlayUniformMem.size_bytes());
             return result;
         }
 
@@ -72,7 +75,7 @@ namespace vsgCs {
             shaderSet->addUniformBinding("viewData", "", VIEW_DESCRIPTOR_SET, 1,
                                          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 ,VK_SHADER_STAGE_VERTEX_BIT, vsg::ubyteArray::create(sizeof(viewport)));
             shaderSet->addUniformBinding("tileParams", "", TILE_DESCRIPTOR_SET, 0,
-                                         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
+                                         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(1 + sizeof(OverlayParams)));
             shaderSet->addUniformBinding("overlayTextures", "", TILE_DESCRIPTOR_SET, 1,
                                          VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxOverlays, VK_SHADER_STAGE_FRAGMENT_BIT, {});
             // additional defines
