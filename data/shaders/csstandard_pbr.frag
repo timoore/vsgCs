@@ -2,6 +2,8 @@
 #extension GL_ARB_separate_shader_objects : enable
 #pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSACLE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSGCS_OVERLAY_MAPS, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, VSGCS_FLAT_SHADING)
 
+#include "descriptor_defs.glsl"
+
 const float PI = 3.14159265359;
 const float RECIPROCAL_PI = 0.31830988618;
 const float RECIPROCAL_PI2 = 0.15915494;
@@ -9,27 +11,27 @@ const float EPSILON = 1e-6;
 const float c_MinRoughness = 0.04;
 
 #ifdef VSG_DIFFUSE_MAP
-layout(set = 2, binding = 0) uniform sampler2D diffuseMap;
+layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 0) uniform sampler2D diffuseMap;
 #endif
 
 #ifdef VSG_METALLROUGHNESS_MAP
-layout(set = 2, binding = 1) uniform sampler2D mrMap;
+layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 1) uniform sampler2D mrMap;
 #endif
 
 #ifdef VSG_NORMAL_MAP
-layout(set = 2, binding = 2) uniform sampler2D normalMap;
+layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 2) uniform sampler2D normalMap;
 #endif
 
 #ifdef VSG_LIGHTMAP_MAP
-layout(set = 2, binding = 3) uniform sampler2D aoMap;
+layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 3) uniform sampler2D aoMap;
 #endif
 
 #ifdef VSG_EMISSIVE_MAP
-layout(set = 2, binding = 4) uniform sampler2D emissiveMap;
+layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 4) uniform sampler2D emissiveMap;
 #endif
 
 #ifdef VSG_SPECULAR_MAP
-layout(set = 2, binding = 5) uniform sampler2D specularMap;
+layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 5) uniform sampler2D specularMap;
 #endif
 
 layout(constant_id = 0) const int maxOverlays = 4;
@@ -44,12 +46,12 @@ struct OverlayParamBlock
   // 4 bytes padding
 };
 
-layout(set = 1, binding = 0) uniform TileParams
+layout(set = TILE_DESCRIPTOR_SET, binding = 0) uniform TileParams
   {
     OverlayParamBlock params[maxOverlays];
   } tileParams;
 
-layout(set = 1, binding = 1) uniform sampler2D overlayTextures[maxOverlays];
+layout(set = TILE_DESCRIPTOR_SET, binding = 1) uniform sampler2D overlayTextures[maxOverlays];
 
 // Texture coordinates are assumed to have the OpenGL / glTF origin i.e., lower left.
 vec4 cstexture(sampler2D texmap, vec2 coords)
@@ -57,7 +59,7 @@ vec4 cstexture(sampler2D texmap, vec2 coords)
     return texture(texmap, vec2(coords.s, coords.t));
 }
 
-layout(set = 2, binding = 10) uniform PbrData
+layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 10) uniform PbrData
 {
     vec4 baseColorFactor;
     vec4 emissiveFactor;
@@ -69,7 +71,7 @@ layout(set = 2, binding = 10) uniform PbrData
     float alphaMaskCutoff;
 } pbr;
 
-layout(set = 0, binding = 0) uniform LightData
+layout(set = VIEW_DESCRIPTOR_SET, binding = 0) uniform LightData
 {
     vec4 values[64];
 } lightData;

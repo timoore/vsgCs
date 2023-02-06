@@ -3,6 +3,8 @@
 
 #pragma import_defines (VSGCS_BILLBOARD_NORMAL)
 
+#include "descriptor_defs.glsl"
+
 layout(push_constant) uniform PushConstants {
     mat4 projection;
     mat4 modelView;

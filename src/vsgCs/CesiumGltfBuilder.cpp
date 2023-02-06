@@ -177,8 +177,8 @@ CesiumGltfBuilder::CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions)
     std::set<std::string> shaderDefines;
     shaderDefines.insert("VSG_TWO_SIDED_LIGHTING");
     shaderDefines.insert("VSGCS_OVERLAY_MAPS");
-    _viewParamsPipelineLayout = makePipelineLayout(_pbrShaderSet, shaderDefines, 0);
-    _overlayPipelineLayout = makePipelineLayout(_pbrShaderSet, shaderDefines, 1);
+    _viewParamsPipelineLayout = makePipelineLayout(_pbrShaderSet, shaderDefines, pbr::VIEW_DESCRIPTOR_SET);
+    _overlayPipelineLayout = makePipelineLayout(_pbrShaderSet, shaderDefines, pbr::TILE_DESCRIPTOR_SET);
     _defaultTexture = makeDefaultTexture();
 }
 
@@ -942,12 +942,12 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     if (mat->descriptorSet)
     {
         auto bindDescriptorSet
-            = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, config->layout, 2,
+            = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, config->layout, pbr::PRIMITIVE_DESCRIPTOR_SET,
                                              mat->descriptorSet);
         stateGroup->add(bindDescriptorSet);
     }
 
-    auto bindViewDescriptorSets = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, config->layout, 0);
+    auto bindViewDescriptorSets = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, config->layout, pbr::VIEW_DESCRIPTOR_SET);
     stateGroup->add(bindViewDescriptorSets);
 
 
@@ -1120,8 +1120,8 @@ vsg::ref_ptr<vsg::StateCommand> makeTilesetStateCommand(CesiumGltfBuilder& build
     vsg::ImageInfoList rasterImages(rasters.overlayRasters.size());
     // The topology doesn't matter because the pipeline layouts of shader versions are compatible.
     vsg::ref_ptr<DescriptorSetConfigurator> descriptorBuilder
-        = DescriptorSetConfigurator::create(1, builder.getOrCreatePbrShaderSet(
-                                                VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST));
+        = DescriptorSetConfigurator::create(pbr::TILE_DESCRIPTOR_SET,
+                                            builder.getOrCreatePbrShaderSet(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST));
     std::vector<pbr::OverlayParams> overlayParams(rasters.overlayRasters.size());
     for (size_t i = 0; i < rasters.overlayRasters.size(); ++i)
     {
@@ -1136,7 +1136,7 @@ vsg::ref_ptr<vsg::StateCommand> makeTilesetStateCommand(CesiumGltfBuilder& build
     descriptorBuilder->init();
     auto bindDescriptorSet
             = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                             builder.getOverlayPipelineLayout(), 1,
+                                             builder.getOverlayPipelineLayout(), pbr::TILE_DESCRIPTOR_SET,
                                              descriptorBuilder->descriptorSet);
     return bindDescriptorSet;
  }

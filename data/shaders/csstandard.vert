@@ -3,13 +3,15 @@
 
 #pragma import_defines (VSG_INSTANCE_POSITIONS, VSG_DISPLACEMENT_MAP, VSGCS_FLAT_SHADING, VSGCS_BILLBOARD_NORMAL)
 
+#include "descriptor_defs.glsl"
+
 layout(push_constant) uniform PushConstants {
     mat4 projection;
     mat4 modelView;
 } pc;
 
 #ifdef VSG_DISPLACEMENT_MAP
-layout(set = 2, binding = 6) uniform sampler2D displacementMap;
+layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 6) uniform sampler2D displacementMap;
 #endif
 
 layout(location = 0) in vec3 vsg_Vertex;

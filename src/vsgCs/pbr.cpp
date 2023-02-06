@@ -51,18 +51,30 @@ namespace vsgCs {
             shaderSet->addAttributeBinding("vsg_TexCoord1", "", 5, VK_FORMAT_R32G32_SFLOAT, vsg::vec2Array::create(1));
             shaderSet->addAttributeBinding("vsg_TexCoord2", "", 6, VK_FORMAT_R32G32_SFLOAT, vsg::vec2Array::create(1));
             shaderSet->addAttributeBinding("vsg_TexCoord3", "", 7, VK_FORMAT_R32G32_SFLOAT, vsg::vec2Array::create(1));
-            shaderSet->addUniformBinding("displacementMap", "VSG_DISPLACEMENT_MAP", 2, 6, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT, vsg::vec4Array2D::create(1, 1));
-            shaderSet->addUniformBinding("diffuseMap", "VSG_DIFFUSE_MAP", 2, 0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
-            shaderSet->addUniformBinding("mrMap", "VSG_METALLROUGHNESS_MAP", 2, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
-            shaderSet->addUniformBinding("normalMap", "VSG_NORMAL_MAP", 2, 2, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec3Array2D::create(1, 1));
-            shaderSet->addUniformBinding("aoMap", "VSG_LIGHTMAP_MAP", 2, 3, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
-            shaderSet->addUniformBinding("emissiveMap", "VSG_EMISSIVE_MAP", 2, 4, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
-            shaderSet->addUniformBinding("specularMap", "VSG_SPECULAR_MAP", 2, 5, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
-            shaderSet->addUniformBinding("material", "", 2, 10, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::PbrMaterialValue::create());
-            shaderSet->addUniformBinding("lightData", "", 0, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
-            shaderSet->addUniformBinding("viewData", "", 0, 1, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 ,VK_SHADER_STAGE_VERTEX_BIT, vsg::ubyteArray::create(sizeof(viewport)));
-            shaderSet->addUniformBinding("tileParams", "", 1, 0, VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
-            shaderSet->addUniformBinding("overlayTextures", "", 1, 1, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxOverlays, VK_SHADER_STAGE_FRAGMENT_BIT, {});
+            shaderSet->addUniformBinding("displacementMap", "VSG_DISPLACEMENT_MAP", PRIMITIVE_DESCRIPTOR_SET, 6,
+                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_VERTEX_BIT, vsg::vec4Array2D::create(1, 1));
+            shaderSet->addUniformBinding("diffuseMap", "VSG_DIFFUSE_MAP", PRIMITIVE_DESCRIPTOR_SET, 0,
+                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
+            shaderSet->addUniformBinding("mrMap", "VSG_METALLROUGHNESS_MAP", PRIMITIVE_DESCRIPTOR_SET, 1,
+                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
+            shaderSet->addUniformBinding("normalMap", "VSG_NORMAL_MAP", PRIMITIVE_DESCRIPTOR_SET, 2,
+                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec3Array2D::create(1, 1));
+            shaderSet->addUniformBinding("aoMap", "VSG_LIGHTMAP_MAP", PRIMITIVE_DESCRIPTOR_SET, 3,
+                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
+            shaderSet->addUniformBinding("emissiveMap", "VSG_EMISSIVE_MAP", PRIMITIVE_DESCRIPTOR_SET, 4,
+                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
+            shaderSet->addUniformBinding("specularMap", "VSG_SPECULAR_MAP", PRIMITIVE_DESCRIPTOR_SET, 5,
+                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
+            shaderSet->addUniformBinding("material", "", PRIMITIVE_DESCRIPTOR_SET, 10,
+                                         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::PbrMaterialValue::create());
+            shaderSet->addUniformBinding("lightData", "", VIEW_DESCRIPTOR_SET, 0,
+                                         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
+            shaderSet->addUniformBinding("viewData", "", VIEW_DESCRIPTOR_SET, 1,
+                                         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 ,VK_SHADER_STAGE_VERTEX_BIT, vsg::ubyteArray::create(sizeof(viewport)));
+            shaderSet->addUniformBinding("tileParams", "", TILE_DESCRIPTOR_SET, 0,
+                                         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
+            shaderSet->addUniformBinding("overlayTextures", "", TILE_DESCRIPTOR_SET, 1,
+                                         VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxOverlays, VK_SHADER_STAGE_FRAGMENT_BIT, {});
             // additional defines
             shaderSet->optionalDefines = {"VSG_GREYSACLE_DIFFUSE_MAP", "VSG_TWO_SIDED_LIGHTING", "VSG_WORKFLOW_SPECGLOSS"};
 
