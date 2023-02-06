@@ -129,6 +129,7 @@ namespace vsgCs
         vsg::ref_ptr<vsg::Node> loadTile(Cesium3DTilesSelection::TileLoadResult&& tileLoadResult,
                                          const glm::dmat4& transform,
                                          const CreateModelOptions& options);
+        vsg::ref_ptr<vsg::Object> attachTileData(Cesium3DTilesSelection::Tile& tile, vsg::ref_ptr<vsg::Node> node);
         vsg::ref_ptr<vsg::ImageInfo> loadTexture(CesiumGltf::ImageCesium& image,
                                                  VkSamplerAddressMode addressX,
                                                  VkSamplerAddressMode addressY,

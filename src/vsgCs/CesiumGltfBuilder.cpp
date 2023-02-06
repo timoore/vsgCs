@@ -1117,7 +1117,8 @@ struct Rasters : public vsg::Inherit<vsg::Object, Rasters>
     std::vector<RasterData> overlayRasters;
 };
 
-vsg::ref_ptr<vsg::StateCommand> makeTilesetStateCommand(CesiumGltfBuilder& builder, Rasters& rasters)
+vsg::ref_ptr<vsg::StateCommand> makeTileStateCommand(CesiumGltfBuilder& builder, const Rasters& rasters,
+                                                        const Cesium3DTilesSelection::Tile&)
 {
     vsg::ImageInfoList rasterImages(rasters.overlayRasters.size());
     // The topology doesn't matter because the pipeline layouts of shader versions are compatible.
@@ -1176,11 +1177,19 @@ vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::Tile
     transformNode->setObject("vsgCs_rasterData", rasters);
 
     tileStateGroup->add(bindViewDescriptorSets);
-    auto command = makeTilesetStateCommand(*this, *rasters);
-    tileStateGroup->add(command);
     tileStateGroup->addChild(modelNode);
     transformNode->addChild(tileStateGroup);
     return transformNode;
+}
+
+vsg::ref_ptr<vsg::Object> CesiumGltfBuilder::attachTileData(Cesium3DTilesSelection::Tile& tile, vsg::ref_ptr<vsg::Node> node)
+{
+    auto rasters = Rasters::create(pbr::maxOverlays);
+    auto transformNode = ref_ptr_cast<vsg::MatrixTransform>(node);
+    auto tileStateGroup = ref_ptr_cast<vsg::StateGroup>(transformNode->children[0]);
+    auto tileStateCommand = makeTileStateCommand(*this, *rasters, tile);
+    tileStateGroup->add(tileStateCommand);
+    return tileStateCommand;
 }
 
 namespace
@@ -1626,7 +1635,7 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
     return vsg::ImageInfo::create(sampler, data);
 }
 
-ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection::Tile&,
+ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection::Tile& tile,
                                                     vsg::ref_ptr<vsg::Node> node,
                                                     int32_t overlayTextureCoordinateID,
                                                     const Cesium3DTilesSelection::RasterOverlayTile&,
@@ -1657,7 +1666,7 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
     rasterData.overlayParams.coordIndex = overlayTextureCoordinateID;
     rasterData.overlayParams.enabled = 1;
     rasterData.overlayParams.alpha = resource->overlayOptions.alpha;
-    auto command = makeTilesetStateCommand(*this, *rasters);
+    auto command = makeTileStateCommand(*this, *rasters, tile);
     // XXX Should check data or something in the state command instead of relying on the number of
     // commands in the group.
     auto& stateCommands = stateGroup->stateCommands;
@@ -1685,7 +1694,7 @@ vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::makeDefaultTexture()
 }
 
 ModifyRastersResult
-CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile&,
+CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile& tile,
                                 vsg::ref_ptr<vsg::Node> node,
                                 int32_t,
                                 const Cesium3DTilesSelection::RasterOverlayTile& rasterTile)
@@ -1707,7 +1716,7 @@ CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile&,
     {
         rasterData.rasterImage = {}; // ref to rasterImage is still held by the old StateCommand
         rasterData.overlayParams.enabled = 0;
-        auto newCommand = makeTilesetStateCommand(*this, *rasters);
+        auto newCommand = makeTileStateCommand(*this, *rasters, tile);
         vsg::ref_ptr<vsg::Command> oldCommand;
         // XXX Should check data or something in the state command instead of relying on the number of
         // commands in the group.
