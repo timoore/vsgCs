@@ -65,11 +65,14 @@ namespace vsgCs
         std::deque<Deletion> queue;
     };
 
+    struct DeviceFeatures;
+
     class VSGCS_EXPORT vsgResourcePreparer : public Cesium3DTilesSelection::IPrepareRendererResources
     {
     public:
-        vsgResourcePreparer(vsg::ref_ptr<vsg::Options> vsgOptions, vsg::ref_ptr<vsg::Viewer> viewer = {})
-            : viewer(viewer), _builder(CesiumGltfBuilder::create(vsgOptions))
+        vsgResourcePreparer(vsg::ref_ptr<vsg::Options> vsgOptions, const DeviceFeatures& features,
+                            vsg::ref_ptr<vsg::Viewer> viewer = {})
+            : viewer(viewer), _builder(CesiumGltfBuilder::create(vsgOptions, features))
         {
         }
     

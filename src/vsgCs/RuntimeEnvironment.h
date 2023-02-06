@@ -40,11 +40,13 @@ namespace vsgCs
     struct VSGCS_EXPORT DeviceFeatures
     {
         bool indexTypeUint8 = false;
+        bool largePoints = false;
         bool textureCompressionETC2 = false;
         bool textureCompressionASTC_LDR = false;
         bool textureCompressionBC = false;
         bool textureCompressionPVRTC = false;
         CesiumGltf::Ktx2TranscodeTargets ktx2TranscodeTargets;
+        float pointSizeRange[2];
     };
 
     /**

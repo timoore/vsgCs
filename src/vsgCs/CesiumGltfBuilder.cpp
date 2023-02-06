@@ -168,11 +168,13 @@ inline VkDescriptorSetLayoutBinding getVk(const vsg::UniformBinding& binding)
                                         binding.stageFlags, nullptr};
 }
 
-CesiumGltfBuilder::CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions)
+CesiumGltfBuilder::CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions,
+                                     const DeviceFeatures& deviceFeatures)
     : _sharedObjects(create_or<vsg::SharedObjects>(vsgOptions->sharedObjects)),
       _pbrShaderSet(pbr::makeShaderSet(vsgOptions)),
       _pbrPointShaderSet(pbr::makePointShaderSet(vsgOptions)),
-      _vsgOptions(vsgOptions)
+      _vsgOptions(vsgOptions),
+      _deviceFeatures(deviceFeatures)
 {
     std::set<std::string> shaderDefines;
     shaderDefines.insert("VSG_TWO_SIDED_LIGHTING");

@@ -153,6 +153,7 @@ DeviceFeatures RuntimeEnvironment::prepareFeaturesAndExtensions(vsg::ref_ptr<vsg
         traits->deviceFeatures = vsg::DeviceFeatures::create();
     }
     auto physDevice = window->getOrCreatePhysicalDevice();
+    // For byte indices in small glTF primitives.
     auto indexFeature
         = physDevice->getFeatures<VkPhysicalDeviceIndexTypeUint8FeaturesEXT,
         VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_INDEX_TYPE_UINT8_FEATURES_EXT>();
@@ -166,6 +167,7 @@ DeviceFeatures RuntimeEnvironment::prepareFeaturesAndExtensions(vsg::ref_ptr<vsg
         features.indexTypeUint8 = true;
     }
     const auto& physFeatures = physDevice->getFeatures();
+    // Find the supported compressed texture formats for cesium-native
     if (physFeatures.textureCompressionETC2)
     {
         features.textureCompressionETC2 = true;
@@ -215,6 +217,19 @@ DeviceFeatures RuntimeEnvironment::prepareFeaturesAndExtensions(vsg::ref_ptr<vsg
         supportedFormats.PVRTC2_4_RGBA = true;
     }
     features.ktx2TranscodeTargets = CesiumGltf::Ktx2TranscodeTargets(supportedFormats, false);
+    // Large point sizes for scaling by distance
+    if (physFeatures.largePoints)
+    {
+        traits->deviceFeatures->get().largePoints = 1;
+        const auto& limits = window->getOrCreatePhysicalDevice()->getProperties().limits;
+        std::copy(&limits.pointSizeRange[0], &limits.pointSizeRange[2], &features.pointSizeRange[0]);
+
+    }
+    else
+    {
+        std::fill(&features.pointSizeRange[0], &features.pointSizeRange[2], 1.0f);
+    }
+
     return features;
 }
 
@@ -277,7 +292,7 @@ std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> RuntimeEnvironment::ge
         assetAccessor = urlAccessor;
     }
     const CesiumAsync::AsyncSystem& asyncSystem = getAsyncSystem();
-    auto resourcePreparer = std::make_shared<vsgResourcePreparer>(options);
+    auto resourcePreparer = std::make_shared<vsgResourcePreparer>(options, features);
     auto creditSystem = std::make_shared<Cesium3DTilesSelection::CreditSystem>();
     using TE = Cesium3DTilesSelection::TilesetExternals;
     return _externals

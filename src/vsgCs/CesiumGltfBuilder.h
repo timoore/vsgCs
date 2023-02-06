@@ -35,6 +35,7 @@ SOFTWARE.
 
 #include "Export.h"
 #include "DescriptorSetConfigurator.h"
+#include "RuntimeEnvironment.h"
 
 #include <array>
 
@@ -121,7 +122,7 @@ namespace vsgCs
     class VSGCS_EXPORT CesiumGltfBuilder : public vsg::Inherit<vsg::Object, CesiumGltfBuilder>
     {
     public:
-        CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions);
+        CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions, const DeviceFeatures& in_features);
 
         friend class ModelBuilder;
         vsg::ref_ptr<vsg::Group> load(CesiumGltf::Model* model, const CreateModelOptions& options);
@@ -176,6 +177,7 @@ namespace vsgCs
         vsg::ref_ptr<vsg::PipelineLayout> _viewParamsPipelineLayout;
         vsg::ref_ptr<vsg::PipelineLayout> _overlayPipelineLayout;
         vsg::ref_ptr<vsg::ImageInfo> _defaultTexture;
+        DeviceFeatures _deviceFeatures;
     };
 
     class VSGCS_EXPORT ModelBuilder
