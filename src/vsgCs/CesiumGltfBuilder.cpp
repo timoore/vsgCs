@@ -289,15 +289,6 @@ ModelBuilder::loadMesh(const CesiumGltf::Mesh* mesh)
     return result;
 }
 
-// Copying vertex attributes
-// The shader set specifies the attribute format as a VkFormat. Either we supply the data in that
-// format, or we have to set the format property of the vsg::Array. The default pbr shader requires
-// all its attributes in float format. For now we will convert the data to float, but eventually we
-// will want to supply the data in the more compact formats, if they are supported.
-//
-// The PBR shader expects color data as RGBA, but that is just too nasty! Set the correct format
-// for RGB if that is provided by the glTF asset.
-
 namespace
 {
     // Convenience functions for accessing the elements of values in a vsg::Array, whether they are
@@ -533,13 +524,22 @@ namespace
         return result;
     }
 
+// Copying vertex attributes
+// The shader set specifies the attribute format as a VkFormat. Either we supply the data in that
+// format, or we have to set the format property of the vsg::Array. The default pbr shader requires
+// all its attributes in float format. For now we will convert the data to float, but eventually we
+// will want to supply the data in the more compact formats if they are supported by the physical device.
+//
+// The PBR shader expects color data as RGBA, but that is just too nasty! Set the correct format
+// for RGB if that is provided by the glTF asset.
+
 
     template<typename T, typename TI>
     vsg::ref_ptr<vsg::Data> colorProcessor(const AccessorView<AccessorTypes::VEC3<T>>& accessorView,
                                            const AccessorView<TI>& indexView)
     {
         vsg::ref_ptr<vsg::Data> result;
-        if (std::is_same<T, float>::value)
+        if constexpr (std::is_same<T, float>::value)
         {
             if (indexView.status() == AccessorViewStatus::Valid)
             {
@@ -571,7 +571,7 @@ namespace
                                            const AccessorView<TI>& indexView)
     {
         vsg::ref_ptr<vsg::Data> result;
-        if (std::is_same<T, float>::value)
+        if constexpr (std::is_same<T, float>::value)
         {
             if (indexView.status() == AccessorViewStatus::Valid)
             {
@@ -618,7 +618,7 @@ namespace
                                          const AccessorView<TI>& indexView)
     {
         vsg::ref_ptr<vsg::Data> result;
-        if (std::is_same<T, float>::value)
+        if constexpr (std::is_same<T, float>::value)
         {
             if (indexView.status() == AccessorViewStatus::Valid)
             {
@@ -647,8 +647,6 @@ namespace
 
     template<typename T, typename TI>
     vsg::ref_ptr<vsg::Data> texProcessor(const AccessorView<T>&, const AccessorView<TI>&) { return {}; } // invalidView
-}
-
 
     vsg::ref_ptr<vsg::Data> doTextures(const Model* model,
                                        const Accessor* dataAccessor, const Accessor* indexAccessor)
@@ -660,8 +658,7 @@ namespace
                                                                 },
                                                                 dataAccessor, indexAccessor);
     }
-
-
+}
 
 template <typename A, typename I>
 vsg::ref_ptr<vsg::Data> createData(Model* model, const A* dataAccessor, const I* indicesAccessor = nullptr)

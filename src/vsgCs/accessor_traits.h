@@ -35,16 +35,15 @@ namespace vsgCs
 
     template<typename T> struct AccessorViewTraits;
 
-    template<template<typename> typename  VSGType, typename TValue>
-    class VSGTraits
+    template<template<typename> typename  t_vsg, typename TValue>
+    struct VSGTraits
     {
-    public:
-        using element_type = typename VSGType<TValue>::value_type;
-        using value_type = VSGType<TValue>;
+        using element_type = typename t_vsg<TValue>::value_type;
+        using value_type = t_vsg<TValue>;
         using array_type = vsg::Array<value_type>;
-        static constexpr std::size_t size = VSGType<TValue>().size();
+        static constexpr std::size_t size = t_vsg<TValue>().size();
         template<typename TOther>
-        using with_element_type = VSGType<TOther>;
+        using with_element_type = t_vsg<TOther>;
     };
 
     template<typename T>
@@ -59,33 +58,33 @@ namespace vsgCs
     };
 
     template<typename T>
-    struct AccessorViewTraits<CesiumGltf::AccessorTypes::VEC2<T>> : public VSGTraits<vsg::t_vec2, T>
+    struct AccessorViewTraits<CesiumGltf::AccessorTypes::VEC2<T>> : VSGTraits<vsg::t_vec2, T>
     {
     };
 
     template<typename T>
-    struct AccessorViewTraits<CesiumGltf::AccessorTypes::VEC3<T>> : public VSGTraits<vsg::t_vec3, T>
+    struct AccessorViewTraits<CesiumGltf::AccessorTypes::VEC3<T>> : VSGTraits<vsg::t_vec3, T>
     {
     };
 
     template<typename T>
-    struct AccessorViewTraits<CesiumGltf::AccessorTypes::VEC4<T>> : public VSGTraits<vsg::t_vec4, T>
+    struct AccessorViewTraits<CesiumGltf::AccessorTypes::VEC4<T>> : VSGTraits<vsg::t_vec4, T>
     {
     };
 
     template<typename T>
-    struct AccessorViewTraits<CesiumGltf::AccessorTypes::MAT3<T>> : public VSGTraits<vsg::t_mat3, T>
+    struct AccessorViewTraits<CesiumGltf::AccessorTypes::MAT3<T>> : VSGTraits<vsg::t_mat3, T>
     {
     };
 
     template<typename T>
-    struct AccessorViewTraits<CesiumGltf::AccessorTypes::MAT4<T>> : public VSGTraits<vsg::t_mat4, T>
+    struct AccessorViewTraits<CesiumGltf::AccessorTypes::MAT4<T>> : VSGTraits<vsg::t_mat4, T>
     {
     };
 
     // No vsg t_mat2; will this work?
     template<typename T>
-    struct AccessorViewTraits<CesiumGltf::AccessorTypes::MAT2<T>> : public VSGTraits<vsg::t_vec4, T>
+    struct AccessorViewTraits<CesiumGltf::AccessorTypes::MAT2<T>> : VSGTraits<vsg::t_vec4, T>
     {
     };
 
