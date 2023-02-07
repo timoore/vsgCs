@@ -45,7 +45,7 @@ SOFTWARE.
 #include <thread>
 
 #include "vsgCs/TilesetNode.h"
-#include "vsgCs/CSOverlay.h"
+#include "vsgCs/CsOverlay.h"
 #include "vsgCs/CsView.h"
 #include "vsgCs/jsonUtils.h"
 #include "vsgCs/OpThreadTaskProcessor.h"

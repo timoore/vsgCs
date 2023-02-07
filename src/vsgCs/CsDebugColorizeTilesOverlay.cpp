@@ -22,17 +22,34 @@ SOFTWARE.
 
 </editor-fold> */
 
-#pragma once
+#include "CsDebugColorizeTilesOverlay.h"
 
-#include "CSOverlay.h"
+#include "jsonUtils.h"
+#include <Cesium3DTilesSelection/DebugColorizeTilesRasterOverlay.h>
+#include <CesiumUtility/JsonHelpers.h>
+
+using namespace vsgCs;
+
+Cesium3DTilesSelection::RasterOverlay* CsDebugColorizeTilesOverlay::createOverlay(
+    const Cesium3DTilesSelection::RasterOverlayOptions& options)
+{
+    return new Cesium3DTilesSelection::DebugColorizeTilesRasterOverlay(MaterialLayerKey, options);
+}
 
 namespace vsgCs
 {
-    class VSGCS_EXPORT CSDebugColorizeTilesOverlay : public vsg::Inherit<CSOverlay,
-                                                                         CSDebugColorizeTilesOverlay>
+    vsg::ref_ptr<vsg::Object> buildCsDebugColorizeTilesOverlay(const rapidjson::Value& json,
+                                                              JSONObjectFactory* factory,
+                                                              vsg::ref_ptr<vsg::Object> object)
     {
-    public:
-        Cesium3DTilesSelection::RasterOverlay* createOverlay(
-            const Cesium3DTilesSelection::RasterOverlayOptions& options = {}) override;
-    };
+        auto overlay = create_or<CsDebugColorizeTilesOverlay>(object);
+        factory->build(json, "CsOverlay", overlay);
+        overlay->MaterialLayerKey = CesiumUtility::JsonHelpers::getStringOrDefault(json, "materialKey",
+                                                                                   "Overlay0");
+
+        return overlay;
+    }
+
+    // XXX See jsonUtils for registration.
 }
+

@@ -43,7 +43,7 @@ SOFTWARE.
 #include <thread>
 
 #include "vsgCs/TilesetNode.h"
-#include "vsgCs/CSOverlay.h"
+#include "vsgCs/CsOverlay.h"
 #include "vsgCs/CsView.h"
 #include "vsgCs/OpThreadTaskProcessor.h"
 #include "vsgCs/RuntimeEnvironment.h"
@@ -181,10 +181,10 @@ int main(int argc, char** argv)
         auto ellipsoidModel = vsg::EllipsoidModel::create();
         tilesetNode->setObject("EllipsoidModel", ellipsoidModel);
         // XXX need to detach this from the tileset before the program exits
-        vsg::ref_ptr<vsgCs::CSIonRasterOverlay> csoverlay;
+        vsg::ref_ptr<vsgCs::CsIonRasterOverlay> csoverlay;
         if (ionOverlay > 0)
         {
-            csoverlay = vsgCs::CSIonRasterOverlay::create(ionOverlay, environment->ionAccessToken);
+            csoverlay = vsgCs::CsIonRasterOverlay::create(ionOverlay, environment->ionAccessToken);
             csoverlay->addToTileset(tilesetNode);
         }
 

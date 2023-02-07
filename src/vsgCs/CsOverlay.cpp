@@ -22,7 +22,7 @@ SOFTWARE.
 
 </editor-fold> */
 
-#include "CSOverlay.h"
+#include "CsOverlay.h"
 #include "jsonUtils.h"
 #include "OpThreadTaskProcessor.h"
 #include "RuntimeEnvironment.h"
@@ -34,7 +34,7 @@ SOFTWARE.
 
 using namespace vsgCs;
 
-void CSOverlay::addToTileset(vsg::ref_ptr<TilesetNode> tilesetNode)
+void CsOverlay::addToTileset(vsg::ref_ptr<TilesetNode> tilesetNode)
 {
     Cesium3DTilesSelection::RasterOverlayOptions options{};
     options.maximumScreenSpaceError = this->MaximumScreenSpaceError;
@@ -55,20 +55,20 @@ void CSOverlay::addToTileset(vsg::ref_ptr<TilesetNode> tilesetNode)
     _rasterOverlay = createOverlay(options);
       if (_rasterOverlay)
       {
-          tilesetNode->addOverlay(vsg::ref_ptr<CSOverlay>(this));
+          tilesetNode->addOverlay(vsg::ref_ptr<CsOverlay>(this));
       }
 }
 
-void CSOverlay::removeFromTileset(vsg::ref_ptr<TilesetNode> tilesetNode)
+void CsOverlay::removeFromTileset(vsg::ref_ptr<TilesetNode> tilesetNode)
 {
     ++_overlaysBeingDestroyed;
     _rasterOverlay->getAsyncDestructionCompleteEvent(getAsyncSystem())
       .thenInMainThread([this]() { --this->_overlaysBeingDestroyed; });
-    tilesetNode->removeOverlay(vsg::ref_ptr<CSOverlay>(this));
+    tilesetNode->removeOverlay(vsg::ref_ptr<CsOverlay>(this));
     _rasterOverlay = 0;
 }
 
-Cesium3DTilesSelection::RasterOverlay* CSIonRasterOverlay::createOverlay(
+Cesium3DTilesSelection::RasterOverlay* CsIonRasterOverlay::createOverlay(
             const Cesium3DTilesSelection::RasterOverlayOptions& options)
 {
       if (this->IonAssetID <= 0)
@@ -85,32 +85,32 @@ Cesium3DTilesSelection::RasterOverlay* CSIonRasterOverlay::createOverlay(
 
 namespace
 {
-    vsg::ref_ptr<vsg::Object> buildCSOverlay(const rapidjson::Value& json,
-                                                      JSONObjectFactory*,
-                                                      vsg::ref_ptr<vsg::Object> object)
+    vsg::ref_ptr<vsg::Object> buildCsOverlay(const rapidjson::Value& json,
+                                             JSONObjectFactory*,
+                                             vsg::ref_ptr<vsg::Object> object)
     {
         if (!object)
         {
-            throw std::runtime_error("Can't directly create a CSOverlay object.");
+            throw std::runtime_error("Can't directly create a CsOverlay object.");
         }
-        auto overlay = ref_ptr_cast<CSOverlay>(object);
+        auto overlay = ref_ptr_cast<CsOverlay>(object);
         overlay->alpha = static_cast<float>(CesiumUtility::JsonHelpers::getDoubleOrDefault(json, "alpha", 1.0));
         return object;
     }
 
-    JSONObjectFactory::Registrar rCSOverlay("CSOverlay", buildCSOverlay);
+    JSONObjectFactory::Registrar rCsOverlay("CsOverlay", buildCsOverlay);
 
     vsg::ref_ptr<vsg::Object> buildCSIonRasterOverlay(const rapidjson::Value& json,
                                                       JSONObjectFactory* factory,
                                                       vsg::ref_ptr<vsg::Object> object)
     {
         auto env = RuntimeEnvironment::get();
-        auto overlay = create_or<CSIonRasterOverlay>(object);
+        auto overlay = create_or<CsIonRasterOverlay>(object);
         if (!overlay)
         {
             throw std::runtime_error("no valid CSIonOverlay obejct");
         }
-        factory->build(json, "CSOverlay", overlay);
+        factory->build(json, "CsOverlay", overlay);
         overlay->MaterialLayerKey = CesiumUtility::JsonHelpers::getStringOrDefault(json, "materialKey",
                                                                                    "Overlay0");
         overlay->IonAssetID = CesiumUtility::JsonHelpers::getInt64OrDefault(json, "assetId", -1);

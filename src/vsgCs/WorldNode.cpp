@@ -1,6 +1,6 @@
 #include "WorldNode.h"
 
-#include "CSOverlay.h"
+#include "CsOverlay.h"
 #include "jsonUtils.h"
 #include "RuntimeEnvironment.h"
 #include "TilesetNode.h"

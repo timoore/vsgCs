@@ -69,8 +69,8 @@ vsg::ref_ptr<JSONObjectFactory> JSONObjectFactory::get()
 
 namespace vsgCs
 {
-    vsg::ref_ptr<vsg::Object> buildCSDebugColorizeTilesOverlay(const rapidjson::Value&,
+    vsg::ref_ptr<vsg::Object> buildCsDebugColorizeTilesOverlay(const rapidjson::Value&,
                                                                JSONObjectFactory*,
                                                                vsg::ref_ptr<vsg::Object> object);
-    JSONObjectFactory::Registrar r("DebugColorizeTilesRasterOverlay", buildCSDebugColorizeTilesOverlay);
+    JSONObjectFactory::Registrar r("DebugColorizeTilesRasterOverlay", buildCsDebugColorizeTilesOverlay);
 }

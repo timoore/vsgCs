@@ -5,8 +5,8 @@ set(LIB_NAME vsgCs)
 set(LIB_PUBLIC_HEADERS
   accessor_traits.h
   ${GENERATED_HEADERS_DIR}/vsgCs/Config.h
-  CSDebugColorizeTilesOverlay.h
-  CSOverlay.h
+  CsDebugColorizeTilesOverlay.h
+  CsOverlay.h
   CsView.h
   CesiumGltfBuilder.h
   Export.h
@@ -23,8 +23,8 @@ set(LIB_PUBLIC_HEADERS
 
 set(SOURCES
   ${LIB_PUBLIC_HEADERS}
-  CSDebugColorizeTilesOverlay.cpp
-  CSOverlay.cpp
+  CsDebugColorizeTilesOverlay.cpp
+  CsOverlay.cpp
   CsView.cpp
   CesiumGltfBuilder.cpp
   CompilableImage.cpp

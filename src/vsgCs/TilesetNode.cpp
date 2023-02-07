@@ -24,7 +24,7 @@ SOFTWARE.
 
 #include "TilesetNode.h"
 
-#include "CSOverlay.h"
+#include "CsOverlay.h"
 #include "jsonUtils.h"
 #include "OpThreadTaskProcessor.h"
 #include "RuntimeEnvironment.h"
@@ -79,7 +79,7 @@ void for_each_view(vsg::ref_ptr<vsg::Viewer> viewer, const F& f)
 
 TilesetNode::TilesetNode(const DeviceFeatures& deviceFeatures, const TilesetSource& source,
                          const Cesium3DTilesSelection::TilesetOptions& in_options,
-                         vsg::ref_ptr<vsg::Options> vsgOptions)
+                         vsg::ref_ptr<vsg::Options>)
     : _viewUpdateResult(nullptr), _tilesetsBeingDestroyed(0)
 {
     Cesium3DTilesSelection::TilesetOptions options(in_options);
@@ -357,13 +357,13 @@ bool TilesetNode::initialize(vsg::ref_ptr<vsg::Viewer> viewer)
     return true;
 }
 
-void TilesetNode::addOverlay(vsg::ref_ptr<CSOverlay> overlay)
+void TilesetNode::addOverlay(vsg::ref_ptr<CsOverlay> overlay)
 {
     _overlays.push_back(overlay);
     _tileset->getOverlays().add(overlay->getOverlay());
 }
 
-void TilesetNode::removeOverlay(vsg::ref_ptr<CSOverlay> overlay)
+void TilesetNode::removeOverlay(vsg::ref_ptr<CsOverlay> overlay)
 {
     _tileset->getOverlays().remove(overlay->getOverlay());
     _overlays.erase(std::remove(_overlays.begin(), _overlays.end(), overlay), _overlays.end());
@@ -418,7 +418,7 @@ namespace
             {
                 const auto& element = valueJson[i];
                 auto built = factory->build(element);
-                vsg::ref_ptr<CSOverlay> overlay = ref_ptr_cast<CSOverlay>(built);
+                vsg::ref_ptr<CsOverlay> overlay = ref_ptr_cast<CsOverlay>(built);
                 if (!overlay)
                 {
                     vsg::error("expected CSOverly, got ", built->className());

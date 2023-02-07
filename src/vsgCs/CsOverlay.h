@@ -38,7 +38,7 @@ SOFTWARE.
 
 namespace vsgCs
 {
-    class VSGCS_EXPORT CSOverlay : public vsg::Inherit<vsg::Object, CSOverlay>
+    class VSGCS_EXPORT CsOverlay : public vsg::Inherit<vsg::Object, CsOverlay>
     {
     public:
         std::string MaterialLayerKey = "Overlay0";
@@ -73,10 +73,10 @@ namespace vsgCs
         int32_t _overlaysBeingDestroyed = 0;
     };
 
-    class VSGCS_EXPORT CSIonRasterOverlay : public vsg::Inherit<CSOverlay, CSIonRasterOverlay>
+    class VSGCS_EXPORT CsIonRasterOverlay : public vsg::Inherit<CsOverlay, CsIonRasterOverlay>
     {
         public:
-        CSIonRasterOverlay(int64_t in_IonAssetID = -1,
+        CsIonRasterOverlay(int64_t in_IonAssetID = -1,
                            std::string in_IonAccessToken = std::string())
             : IonAssetID(in_IonAssetID), IonAccessToken(std::move(in_IonAccessToken))
         {}
