@@ -22,6 +22,7 @@ SOFTWARE.
 
 </editor-fold> */
 
+#include "accessor_traits.h"
 #include "CesiumGltfBuilder.h"
 #include "pbr.h"
 #include "DescriptorSetConfigurator.h"
@@ -44,12 +45,14 @@ SOFTWARE.
 #include <Cesium3DTilesSelection/RasterOverlayTile.h>
 #include <Cesium3DTilesSelection/RasterOverlay.h>
 
+#include <vsg/utils/ShaderSet.h>
+
 #include <algorithm>
 #include <string>
 #include <tuple>
 #include <limits>
 #include <exception>
-#include <vsg/utils/ShaderSet.h>
+
 
 using namespace vsgCs;
 using namespace CesiumGltf;
@@ -297,99 +300,6 @@ ModelBuilder::loadMesh(const CesiumGltf::Mesh* mesh)
 
 namespace
 {
-    // Helpers for writing templates that take Cesium Accessors as arguments.
-
-    template<typename T> struct AccessorViewTraits;
-
-    template<template<typename> typename  VSGType, typename TValue>
-    class VSGTraits
-    {
-    public:
-        using element_type = typename VSGType<TValue>::value_type;
-        using value_type = VSGType<TValue>;
-        using array_type = vsg::Array<value_type>;
-        static constexpr std::size_t size = VSGType<TValue>().size();
-        template<typename TOther>
-        using with_element_type = VSGType<TOther>;
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::SCALAR<T>>
-    {
-        using element_type = T;
-        using value_type = T;
-        using array_type = vsg::Array<value_type>;
-        static constexpr std::size_t size = 1;
-        template<typename TOther>
-        using with_element_type = TOther;
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::VEC2<T>> : public VSGTraits<vsg::t_vec2, T>
-    {
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::VEC3<T>> : public VSGTraits<vsg::t_vec3, T>
-    {
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::VEC4<T>> : public VSGTraits<vsg::t_vec4, T>
-    {
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::MAT3<T>> : public VSGTraits<vsg::t_mat3, T>
-    {
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::MAT4<T>> : public VSGTraits<vsg::t_mat4, T>
-    {
-    };
-
-    // No vsg t_mat2; will this work?
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::MAT2<T>> : public VSGTraits<vsg::t_vec4, T>
-    {
-    };
-
-    // Identify accessors that are valid as a draw index, so that much template expansion can be
-    // avoided.
-
-    template <typename T>
-    struct is_index_type : std::false_type
-    {
-    };
-
-    template<> struct is_index_type<AccessorTypes::SCALAR<uint8_t>> : std::true_type
-    {
-    };
-
-    template<> struct is_index_type<AccessorTypes::SCALAR<uint16_t>> : std::true_type
-    {
-    };
-
-    template<> struct is_index_type<AccessorTypes::SCALAR<uint32_t>> : std::true_type
-    {
-    };
-
-    template <typename T>
-    struct is_index_view_aux : std::false_type
-    {
-    };
-
-    template <typename T>
-    struct is_index_view_aux<AccessorView<T>> : is_index_type<T>
-    {
-    };
-
-    template <typename T>
-    struct is_index_view : is_index_view_aux<std::remove_reference_t<T>>
-    {
-    };
-
     // Convenience functions for accessing the elements of values in a vsg::Array, whether they are
     // scalar of vector
 
