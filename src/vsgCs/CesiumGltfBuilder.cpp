@@ -355,6 +355,41 @@ namespace
     {
     };
 
+    // Identify accessors that are valid as a draw index, so that much template expansion can be
+    // avoided.
+
+    template <typename T>
+    struct is_index_type : std::false_type
+    {
+    };
+
+    template<> struct is_index_type<AccessorTypes::SCALAR<uint8_t>> : std::true_type
+    {
+    };
+
+    template<> struct is_index_type<AccessorTypes::SCALAR<uint16_t>> : std::true_type
+    {
+    };
+
+    template<> struct is_index_type<AccessorTypes::SCALAR<uint32_t>> : std::true_type
+    {
+    };
+
+    template <typename T>
+    struct is_index_view_aux : std::false_type
+    {
+    };
+
+    template <typename T>
+    struct is_index_view_aux<AccessorView<T>> : is_index_type<T>
+    {
+    };
+
+    template <typename T>
+    struct is_index_view : is_index_view_aux<std::remove_reference_t<T>>
+    {
+    };
+
     // Convenience functions for accessing the elements of values in a vsg::Array, whether they are
     // scalar of vector
 
@@ -560,26 +595,32 @@ namespace
     template <typename R, typename F>
     R invokeWithAccessorViews(const Model* model, F&& f, const Accessor* accessor1, const Accessor* accessor2 = nullptr)
     {
+        R result;
         if (accessor2)
         {
-            return createAccessorView(*model, *accessor1,
-                                      [model, &f, accessor2](auto&& accessorView1)
-                                      {
-                                          return createAccessorView(*model, *accessor2,
-                                                                    [&f, &accessorView1](auto&& accessorView2)
-                                                                    {
-                                                                        return f(accessorView1, accessorView2);
-                                                                    });
-                                      });
+            createAccessorView(*model, *accessor1,
+                               [model, &f, &result, accessor2](auto&& accessorView1)
+                               {
+                                   createAccessorView(*model, *accessor2,
+                                                      [&f, &accessorView1, &result](auto&& accessorView2)
+                                                      {
+                                                          if constexpr(
+                                                              is_index_view<decltype(accessorView2)>::value)
+                                                          {
+                                                              result = f(accessorView1, accessorView2);
+                                                          }
+                                                      });
+                               });
         }
         else
         {
-            return createAccessorView(*model, *accessor1,
-                                      [&f](auto&& accessorView1)
-                                      {
-                                          return f(accessorView1, AccessorView<AccessorTypes::SCALAR<uint16_t>>());
-                                      });
+            createAccessorView(*model, *accessor1,
+                               [&f, &result](auto&& accessorView1)
+                               {
+                                   result = f(accessorView1, AccessorView<AccessorTypes::SCALAR<uint16_t>>());
+                               });
         }
+        return result;
     }
 
 
