@@ -22,6 +22,7 @@ SOFTWARE.
 
 </editor-fold> */
 
+#include "accessor_traits.h"
 #include "CesiumGltfBuilder.h"
 #include "pbr.h"
 #include "DescriptorSetConfigurator.h"
@@ -44,12 +45,14 @@ SOFTWARE.
 #include <Cesium3DTilesSelection/RasterOverlayTile.h>
 #include <Cesium3DTilesSelection/RasterOverlay.h>
 
+#include <vsg/utils/ShaderSet.h>
+
 #include <algorithm>
 #include <string>
 #include <tuple>
 #include <limits>
 #include <exception>
-#include <vsg/utils/ShaderSet.h>
+
 
 using namespace vsgCs;
 using namespace CesiumGltf;
@@ -286,75 +289,8 @@ ModelBuilder::loadMesh(const CesiumGltf::Mesh* mesh)
     return result;
 }
 
-// Copying vertex attributes
-// The shader set specifies the attribute format as a VkFormat. Either we supply the data in that
-// format, or we have to set the format property of the vsg::Array. The default pbr shader requires
-// all its attributes in float format. For now we will convert the data to float, but eventually we
-// will want to supply the data in the more compact formats, if they are supported.
-//
-// The PBR shader expects color data as RGBA, but that is just too nasty! Set the correct format
-// for RGB if that is provided by the glTF asset.
-
 namespace
 {
-    // Helpers for writing templates that take Cesium Accessors as arguments.
-
-    template<typename T> struct AccessorViewTraits;
-
-    template<template<typename> typename  VSGType, typename TValue>
-    class VSGTraits
-    {
-    public:
-        using element_type = typename VSGType<TValue>::value_type;
-        using value_type = VSGType<TValue>;
-        using array_type = vsg::Array<value_type>;
-        static constexpr std::size_t size = VSGType<TValue>().size();
-        template<typename TOther>
-        using with_element_type = VSGType<TOther>;
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::SCALAR<T>>
-    {
-        using element_type = T;
-        using value_type = T;
-        using array_type = vsg::Array<value_type>;
-        static constexpr std::size_t size = 1;
-        template<typename TOther>
-        using with_element_type = TOther;
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::VEC2<T>> : public VSGTraits<vsg::t_vec2, T>
-    {
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::VEC3<T>> : public VSGTraits<vsg::t_vec3, T>
-    {
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::VEC4<T>> : public VSGTraits<vsg::t_vec4, T>
-    {
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::MAT3<T>> : public VSGTraits<vsg::t_mat3, T>
-    {
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::MAT4<T>> : public VSGTraits<vsg::t_mat4, T>
-    {
-    };
-
-    // No vsg t_mat2; will this work?
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::MAT2<T>> : public VSGTraits<vsg::t_vec4, T>
-    {
-    };
-
     // Convenience functions for accessing the elements of values in a vsg::Array, whether they are
     // scalar of vector
 
@@ -560,27 +496,42 @@ namespace
     template <typename R, typename F>
     R invokeWithAccessorViews(const Model* model, F&& f, const Accessor* accessor1, const Accessor* accessor2 = nullptr)
     {
+        R result;
         if (accessor2)
         {
-            return createAccessorView(*model, *accessor1,
-                                      [model, &f, accessor2](auto&& accessorView1)
-                                      {
-                                          return createAccessorView(*model, *accessor2,
-                                                                    [&f, &accessorView1](auto&& accessorView2)
-                                                                    {
-                                                                        return f(accessorView1, accessorView2);
-                                                                    });
-                                      });
+            createAccessorView(*model, *accessor1,
+                               [model, &f, &result, accessor2](auto&& accessorView1)
+                               {
+                                   createAccessorView(*model, *accessor2,
+                                                      [&f, &accessorView1, &result](auto&& accessorView2)
+                                                      {
+                                                          if constexpr(
+                                                              is_index_view<decltype(accessorView2)>::value)
+                                                          {
+                                                              result = f(accessorView1, accessorView2);
+                                                          }
+                                                      });
+                               });
         }
         else
         {
-            return createAccessorView(*model, *accessor1,
-                                      [&f](auto&& accessorView1)
-                                      {
-                                          return f(accessorView1, AccessorView<AccessorTypes::SCALAR<uint16_t>>());
-                                      });
+            createAccessorView(*model, *accessor1,
+                               [&f, &result](auto&& accessorView1)
+                               {
+                                   result = f(accessorView1, AccessorView<AccessorTypes::SCALAR<uint16_t>>());
+                               });
         }
+        return result;
     }
+
+// Copying vertex attributes
+// The shader set specifies the attribute format as a VkFormat. Either we supply the data in that
+// format, or we have to set the format property of the vsg::Array. The default pbr shader requires
+// all its attributes in float format. For now we will convert the data to float, but eventually we
+// will want to supply the data in the more compact formats if they are supported by the physical device.
+//
+// The PBR shader expects color data as RGBA, but that is just too nasty! Set the correct format
+// for RGB if that is provided by the glTF asset.
 
 
     template<typename T, typename TI>
@@ -588,7 +539,7 @@ namespace
                                            const AccessorView<TI>& indexView)
     {
         vsg::ref_ptr<vsg::Data> result;
-        if (std::is_same<T, float>::value)
+        if constexpr (std::is_same<T, float>::value)
         {
             if (indexView.status() == AccessorViewStatus::Valid)
             {
@@ -620,7 +571,7 @@ namespace
                                            const AccessorView<TI>& indexView)
     {
         vsg::ref_ptr<vsg::Data> result;
-        if (std::is_same<T, float>::value)
+        if constexpr (std::is_same<T, float>::value)
         {
             if (indexView.status() == AccessorViewStatus::Valid)
             {
@@ -667,7 +618,7 @@ namespace
                                          const AccessorView<TI>& indexView)
     {
         vsg::ref_ptr<vsg::Data> result;
-        if (std::is_same<T, float>::value)
+        if constexpr (std::is_same<T, float>::value)
         {
             if (indexView.status() == AccessorViewStatus::Valid)
             {
@@ -696,8 +647,6 @@ namespace
 
     template<typename T, typename TI>
     vsg::ref_ptr<vsg::Data> texProcessor(const AccessorView<T>&, const AccessorView<TI>&) { return {}; } // invalidView
-}
-
 
     vsg::ref_ptr<vsg::Data> doTextures(const Model* model,
                                        const Accessor* dataAccessor, const Accessor* indexAccessor)
@@ -709,8 +658,7 @@ namespace
                                                                 },
                                                                 dataAccessor, indexAccessor);
     }
-
-
+}
 
 template <typename A, typename I>
 vsg::ref_ptr<vsg::Data> createData(Model* model, const A* dataAccessor, const I* indicesAccessor = nullptr)
