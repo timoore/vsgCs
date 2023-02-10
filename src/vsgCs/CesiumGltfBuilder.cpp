@@ -476,6 +476,13 @@ namespace
         return valid;
     }
 
+    bool isTriangleTopology(VkPrimitiveTopology& topology)
+    {
+        return topology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+            || topology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP
+            || topology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+    }
+
     std::map<int32_t, int32_t>
     findTextureCoordAccessors(const std::string& prefix,
                               const std::unordered_map<std::string, int32_t>& attributes)
@@ -774,10 +781,12 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX,
                             ref_ptr_cast<vsg::vec3Array>(createData(_model, normalAccessor, expansionIndices)));
     }
-    else if (config->inputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+    else if (!isTriangleTopology(config->inputAssemblyState->topology)) // Can not make normals
     {
-        config->defines().insert("VSGCS_BILLBOARD_NORMAL");
-        // Won't be used unless we have a bizzare case of points and displacement map
+        if (config->inputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+        {
+            config->defines().insert("VSGCS_BILLBOARD_NORMAL");
+        }
         auto normal = vsg::vec3Value::create(vsg::vec3(0.0f, 1.0f, 0.0f));
         config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_INSTANCE, normal);
     }
