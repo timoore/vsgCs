@@ -795,7 +795,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         auto posArray = ref_ptr_cast<vsg::vec3Array>(positions);
         auto normals = vsg::vec3Array::create(posArray->size());
         generateNormals(posArray, normals, config->inputAssemblyState->topology);
-        config->shaderHints->defines.insert("VSGCS_FLAT_SHADING");
+        config->defines().insert("VSGCS_FLAT_SHADING");
         config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX, normals);
     }
 
@@ -915,7 +915,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
 
 
     // assign any custom ArrayState that may be required.
-    stateGroup->prototypeArrayState = config->shaderSet->getSuitableArrayState(config->shaderHints->defines);
+    stateGroup->prototypeArrayState = config->shaderSet->getSuitableArrayState(config->defines());
 
     stateGroup->addChild(drawCommand);
 
