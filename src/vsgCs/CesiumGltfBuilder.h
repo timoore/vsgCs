@@ -36,6 +36,7 @@ SOFTWARE.
 #include "Export.h"
 #include "DescriptorSetConfigurator.h"
 #include "RuntimeEnvironment.h"
+#include "runtimeSupport.h"
 
 #include <array>
 
@@ -43,6 +44,46 @@ SOFTWARE.
 
 namespace vsgCs
 {
+    /**
+     * @brief Class for representing supported extensions during glTF parsing.
+     *
+     * Just a sketch for now, but the intent is to represent extensions that are enabled by default,
+     * i.e. during 3D Tiles processing, and extensions used by the glTF that we can support.
+     */
+    class Extension : public vsg::Inherit<vsg::Object, Extension>
+    {
+    public:
+        virtual const std::string& getExtensionName() const = 0;
+    };
+
+    template<typename TExtension>
+    class OfficialExtension : vsg::Inherit<Extension, OfficialExtension<TExtension>>
+    {
+    protected:
+        static inline std::string _typeName = TExtension::ExtensionName;
+    public:
+        OfficialExtension(const TExtension* extension = nullptr)
+            : gltfExtension(extension)
+        {
+        }
+        const std::string& getExtensionName() const override
+        {
+            return _typeName;
+        }
+        const TExtension* gltfExtension;
+    };
+
+    // Our "extension" for everything extra in a 3D Tile.
+    class Cs3DTilesExtension : public vsg::Inherit<Extension, Cs3DTilesExtension>
+    {
+    public:
+        const std::string& getExtensionName() const override;
+    };
+
+    using ExtensionList = std::vector<vsg::ref_ptr<Extension>>;
+    /**
+     * @brief High-level options for the 3D Tile Builder (called CesiumGltfBuilder at the moment)
+     */
     struct CreateModelOptions
     {
         bool renderOverlays = false;
@@ -185,10 +226,13 @@ namespace vsgCs
         DeviceFeatures _deviceFeatures;
     };
 
+    // This class should load a standard glTF model, without having builting support for extensions
+    // or our own 3D Tiles cruft. Not there yet...
     class VSGCS_EXPORT ModelBuilder
     {
     public:
-        ModelBuilder(CesiumGltfBuilder* builder, CesiumGltf::Model* model, const CreateModelOptions& options);
+        ModelBuilder(CesiumGltfBuilder* builder, CesiumGltf::Model* model, const CreateModelOptions& options,
+                     const ExtensionList& enabledExtensions = {});
         vsg::ref_ptr<vsg::Group> operator()();
     protected:
         vsg::ref_ptr<vsg::Group> loadNode(const CesiumGltf::Node* node);
@@ -252,5 +296,15 @@ namespace vsgCs
         std::vector<ImageData> _loadedImages;
         vsg::ref_ptr<ConvertedMaterial> _defaultMaterial[2];
 
+        template<typename TExtension>
+        bool isEnabled() const
+        {
+            return std::find_if(_activeExtensions.begin(), _activeExtensions.end(),
+                                [](const auto& ptr)
+                                {
+                                    return ref_ptr_cast<TExtension>(ptr) != nullptr;
+                                }) != _activeExtensions.end();
+        }
+        ExtensionList _activeExtensions;
     };
 }

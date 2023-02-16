@@ -57,6 +57,12 @@ SOFTWARE.
 using namespace vsgCs;
 using namespace CesiumGltf;
 
+const std::string &Cs3DTilesExtension::getExtensionName() const
+{
+    static std::string name("CS_3DTiles");
+    return name;
+};
+
 namespace
 {
     bool isGltfIdentity(const std::vector<double>& matrix)
@@ -200,10 +206,13 @@ vsg::ref_ptr<vsg::ShaderSet> CesiumGltfBuilder::getOrCreatePbrShaderSet(VkPrimit
 }
 
 ModelBuilder::ModelBuilder(CesiumGltfBuilder* builder, CesiumGltf::Model* model,
-                           const CreateModelOptions& options)
+                           const CreateModelOptions& options,
+                           const ExtensionList& enabledExtensions
+    )
     : _builder(builder), _model(model), _options(options),
       _convertedMaterials(model->materials.size()),
-      _loadedImages(model->images.size())
+      _loadedImages(model->images.size()),
+      _activeExtensions(enabledExtensions)
 {
     _name = "glTF";
     auto urlIt = _model->extras.find("Cesium3DTiles_TileUrl");
@@ -852,7 +861,10 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         }
     };
     assignTexCoord("TEXCOORD_", 0);
-    assignTexCoord("_CESIUMOVERLAY_", 2);
+    if (isEnabled<Cs3DTilesExtension>())
+    {
+        assignTexCoord("_CESIUMOVERLAY_", 2);
+    }
     vsg::ref_ptr<vsg::Command> drawCommand;
     if (indicesAccessor && !expansionIndices)
     {
@@ -1110,7 +1122,9 @@ vsg::ref_ptr<vsg::StateCommand> makeTileStateCommand(CesiumGltfBuilder& builder,
 vsg::ref_ptr<vsg::Group>
 CesiumGltfBuilder::load(CesiumGltf::Model* model, const CreateModelOptions& options)
 {
-    ModelBuilder builder(this, model, options);
+    static ExtensionList tilesExtensions{Cs3DTilesExtension::create()};
+
+    ModelBuilder builder(this, model, options, tilesExtensions);
     return builder();
 }
 
