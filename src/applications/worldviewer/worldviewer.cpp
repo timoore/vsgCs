@@ -41,6 +41,7 @@ SOFTWARE.
 
 #include <algorithm>
 #include <chrono>
+#include <iomanip>
 #include <iostream>
 #include <thread>
 
@@ -59,13 +60,14 @@ void usage(const char* name)
         << "\nUsage: " << name << " <options> [model files]...\n\n"
         << "where options include:\n"
         << "--world-file file\t\t JSON world file"
-        << "--no-headlight\t\t Fix lighting at noon GMT in summer\n"
+        << "--headlight\t\t Fix lighting in viewing direction\n"
         << vsgCs::RuntimeEnvironment::usage()
         << "-f numFrames\t\t run for numFrames and exit\n"
         << "--hmh height\t\t horizon mountain height for ellipsoid perspective viewing\n"
         << "--disble-EllipsoidPerspective|--dep disable ellipsoid perspective\n"
         << "--poi lat lon\t\t coordinates of initial point of interest\n"
         << "--distance dist\t\t distance from point of interest\n"
+        << "--time HH::MM\t\t time in UTC (default 12:00)\n"
         << "--help\t\t\t print this message\n";
 }
 
@@ -114,12 +116,26 @@ int main(int argc, char** argv)
         {
             vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
         }
-        bool useHeadlight = !(arguments.read("--no-headlight"));
-
+        auto timeString = arguments.value(std::string(), "--time");
+        // Default is noon GMT
+        std::tm tm{};
+        tm.tm_year = 2023 - 1900;
+        tm.tm_mon = 5;          // June
+        tm.tm_mday = 21;
+        tm.tm_hour = 12;
+        if (!timeString.empty())
+        {
+            std::stringstream ss(timeString);
+            ss >> std::get_time(&tm, "%R");
+            if (ss.fail())
+            {
+                vsg::fatal("Invalid time string ", timeString);
+            }
+        }
+        bool useHeadlight = arguments.read({"--headlight"});
         if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
 
         auto vsg_scene = vsg::Group::create();
-
         auto ambientLight = vsg::AmbientLight::create();
         ambientLight->name = "ambient";
         ambientLight->color.set(1.0, 1.0, 1.0);
@@ -132,7 +148,13 @@ int main(int argc, char** argv)
             directionalLight->name = "directional";
             directionalLight->color.set(1.0, 1.0, 1.0);
             directionalLight->intensity = 1.0;
-            directionalLight->direction.set( -.9397, 0.0, -.340);
+            // high Summer
+            float hourAngle = (tm.tm_hour + tm.tm_min / 60.0) / 24.0 * 2.0 * vsg::PIf - vsg::PIf;
+            vsg::quat hourRot;
+            hourRot.set(-hourAngle, vsg::vec3(0.0f, 0.0f, 1.0f));
+            vsg::vec3 noon( -.9397, 0.0, -.340);
+            vsg::vec3 atTime = hourRot * noon;
+            directionalLight->direction.set(atTime.x, atTime.y, atTime.z);
             vsg_scene->addChild(directionalLight);
         }
 
