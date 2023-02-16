@@ -210,7 +210,7 @@ ModelBuilder::ModelBuilder(CesiumGltfBuilder* builder, CesiumGltf::Model* model,
                            const ExtensionList& enabledExtensions
     )
     : _builder(builder), _model(model), _options(options),
-      _convertedMaterials(model->materials.size()),
+      _csMaterials(model->materials.size()),
       _loadedImages(model->images.size()),
       _activeExtensions(enabledExtensions)
 {
@@ -764,17 +764,16 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         vsg::warn(name, ": Can't map glTF mode ", primitive->mode, " to Vulkan topology");
         return {};
     }
-    int materialID = primitive->material;
-    auto convertedMaterial = loadMaterial(materialID, topology);
-    auto mat = convertedMaterial->descriptorConfig;
-    auto config = MultisetPipelineConfigurator::create(mat->shaderSet);
-    config->defines() = mat->defines;
-    config->inputAssemblyState->topology = topology;
+    auto csMaterial = loadMaterial(primitive->material, topology);
+    auto descConf = csMaterial->descriptorConfig;
+    auto pipelineConf = MultisetPipelineConfigurator::create(descConf->shaderSet);
+    pipelineConf->defines() = descConf->defines;
+    pipelineConf->inputAssemblyState->topology = topology;
     if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
     {
-        config->defines().insert("VSGCS_SIZE_TO_ERROR");
+        pipelineConf->defines().insert("VSGCS_SIZE_TO_ERROR");
     }
-    bool generateTangents = convertedMaterial->texInfo.count("normalMap") != 0
+    bool generateTangents = csMaterial->texInfo.count("normalMap") != 0
         && primitive->attributes.count("TANGENT") == 0;
     const Accessor* indicesAccessor = Model::getSafe(&_model->accessors, primitive->indices);
     const Accessor* normalAccessor = getAccessor(_model, primitive, "NORMAL");
@@ -784,28 +783,28 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
                                         ? &_model->accessors[primitive->indices] : nullptr);
     vsg::DataList vertexArrays;
     auto positions = createData(_model, pPositionAccessor, expansionIndices);
-    config->assignArray(vertexArrays, "vsg_Vertex", VK_VERTEX_INPUT_RATE_VERTEX, positions);
+    pipelineConf->assignArray(vertexArrays, "vsg_Vertex", VK_VERTEX_INPUT_RATE_VERTEX, positions);
     if (normalAccessor)
     {
-        config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX,
+        pipelineConf->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX,
                             ref_ptr_cast<vsg::vec3Array>(createData(_model, normalAccessor, expansionIndices)));
     }
-    else if (!isTriangleTopology(config->inputAssemblyState->topology)) // Can not make normals
+    else if (!isTriangleTopology(pipelineConf->inputAssemblyState->topology)) // Can not make normals
     {
-        if (config->inputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+        if (pipelineConf->inputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
         {
-            config->defines().insert("VSGCS_BILLBOARD_NORMAL");
+            pipelineConf->defines().insert("VSGCS_BILLBOARD_NORMAL");
         }
         auto normal = vsg::vec3Value::create(vsg::vec3(0.0f, 1.0f, 0.0f));
-        config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_INSTANCE, normal);
+        pipelineConf->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_INSTANCE, normal);
     }
     else
     {
         auto posArray = ref_ptr_cast<vsg::vec3Array>(positions);
         auto normals = vsg::vec3Array::create(posArray->size());
-        generateNormals(posArray, normals, config->inputAssemblyState->topology);
-        config->defines().insert("VSGCS_FLAT_SHADING");
-        config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX, normals);
+        generateNormals(posArray, normals, pipelineConf->inputAssemblyState->topology);
+        pipelineConf->defines().insert("VSGCS_FLAT_SHADING");
+        pipelineConf->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX, normals);
     }
 
     // XXX
@@ -824,12 +823,12 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     if (colorAccessor
         && (colorData = doColors(_model, colorAccessor, expansionIndices)).valid())
     {
-        config->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colorData);
+        pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colorData);
     }
     else
     {
         auto color = vsg::vec4Value::create(vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-        config->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, color);
+        pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, color);
     }
 
     // Textures...
@@ -851,12 +850,12 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
             }
             if (texdata.valid())
             {
-                config->assignArray(vertexArrays, arrayName, VK_VERTEX_INPUT_RATE_VERTEX, texdata);
+                pipelineConf->assignArray(vertexArrays, arrayName, VK_VERTEX_INPUT_RATE_VERTEX, texdata);
             }
             else
             {
                 auto texcoord = vsg::vec2Value::create(vsg::vec2(0.0f, 0.0f));
-                config->assignArray(vertexArrays, arrayName, VK_VERTEX_INPUT_RATE_INSTANCE, texcoord);
+                pipelineConf->assignArray(vertexArrays, arrayName, VK_VERTEX_INPUT_RATE_INSTANCE, texcoord);
             }
         }
     };
@@ -885,7 +884,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         drawCommand = vd;
     }
     drawCommand->setValue("name", name);
-    if (mat->blending)
+    if (descConf->blending)
     {
         // figure out what this means someday...
         // These are parameters for blending into the first color attachment in the render
@@ -893,41 +892,41 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         // buried at this low level?
         //
         // Note that this will work for any "compatible" render pass too.
-        config->colorBlendState->attachments = vsg::ColorBlendState::ColorBlendAttachments{
+        pipelineConf->colorBlendState->attachments = vsg::ColorBlendState::ColorBlendAttachments{
             {true, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD,
              VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_SUBTRACT,
              VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT}};
-        _builder->_sharedObjects->share(config->colorBlendState);
+        _builder->_sharedObjects->share(pipelineConf->colorBlendState);
     }
-    if (mat->two_sided)
+    if (descConf->two_sided)
     {
-        config->rasterizationState->cullMode = VK_CULL_MODE_NONE;
+        pipelineConf->rasterizationState->cullMode = VK_CULL_MODE_NONE;
     }
-    if (mat->descriptorSet)
+    if (descConf->descriptorSet)
     {
-        config->descriptorSetLayout = mat->descriptorSet->setLayout;
-        config->descriptorBindings = mat->descriptorBindings;
+        pipelineConf->descriptorSetLayout = descConf->descriptorSet->setLayout;
+        pipelineConf->descriptorBindings = descConf->descriptorBindings;
     }
-    config->init();
-    _builder->_sharedObjects->share(config->bindGraphicsPipeline);
+    pipelineConf->init();
+    _builder->_sharedObjects->share(pipelineConf->bindGraphicsPipeline);
 
     auto stateGroup = vsg::StateGroup::create();
-    stateGroup->add(config->bindGraphicsPipeline);
+    stateGroup->add(pipelineConf->bindGraphicsPipeline);
 
-    if (mat->descriptorSet)
+    if (descConf->descriptorSet)
     {
         auto bindDescriptorSet
-            = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, config->layout, pbr::PRIMITIVE_DESCRIPTOR_SET,
-                                             mat->descriptorSet);
+            = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineConf->layout, pbr::PRIMITIVE_DESCRIPTOR_SET,
+                                             descConf->descriptorSet);
         stateGroup->add(bindDescriptorSet);
     }
 
-    auto bindViewDescriptorSets = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, config->layout, pbr::VIEW_DESCRIPTOR_SET);
+    auto bindViewDescriptorSets = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineConf->layout, pbr::VIEW_DESCRIPTOR_SET);
     stateGroup->add(bindViewDescriptorSets);
 
 
     // assign any custom ArrayState that may be required.
-    stateGroup->prototypeArrayState = config->shaderSet->getSuitableArrayState(config->defines());
+    stateGroup->prototypeArrayState = pipelineConf->shaderSet->getSuitableArrayState(pipelineConf->defines());
 
     stateGroup->addChild(drawCommand);
 
@@ -936,7 +935,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     vsg::dvec3 center = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
     double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.5;
 
-    if (mat->blending)
+    if (descConf->blending)
     {
         auto depthSorted = vsg::DepthSorted::create();
         depthSorted->binNumber = 10;
@@ -953,26 +952,26 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     }
 }
 
-vsg::ref_ptr<ModelBuilder::ConvertedMaterial>
+vsg::ref_ptr<ModelBuilder::CsMaterial>
 ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopology topology)
 {
-    auto convertedMat = ConvertedMaterial::create();
-    convertedMat->descriptorConfig = DescriptorSetConfigurator::create();
+    auto csMat = CsMaterial::create();
+    csMat->descriptorConfig = DescriptorSetConfigurator::create();
     // XXX Cesium Unreal always enables two-sided, but it should come from the material...
-    convertedMat->descriptorConfig->two_sided = true;
-    convertedMat->descriptorConfig->defines.insert("VSG_TWO_SIDED_LIGHTING");
+    csMat->descriptorConfig->two_sided = true;
+    csMat->descriptorConfig->defines.insert("VSG_TWO_SIDED_LIGHTING");
     if (_options.renderOverlays)
     {
-        convertedMat->descriptorConfig->defines.insert("VSGCS_OVERLAY_MAPS");
+        csMat->descriptorConfig->defines.insert("VSGCS_OVERLAY_MAPS");
     }
     vsg::PbrMaterial pbr;
 
     if (material->alphaMode == CesiumGltf::Material::AlphaMode::BLEND)
     {
-        convertedMat->descriptorConfig->blending = true;
+        csMat->descriptorConfig->blending = true;
         pbr.alphaMaskCutoff = 0.0f;
     }
-    convertedMat->descriptorConfig->shaderSet = _builder->getOrCreatePbrShaderSet(topology);
+    csMat->descriptorConfig->shaderSet = _builder->getOrCreatePbrShaderSet(topology);
     if (material->pbrMetallicRoughness)
     {
         auto const& cesiumPbr = material->pbrMetallicRoughness.value();
@@ -992,43 +991,43 @@ ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopo
         {
             pbr.roughnessFactor = static_cast<float>(cesiumPbr.roughnessFactor);
         }
-        loadMaterialTexture(convertedMat, "diffuseMap", cesiumPbr.baseColorTexture, true);
-        loadMaterialTexture(convertedMat, "mrMap", cesiumPbr.metallicRoughnessTexture, false);
+        loadMaterialTexture(csMat, "diffuseMap", cesiumPbr.baseColorTexture, true);
+        loadMaterialTexture(csMat, "mrMap", cesiumPbr.metallicRoughnessTexture, false);
     }
-    loadMaterialTexture(convertedMat, "normalMap", material->normalTexture, false);
-    loadMaterialTexture(convertedMat, "aoMap", material->occlusionTexture, false);
-    loadMaterialTexture(convertedMat, "emissiveMap", material->emissiveTexture, true);
-    convertedMat->descriptorConfig->assignUniform("material", vsg::PbrMaterialValue::create(pbr));
+    loadMaterialTexture(csMat, "normalMap", material->normalTexture, false);
+    loadMaterialTexture(csMat, "aoMap", material->occlusionTexture, false);
+    loadMaterialTexture(csMat, "emissiveMap", material->emissiveTexture, true);
+    csMat->descriptorConfig->assignUniform("material", vsg::PbrMaterialValue::create(pbr));
     auto descriptorSetLayout
-        = vsg::DescriptorSetLayout::create(convertedMat->descriptorConfig->descriptorBindings);
-    convertedMat->descriptorConfig->descriptorSet
-        = vsg::DescriptorSet::create(descriptorSetLayout, convertedMat->descriptorConfig->descriptors);
-    return convertedMat;
+        = vsg::DescriptorSetLayout::create(csMat->descriptorConfig->descriptorBindings);
+    csMat->descriptorConfig->descriptorSet
+        = vsg::DescriptorSet::create(descriptorSetLayout, csMat->descriptorConfig->descriptors);
+    return csMat;
 }
 
-vsg::ref_ptr<ModelBuilder::ConvertedMaterial>
+vsg::ref_ptr<ModelBuilder::CsMaterial>
 ModelBuilder::loadMaterial(int i, VkPrimitiveTopology topology)
 {
     int topoIndex = topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST ? 1 : 0;
 
     if (i < 0 || static_cast<unsigned>(i) >= _model->materials.size())
     {
-        if (!_defaultMaterial[topoIndex])
+        if (!_baseMaterial[topoIndex])
         {
-            _defaultMaterial[topoIndex] = ConvertedMaterial::create();
-            _defaultMaterial[topoIndex]->descriptorConfig = DescriptorSetConfigurator::create();
-            _defaultMaterial[topoIndex]->descriptorConfig->shaderSet = _builder->getOrCreatePbrShaderSet(topology);
+            _baseMaterial[topoIndex] = CsMaterial::create();
+            _baseMaterial[topoIndex]->descriptorConfig = DescriptorSetConfigurator::create();
+            _baseMaterial[topoIndex]->descriptorConfig->shaderSet = _builder->getOrCreatePbrShaderSet(topology);
             vsg::PbrMaterial pbr;
-            _defaultMaterial[topoIndex]->descriptorConfig->assignUniform("material",
+            _baseMaterial[topoIndex]->descriptorConfig->assignUniform("material",
                                                                          vsg::PbrMaterialValue::create(pbr));
         }
-        return _defaultMaterial[topoIndex];
+        return _baseMaterial[topoIndex];
     }
-    if (!_convertedMaterials[i][topoIndex])
+    if (!_csMaterials[i][topoIndex])
     {
-        _convertedMaterials[i][topoIndex] = loadMaterial(&_model->materials[i], topology);
+        _csMaterials[i][topoIndex] = loadMaterial(&_model->materials[i], topology);
     }
-    return _convertedMaterials[i][topoIndex];
+    return _csMaterials[i][topoIndex];
 }
 
 vsg::ref_ptr<vsg::Group>

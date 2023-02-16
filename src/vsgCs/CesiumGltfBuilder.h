@@ -35,6 +35,7 @@ SOFTWARE.
 
 #include "Export.h"
 #include "DescriptorSetConfigurator.h"
+#include "MultisetPipelineConfigurator.h"
 #include "RuntimeEnvironment.h"
 #include "runtimeSupport.h"
 
@@ -234,18 +235,17 @@ namespace vsgCs
         ModelBuilder(CesiumGltfBuilder* builder, CesiumGltf::Model* model, const CreateModelOptions& options,
                      const ExtensionList& enabledExtensions = {});
         vsg::ref_ptr<vsg::Group> operator()();
-    protected:
         vsg::ref_ptr<vsg::Group> loadNode(const CesiumGltf::Node* node);
         vsg::ref_ptr<vsg::Group> loadMesh(const CesiumGltf::Mesh* mesh);
         vsg::ref_ptr<vsg::Node> loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
                                               const CesiumGltf::Mesh* mesh = nullptr);
-        struct ConvertedMaterial;
-        vsg::ref_ptr<ConvertedMaterial> loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopology topology);
-        vsg::ref_ptr<ConvertedMaterial> loadMaterial(int i, VkPrimitiveTopology topology);
+        struct CsMaterial;
+        vsg::ref_ptr<CsMaterial> loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopology topology);
+        vsg::ref_ptr<CsMaterial> loadMaterial(int i, VkPrimitiveTopology topology);
         vsg::ref_ptr<vsg::Data> loadImage(int i, bool useMipMaps, bool sRGB);
         vsg::ref_ptr<vsg::ImageInfo> loadTexture(const CesiumGltf::Texture& texture, bool sRGB);
         template<typename TI>
-        bool loadMaterialTexture(vsg::ref_ptr<ConvertedMaterial> cmat,
+        bool loadMaterialTexture(vsg::ref_ptr<CsMaterial> cmat,
                                  const std::string& name,
                                  const std::optional<TI>& texInfo,
                                  bool sRGB)
@@ -281,12 +281,15 @@ namespace vsgCs
         {
             int coordSet = 0;
         };
-        struct ConvertedMaterial : public vsg::Inherit<vsg::Object, ConvertedMaterial>
+        // The VSG objects needed to define a material. So far that is a ShaderSet and the
+        // descriptors for one descriptor set. This also includes support for matching glTF textures
+        // to specific texture coordinate attributes.
+        struct CsMaterial : public vsg::Inherit<vsg::Object, CsMaterial>
         {
             vsg::ref_ptr<DescriptorSetConfigurator> descriptorConfig;
             std::map<std::string, TexInfo> texInfo;
         };
-        std::vector<std::array<vsg::ref_ptr<ConvertedMaterial>, 2>> _convertedMaterials;
+        std::vector<std::array<vsg::ref_ptr<CsMaterial>, 2>> _csMaterials;
         struct ImageData
         {
             vsg::ref_ptr<vsg::Data> image;
@@ -294,8 +297,7 @@ namespace vsgCs
             bool sRGB = false;
         };
         std::vector<ImageData> _loadedImages;
-        vsg::ref_ptr<ConvertedMaterial> _defaultMaterial[2];
-
+        vsg::ref_ptr<CsMaterial> _baseMaterial[2];
         template<typename TExtension>
         bool isEnabled() const
         {
@@ -308,3 +310,4 @@ namespace vsgCs
         ExtensionList _activeExtensions;
     };
 }
+
