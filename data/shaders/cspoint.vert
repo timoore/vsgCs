@@ -54,7 +54,7 @@ void main()
 #endif
     viewDir = - (pc.modelView * vertex).xyz;
 #ifdef VSGCS_BILLBOARD_NORMAL
-    normalDir = eyePos;         // -viewDir
+    normalDir = viewDir;
 #else
     normalDir = (pc.modelView * normal).xyz;
 #endif
