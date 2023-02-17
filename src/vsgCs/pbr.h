@@ -42,8 +42,8 @@ namespace vsgCs
 
         vsg::ref_ptr<vsg::Data> makeTileData(float geometricError, float maxPointSize,
                                              const gsl::span<OverlayParams> overlayUniformMem);
-        vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(vsg::ref_ptr<const vsg::Options> options = {});
-        vsg::ref_ptr<vsg::ShaderSet> makePointShaderSet(vsg::ref_ptr<const vsg::Options> options = {});
+        vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(const vsg::ref_ptr<const vsg::Options>& options = {});
+        vsg::ref_ptr<vsg::ShaderSet> makePointShaderSet(const vsg::ref_ptr<const vsg::Options>& options = {});
     }
 
 }

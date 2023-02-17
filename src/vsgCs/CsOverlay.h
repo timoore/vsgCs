@@ -56,8 +56,8 @@ namespace vsgCs
         bool ShowCreditsOnScreen;
         // I followed cesium-unreal's lead by making this an action to perform on an overlay; why not
         // have TilesetNode do this?
-        void addToTileset(vsg::ref_ptr<TilesetNode> tilesetNode);
-        void removeFromTileset(vsg::ref_ptr<TilesetNode> tilesetNode);
+        void addToTileset(const vsg::ref_ptr<TilesetNode>& tilesetNode);
+        void removeFromTileset(const vsg::ref_ptr<TilesetNode>& tilesetNode);
         virtual Cesium3DTilesSelection::RasterOverlay* createOverlay(
             const Cesium3DTilesSelection::RasterOverlayOptions& options = {}) = 0;
         Cesium3DTilesSelection::RasterOverlay* getOverlay()
@@ -83,6 +83,6 @@ namespace vsgCs
         int64_t IonAssetID;
         std::string IonAccessToken;
         Cesium3DTilesSelection::RasterOverlay* createOverlay(
-            const Cesium3DTilesSelection::RasterOverlayOptions& options = {}) override;
+            const Cesium3DTilesSelection::RasterOverlayOptions& options) override;
     };
 }

@@ -33,6 +33,6 @@ namespace vsgCs
     {
     public:
         Cesium3DTilesSelection::RasterOverlay* createOverlay(
-            const Cesium3DTilesSelection::RasterOverlayOptions& options = {}) override;
+            const Cesium3DTilesSelection::RasterOverlayOptions& options) override;
     };
 }

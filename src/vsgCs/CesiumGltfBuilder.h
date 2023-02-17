@@ -164,14 +164,15 @@ namespace vsgCs
     class VSGCS_EXPORT CesiumGltfBuilder : public vsg::Inherit<vsg::Object, CesiumGltfBuilder>
     {
     public:
-        CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions, const DeviceFeatures& in_features);
+        CesiumGltfBuilder(const vsg::ref_ptr<vsg::Options>& vsgOptions, const DeviceFeatures& deviceFeatures);
 
         friend class ModelBuilder;
         vsg::ref_ptr<vsg::Group> load(CesiumGltf::Model* model, const CreateModelOptions& options);
         vsg::ref_ptr<vsg::Node> loadTile(Cesium3DTilesSelection::TileLoadResult&& tileLoadResult,
                                          const glm::dmat4& transform,
                                          const CreateModelOptions& options);
-        vsg::ref_ptr<vsg::Object> attachTileData(Cesium3DTilesSelection::Tile& tile, vsg::ref_ptr<vsg::Node> node);
+        vsg::ref_ptr<vsg::Object> attachTileData(Cesium3DTilesSelection::Tile& tile,
+                                                 const vsg::ref_ptr<vsg::Node>& node);
         vsg::ref_ptr<vsg::ImageInfo> loadTexture(CesiumGltf::ImageCesium& image,
                                                  VkSamplerAddressMode addressX,
                                                  VkSamplerAddressMode addressY,
@@ -189,14 +190,14 @@ namespace vsgCs
         vsg::ref_ptr<vsg::ShaderSet> getOrCreatePbrShaderSet(VkPrimitiveTopology topology);
 
         ModifyRastersResult attachRaster(const Cesium3DTilesSelection::Tile& tile,
-                                         vsg::ref_ptr<vsg::Node> node,
+                                         const vsg::ref_ptr<vsg::Node>& node,
                                          int32_t overlayTextureCoordinateID,
                                          const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
                                          void* pMainThreadRendererResources,
                                          const glm::dvec2& translation,
                                          const glm::dvec2& scale);
         ModifyRastersResult detachRaster(const Cesium3DTilesSelection::Tile& tile,
-                                         vsg::ref_ptr<vsg::Node> node,
+                                         const vsg::ref_ptr<vsg::Node>& node,
                                          int32_t overlayTextureCoordinateID,
                                          const Cesium3DTilesSelection::RasterOverlayTile& rasterTile);
         vsg::ref_ptr<vsg::ImageInfo> getDefaultTexture()
@@ -271,7 +272,7 @@ namespace vsgCs
             }
             return false;
         }
-        std::string makeName(const CesiumGltf::Mesh* mesh, const CesiumGltf::MeshPrimitive* primitive);
+        std::string makeName(const CesiumGltf::Mesh* mesh, const CesiumGltf::MeshPrimitive* primitive) const;
 
         CesiumGltfBuilder* _builder;
         CesiumGltf::Model* _model;

@@ -34,7 +34,7 @@ SOFTWARE.
 
 using namespace vsgCs;
 
-void CsOverlay::addToTileset(vsg::ref_ptr<TilesetNode> tilesetNode)
+void CsOverlay::addToTileset(const vsg::ref_ptr<TilesetNode>& tilesetNode)
 {
     Cesium3DTilesSelection::RasterOverlayOptions options{};
     options.maximumScreenSpaceError = this->MaximumScreenSpaceError;
@@ -59,7 +59,7 @@ void CsOverlay::addToTileset(vsg::ref_ptr<TilesetNode> tilesetNode)
       }
 }
 
-void CsOverlay::removeFromTileset(vsg::ref_ptr<TilesetNode> tilesetNode)
+void CsOverlay::removeFromTileset(const vsg::ref_ptr<TilesetNode>& tilesetNode)
 {
     ++_overlaysBeingDestroyed;
     _rasterOverlay->getAsyncDestructionCompleteEvent(getAsyncSystem())

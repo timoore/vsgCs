@@ -92,7 +92,7 @@ namespace vsgCs {
             return shaderSet;
         }
 
-        vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(vsg::ref_ptr<const vsg::Options> options)
+        vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(const vsg::ref_ptr<const vsg::Options>& options)
         {
             auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard.vert", options);
             auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard_pbr.frag", options);
@@ -113,7 +113,7 @@ namespace vsgCs {
             return shaderSet;
         }
 
-        vsg::ref_ptr<vsg::ShaderSet> makePointShaderSet(vsg::ref_ptr<const vsg::Options> options)
+        vsg::ref_ptr<vsg::ShaderSet> makePointShaderSet(const vsg::ref_ptr<const vsg::Options>& options)
         {
             auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/cspoint.vert", options);
             auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard_pbr.frag", options);
