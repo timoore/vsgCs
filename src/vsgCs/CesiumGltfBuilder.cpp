@@ -403,7 +403,7 @@ namespace
     template<typename S, typename D>
     D normalize(S val)
     {
-        return val * (1.0f / std::numeric_limits<S>::max());
+        return static_cast<D>(val * (1.0 / std::numeric_limits<S>::max()));
     }
 
     template<typename TV, typename TA>
