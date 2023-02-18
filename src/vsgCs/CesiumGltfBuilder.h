@@ -152,6 +152,8 @@ namespace vsgCs
      */
     vsg::ref_ptr<vsg::Data> VSGCS_EXPORT loadImage(CesiumGltf::ImageCesium& image, bool useMipMaps, bool sRGB);
 
+    int samplerLOD(const vsg::ref_ptr<vsg::Data>& data, bool generateMipMaps);
+
     /**
      * @brief create a VSG sampler.
      */

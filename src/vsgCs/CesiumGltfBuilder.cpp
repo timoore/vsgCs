@@ -1355,15 +1355,6 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMap
     {
         return {};
     }
-    if (useMipMaps && image.mipPositions.empty())
-    {
-        std::optional<std::string> errorMsg =
-            CesiumGltfReader::GltfReader::generateMipMaps(image);
-        if (errorMsg)
-        {
-            vsg::warn(errorMsg.value());
-        }
-    }
     VkFormat pixelFormat = cesiumToVk(image, sRGB);
     if (pixelFormat == VK_FORMAT_UNDEFINED)
     {
@@ -1371,7 +1362,14 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMap
     }
     vsg::Data::Properties props;
     props.format = pixelFormat;
-    props.maxNumMipmaps = static_cast<uint8_t>(image.mipPositions.size());
+    if (useMipMaps)
+    {
+        props.maxNumMipmaps = static_cast<uint8_t>(std::max(image.mipPositions.size(), 1ul));
+    }
+    else
+    {
+        props.maxNumMipmaps = 1;
+    }
     std::tie(props.blockWidth, props.blockHeight) = getBlockSize(pixelFormat);
     props.origin = vsg::BOTTOM_LEFT;
     // Assume that the ImageCesium raw format will be fine to upload into Vulkan, except for
@@ -1429,6 +1427,24 @@ vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRG
 
 namespace vsgCs
 {
+    int samplerLOD(const vsg::ref_ptr<vsg::Data>& data, bool generateMipMaps)
+    {
+        int dataMipMaps = data->properties.maxNumMipmaps > 1;
+        if (dataMipMaps > 1)
+        {
+            return dataMipMaps;
+        }
+        uint32_t width = data->width();
+        uint32_t height = data->height();
+        if (!generateMipMaps || (width <= 1 && height <= 1))
+        {
+            return 1;
+        }
+        auto maxDim = std::max(width, height);
+        // from assimp loader; is it correct?
+        return std::floor(std::log2f(static_cast<float>(maxDim)));
+    }
+
     vsg::ref_ptr<vsg::Sampler> makeSampler(VkSamplerAddressMode addressX,
                                            VkSamplerAddressMode addressY,
                                            VkFilter minFilter,
@@ -1483,7 +1499,7 @@ vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumGltf::ImageCes
         return {};
     }
     auto sampler = makeSampler(addressX, addressY, minFilter, maxFilter,
-                                 data->properties.maxNumMipmaps);
+                               samplerLOD(data, useMipMaps));
     _sharedObjects->share(sampler);
     return vsg::ImageInfo::create(sampler, data);
 }
@@ -1615,7 +1631,7 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
     }
     auto data = loadImage(*source, useMipMaps, sRGB);
     auto sampler = makeSampler(addressX, addressY, minFilter, magFilter,
-                               data->properties.maxNumMipmaps);
+                               samplerLOD(data, useMipMaps));
     _builder->_sharedObjects->share(sampler);
     return vsg::ImageInfo::create(sampler, data);
 }
