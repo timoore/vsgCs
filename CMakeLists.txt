@@ -11,6 +11,8 @@ SET(VSGCS_RELEASE_CANDIDATE 0)
 # We have some custom .cmake scripts not in the official distribution.
 SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${vsgCs_SOURCE_DIR}/CMakeModules")
 
+include("vsgCsMacros")
+
 # set the use of C++17 globally as all examples require it
 set(CMAKE_CXX_STANDARD 17)
 
@@ -39,7 +41,7 @@ set(FIND_DEPENDENCY ${FIND_DEPENDENCY} "find_dependency(vsg ${VSG_MIN_VERSION} R
 
 find_package(Cesium REQUIRED)
 
-vsg_setup_build_vars()
+vsgcs_setup_build_vars()
 # This does include(GNUInstallDirs), which sets up all the correct install directories.
 vsg_setup_dir_vars()
 

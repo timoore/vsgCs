@@ -35,7 +35,9 @@ SOFTWARE.
 
 #include "Export.h"
 #include "DescriptorSetConfigurator.h"
+#include "MultisetPipelineConfigurator.h"
 #include "RuntimeEnvironment.h"
+#include "runtimeSupport.h"
 
 #include <array>
 
@@ -43,6 +45,46 @@ SOFTWARE.
 
 namespace vsgCs
 {
+    /**
+     * @brief Class for representing supported extensions during glTF parsing.
+     *
+     * Just a sketch for now, but the intent is to represent extensions that are enabled by default,
+     * i.e. during 3D Tiles processing, and extensions used by the glTF that we can support.
+     */
+    class Extension : public vsg::Inherit<vsg::Object, Extension>
+    {
+    public:
+        virtual const std::string& getExtensionName() const = 0;
+    };
+
+    template<typename TExtension>
+    class OfficialExtension : vsg::Inherit<Extension, OfficialExtension<TExtension>>
+    {
+    protected:
+        static inline std::string _typeName = TExtension::ExtensionName;
+    public:
+        OfficialExtension(const TExtension* extension = nullptr)
+            : gltfExtension(extension)
+        {
+        }
+        const std::string& getExtensionName() const override
+        {
+            return _typeName;
+        }
+        const TExtension* gltfExtension;
+    };
+
+    // Our "extension" for everything extra in a 3D Tile.
+    class Cs3DTilesExtension : public vsg::Inherit<Extension, Cs3DTilesExtension>
+    {
+    public:
+        const std::string& getExtensionName() const override;
+    };
+
+    using ExtensionList = std::vector<vsg::ref_ptr<Extension>>;
+    /**
+     * @brief High-level options for the 3D Tile Builder (called CesiumGltfBuilder at the moment)
+     */
     struct CreateModelOptions
     {
         bool renderOverlays = false;
@@ -110,6 +152,8 @@ namespace vsgCs
      */
     vsg::ref_ptr<vsg::Data> VSGCS_EXPORT loadImage(CesiumGltf::ImageCesium& image, bool useMipMaps, bool sRGB);
 
+    int samplerLOD(const vsg::ref_ptr<vsg::Data>& data, bool generateMipMaps);
+
     /**
      * @brief create a VSG sampler.
      */
@@ -122,13 +166,15 @@ namespace vsgCs
     class VSGCS_EXPORT CesiumGltfBuilder : public vsg::Inherit<vsg::Object, CesiumGltfBuilder>
     {
     public:
-        CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions, const DeviceFeatures& in_features);
+        CesiumGltfBuilder(const vsg::ref_ptr<vsg::Options>& vsgOptions, const DeviceFeatures& deviceFeatures);
 
         friend class ModelBuilder;
         vsg::ref_ptr<vsg::Group> load(CesiumGltf::Model* model, const CreateModelOptions& options);
         vsg::ref_ptr<vsg::Node> loadTile(Cesium3DTilesSelection::TileLoadResult&& tileLoadResult,
                                          const glm::dmat4& transform,
                                          const CreateModelOptions& options);
+        vsg::ref_ptr<vsg::Object> attachTileData(Cesium3DTilesSelection::Tile& tile,
+                                                 const vsg::ref_ptr<vsg::Node>& node);
         vsg::ref_ptr<vsg::ImageInfo> loadTexture(CesiumGltf::ImageCesium& image,
                                                  VkSamplerAddressMode addressX,
                                                  VkSamplerAddressMode addressY,
@@ -146,14 +192,14 @@ namespace vsgCs
         vsg::ref_ptr<vsg::ShaderSet> getOrCreatePbrShaderSet(VkPrimitiveTopology topology);
 
         ModifyRastersResult attachRaster(const Cesium3DTilesSelection::Tile& tile,
-                                         vsg::ref_ptr<vsg::Node> node,
+                                         const vsg::ref_ptr<vsg::Node>& node,
                                          int32_t overlayTextureCoordinateID,
                                          const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
                                          void* pMainThreadRendererResources,
                                          const glm::dvec2& translation,
                                          const glm::dvec2& scale);
         ModifyRastersResult detachRaster(const Cesium3DTilesSelection::Tile& tile,
-                                         vsg::ref_ptr<vsg::Node> node,
+                                         const vsg::ref_ptr<vsg::Node>& node,
                                          int32_t overlayTextureCoordinateID,
                                          const Cesium3DTilesSelection::RasterOverlayTile& rasterTile);
         vsg::ref_ptr<vsg::ImageInfo> getDefaultTexture()
@@ -168,6 +214,10 @@ namespace vsgCs
         {
             return _overlayPipelineLayout;
         }
+        const DeviceFeatures& getFeatures()
+        {
+            return _deviceFeatures;
+        }
     protected:
         static vsg::ref_ptr<vsg::ImageInfo> makeDefaultTexture();
         vsg::ref_ptr<vsg::SharedObjects> _sharedObjects;
@@ -180,23 +230,25 @@ namespace vsgCs
         DeviceFeatures _deviceFeatures;
     };
 
+    // This class should load a standard glTF model, without having builting support for extensions
+    // or our own 3D Tiles cruft. Not there yet...
     class VSGCS_EXPORT ModelBuilder
     {
     public:
-        ModelBuilder(CesiumGltfBuilder* builder, CesiumGltf::Model* model, const CreateModelOptions& options);
+        ModelBuilder(CesiumGltfBuilder* builder, CesiumGltf::Model* model, const CreateModelOptions& options,
+                     const ExtensionList& enabledExtensions = {});
         vsg::ref_ptr<vsg::Group> operator()();
-    protected:
         vsg::ref_ptr<vsg::Group> loadNode(const CesiumGltf::Node* node);
         vsg::ref_ptr<vsg::Group> loadMesh(const CesiumGltf::Mesh* mesh);
         vsg::ref_ptr<vsg::Node> loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
                                               const CesiumGltf::Mesh* mesh = nullptr);
-        struct ConvertedMaterial;
-        vsg::ref_ptr<ConvertedMaterial> loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopology topology);
-        vsg::ref_ptr<ConvertedMaterial> loadMaterial(int i, VkPrimitiveTopology topology);
+        struct CsMaterial;
+        vsg::ref_ptr<CsMaterial> loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopology topology);
+        vsg::ref_ptr<CsMaterial> loadMaterial(int i, VkPrimitiveTopology topology);
         vsg::ref_ptr<vsg::Data> loadImage(int i, bool useMipMaps, bool sRGB);
         vsg::ref_ptr<vsg::ImageInfo> loadTexture(const CesiumGltf::Texture& texture, bool sRGB);
         template<typename TI>
-        bool loadMaterialTexture(vsg::ref_ptr<ConvertedMaterial> cmat,
+        bool loadMaterialTexture(vsg::ref_ptr<CsMaterial> cmat,
                                  const std::string& name,
                                  const std::optional<TI>& texInfo,
                                  bool sRGB)
@@ -222,7 +274,7 @@ namespace vsgCs
             }
             return false;
         }
-        std::string makeName(const CesiumGltf::Mesh* mesh, const CesiumGltf::MeshPrimitive* primitive);
+        std::string makeName(const CesiumGltf::Mesh* mesh, const CesiumGltf::MeshPrimitive* primitive) const;
 
         CesiumGltfBuilder* _builder;
         CesiumGltf::Model* _model;
@@ -232,12 +284,15 @@ namespace vsgCs
         {
             int coordSet = 0;
         };
-        struct ConvertedMaterial : public vsg::Inherit<vsg::Object, ConvertedMaterial>
+        // The VSG objects needed to define a material. So far that is a ShaderSet and the
+        // descriptors for one descriptor set. This also includes support for matching glTF textures
+        // to specific texture coordinate attributes.
+        struct CsMaterial : public vsg::Inherit<vsg::Object, CsMaterial>
         {
             vsg::ref_ptr<DescriptorSetConfigurator> descriptorConfig;
             std::map<std::string, TexInfo> texInfo;
         };
-        std::vector<std::array<vsg::ref_ptr<ConvertedMaterial>, 2>> _convertedMaterials;
+        std::vector<std::array<vsg::ref_ptr<CsMaterial>, 2>> _csMaterials;
         struct ImageData
         {
             vsg::ref_ptr<vsg::Data> image;
@@ -245,7 +300,17 @@ namespace vsgCs
             bool sRGB = false;
         };
         std::vector<ImageData> _loadedImages;
-        vsg::ref_ptr<ConvertedMaterial> _defaultMaterial[2];
-
+        vsg::ref_ptr<CsMaterial> _baseMaterial[2];
+        template<typename TExtension>
+        bool isEnabled() const
+        {
+            return std::find_if(_activeExtensions.begin(), _activeExtensions.end(),
+                                [](const auto& ptr)
+                                {
+                                    return ref_ptr_cast<TExtension>(ptr) != nullptr;
+                                }) != _activeExtensions.end();
+        }
+        ExtensionList _activeExtensions;
     };
 }
+

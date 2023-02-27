@@ -22,6 +22,7 @@ SOFTWARE.
 
 </editor-fold> */
 
+#include "accessor_traits.h"
 #include "CesiumGltfBuilder.h"
 #include "pbr.h"
 #include "DescriptorSetConfigurator.h"
@@ -44,15 +45,23 @@ SOFTWARE.
 #include <Cesium3DTilesSelection/RasterOverlayTile.h>
 #include <Cesium3DTilesSelection/RasterOverlay.h>
 
+#include <vsg/utils/ShaderSet.h>
+
 #include <algorithm>
 #include <string>
 #include <tuple>
 #include <limits>
 #include <exception>
-#include <vsg/utils/ShaderSet.h>
+
 
 using namespace vsgCs;
 using namespace CesiumGltf;
+
+const std::string &Cs3DTilesExtension::getExtensionName() const
+{
+    static std::string name("CS_3DTiles");
+    return name;
+};
 
 namespace
 {
@@ -65,12 +74,16 @@ namespace
             if (i % 5 == 0)
             {
                 if (matrix[i] != 1.0)
+                {
                     return false;
+                }
             }
             else
             {
                 if (matrix[i] != 0.0)
+                {
                     return false;
+                }
             }
         }
         return true;
@@ -151,10 +164,10 @@ namespace
             mapTriangleList(static_cast<uint32_t>(positions->size()), setNormals);
             return true;
         case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP_WITH_ADJACENCY:
-            mapTriangleStrip(uint32_t(positions->size()), setNormals);
+            mapTriangleStrip(static_cast<uint32_t>(positions->size()), setNormals);
             return true;
         case VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN:
-            mapTriangleFan(uint32_t(positions->size()), setNormals);
+            mapTriangleFan(static_cast<uint32_t>(positions->size()), setNormals);
             return true;
         default:
             return false;
@@ -168,7 +181,7 @@ inline VkDescriptorSetLayoutBinding getVk(const vsg::UniformBinding& binding)
                                         binding.stageFlags, nullptr};
 }
 
-CesiumGltfBuilder::CesiumGltfBuilder(vsg::ref_ptr<vsg::Options> vsgOptions,
+CesiumGltfBuilder::CesiumGltfBuilder(const vsg::ref_ptr<vsg::Options>& vsgOptions,
                                      const DeviceFeatures& deviceFeatures)
     : _sharedObjects(create_or<vsg::SharedObjects>(vsgOptions->sharedObjects)),
       _pbrShaderSet(pbr::makeShaderSet(vsgOptions)),
@@ -190,24 +203,24 @@ vsg::ref_ptr<vsg::ShaderSet> CesiumGltfBuilder::getOrCreatePbrShaderSet(VkPrimit
     {
         return _pbrPointShaderSet;
     }
-    else
-    {
-        return _pbrShaderSet;
-    }
+    return _pbrShaderSet;
 }
 
 ModelBuilder::ModelBuilder(CesiumGltfBuilder* builder, CesiumGltf::Model* model,
-                           const CreateModelOptions& options)
+                           const CreateModelOptions& options,
+                           const ExtensionList& enabledExtensions
+    )
     : _builder(builder), _model(model), _options(options),
-      _convertedMaterials(model->materials.size()),
-      _loadedImages(model->images.size())
+      _csMaterials(model->materials.size()),
+      _loadedImages(model->images.size()),
+      _activeExtensions(enabledExtensions)
 {
     _name = "glTF";
     auto urlIt = _model->extras.find("Cesium3DTiles_TileUrl");
     if (urlIt != _model->extras.end())
     {
         _name = urlIt->second.getStringOrDefault("glTF");
-        _name = constrainLength(_name, 256);
+        _name = constrainLength(_name, 256); // NOLINT
     }
 }
 
@@ -286,75 +299,8 @@ ModelBuilder::loadMesh(const CesiumGltf::Mesh* mesh)
     return result;
 }
 
-// Copying vertex attributes
-// The shader set specifies the attribute format as a VkFormat. Either we supply the data in that
-// format, or we have to set the format property of the vsg::Array. The default pbr shader requires
-// all its attributes in float format. For now we will convert the data to float, but eventually we
-// will want to supply the data in the more compact formats, if they are supported.
-//
-// The PBR shader expects color data as RGBA, but that is just too nasty! Set the correct format
-// for RGB if that is provided by the glTF asset.
-
 namespace
 {
-    // Helpers for writing templates that take Cesium Accessors as arguments.
-
-    template<typename T> struct AccessorViewTraits;
-
-    template<template<typename> typename  VSGType, typename TValue>
-    class VSGTraits
-    {
-    public:
-        using element_type = typename VSGType<TValue>::value_type;
-        using value_type = VSGType<TValue>;
-        using array_type = vsg::Array<value_type>;
-        static constexpr std::size_t size = VSGType<TValue>().size();
-        template<typename TOther>
-        using with_element_type = VSGType<TOther>;
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::SCALAR<T>>
-    {
-        using element_type = T;
-        using value_type = T;
-        using array_type = vsg::Array<value_type>;
-        static constexpr std::size_t size = 1;
-        template<typename TOther>
-        using with_element_type = TOther;
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::VEC2<T>> : public VSGTraits<vsg::t_vec2, T>
-    {
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::VEC3<T>> : public VSGTraits<vsg::t_vec3, T>
-    {
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::VEC4<T>> : public VSGTraits<vsg::t_vec4, T>
-    {
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::MAT3<T>> : public VSGTraits<vsg::t_mat3, T>
-    {
-    };
-
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::MAT4<T>> : public VSGTraits<vsg::t_mat4, T>
-    {
-    };
-
-    // No vsg t_mat2; will this work?
-    template<typename T>
-    struct AccessorViewTraits<AccessorTypes::MAT2<T>> : public VSGTraits<vsg::t_vec4, T>
-    {
-    };
-
     // Convenience functions for accessing the elements of values in a vsg::Array, whether they are
     // scalar of vector
 
@@ -458,7 +404,7 @@ namespace
     template<typename S, typename D>
     D normalize(S val)
     {
-        return val * (1.0f / std::numeric_limits<S>::max());
+        return static_cast<D>(val * (1.0 / std::numeric_limits<S>::max()));
     }
 
     template<typename TV, typename TA>
@@ -540,6 +486,13 @@ namespace
         return valid;
     }
 
+    bool isTriangleTopology(VkPrimitiveTopology& topology)
+    {
+        return topology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST
+            || topology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_STRIP
+            || topology == VK_PRIMITIVE_TOPOLOGY_TRIANGLE_FAN;
+    }
+
     std::map<int32_t, int32_t>
     findTextureCoordAccessors(const std::string& prefix,
                               const std::unordered_map<std::string, int32_t>& attributes)
@@ -560,27 +513,42 @@ namespace
     template <typename R, typename F>
     R invokeWithAccessorViews(const Model* model, F&& f, const Accessor* accessor1, const Accessor* accessor2 = nullptr)
     {
+        R result;
         if (accessor2)
         {
-            return createAccessorView(*model, *accessor1,
-                                      [model, &f, accessor2](auto&& accessorView1)
-                                      {
-                                          return createAccessorView(*model, *accessor2,
-                                                                    [&f, &accessorView1](auto&& accessorView2)
-                                                                    {
-                                                                        return f(accessorView1, accessorView2);
-                                                                    });
-                                      });
+            createAccessorView(*model, *accessor1,
+                               [model, &f, &result, accessor2](auto&& accessorView1)
+                               {
+                                   createAccessorView(*model, *accessor2,
+                                                      [&f, &accessorView1, &result](auto&& accessorView2)
+                                                      {
+                                                          if constexpr(
+                                                              is_index_view<decltype(accessorView2)>::value)
+                                                          {
+                                                              result = f(accessorView1, accessorView2);
+                                                          }
+                                                      });
+                               });
         }
         else
         {
-            return createAccessorView(*model, *accessor1,
-                                      [&f](auto&& accessorView1)
-                                      {
-                                          return f(accessorView1, AccessorView<AccessorTypes::SCALAR<uint16_t>>());
-                                      });
+            createAccessorView(*model, *accessor1,
+                               [&f, &result](auto&& accessorView1)
+                               {
+                                   result = f(accessorView1, AccessorView<AccessorTypes::SCALAR<uint16_t>>());
+                               });
         }
+        return result;
     }
+
+// Copying vertex attributes
+// The shader set specifies the attribute format as a VkFormat. Either we supply the data in that
+// format, or we have to set the format property of the vsg::Array. The default pbr shader requires
+// all its attributes in float format. For now we will convert the data to float, but eventually we
+// will want to supply the data in the more compact formats if they are supported by the physical device.
+//
+// The PBR shader expects color data as RGBA, but that is just too nasty! Set the correct format
+// for RGB if that is provided by the glTF asset.
 
 
     template<typename T, typename TI>
@@ -588,7 +556,7 @@ namespace
                                            const AccessorView<TI>& indexView)
     {
         vsg::ref_ptr<vsg::Data> result;
-        if (std::is_same<T, float>::value)
+        if constexpr (std::is_same<T, float>::value)
         {
             if (indexView.status() == AccessorViewStatus::Valid)
             {
@@ -620,7 +588,7 @@ namespace
                                            const AccessorView<TI>& indexView)
     {
         vsg::ref_ptr<vsg::Data> result;
-        if (std::is_same<T, float>::value)
+        if constexpr (std::is_same<T, float>::value)
         {
             if (indexView.status() == AccessorViewStatus::Valid)
             {
@@ -667,7 +635,7 @@ namespace
                                          const AccessorView<TI>& indexView)
     {
         vsg::ref_ptr<vsg::Data> result;
-        if (std::is_same<T, float>::value)
+        if constexpr (std::is_same<T, float>::value)
         {
             if (indexView.status() == AccessorViewStatus::Valid)
             {
@@ -696,8 +664,6 @@ namespace
 
     template<typename T, typename TI>
     vsg::ref_ptr<vsg::Data> texProcessor(const AccessorView<T>&, const AccessorView<TI>&) { return {}; } // invalidView
-}
-
 
     vsg::ref_ptr<vsg::Data> doTextures(const Model* model,
                                        const Accessor* dataAccessor, const Accessor* indexAccessor)
@@ -709,8 +675,7 @@ namespace
                                                                 },
                                                                 dataAccessor, indexAccessor);
     }
-
-
+}
 
 template <typename A, typename I>
 vsg::ref_ptr<vsg::Data> createData(Model* model, const A* dataAccessor, const I* indicesAccessor = nullptr)
@@ -725,14 +690,12 @@ vsg::ref_ptr<vsg::Data> createData(Model* model, const A* dataAccessor, const I*
             },
             dataAccessor, indicesAccessor);
     }
-    else
-    {
-        return  createAccessorView(*model, *dataAccessor,
-                                   [](auto&& accessorView)
-                                   {
-                                       return vsg::ref_ptr<vsg::Data>(createArray(accessorView));
-                                   });
-    }
+    return  createAccessorView(*model, *dataAccessor,
+                               [](auto&& accessorView)
+                               {
+                                   return vsg::ref_ptr<vsg::Data>(createArray(accessorView));
+                               });
+
 }
 
 // I naively wrote the below comment:
@@ -751,7 +714,7 @@ vsg::ref_ptr<vsg::Data> createData(Model* model, const A* dataAccessor, const I*
 namespace
 {
     // Helper function for getting an attribute accessor by name.
-    const Accessor* getAccessor(const Model* model, const MeshPrimitive* primitive, std::string name)
+    const Accessor* getAccessor(const Model* model, const MeshPrimitive* primitive, const std::string& name)
     {
         auto itr = primitive->attributes.find(name);
         if (itr != primitive->attributes.end())
@@ -766,11 +729,11 @@ namespace
 // Hack to construct a name for error message purposes, etc.
 
 std::string ModelBuilder::makeName(const CesiumGltf::Mesh *mesh,
-                                   const CesiumGltf::MeshPrimitive *primitive)
+                                   const CesiumGltf::MeshPrimitive *primitive) const
 {
     std::string name = _name;
-    std::ptrdiff_t meshNum = mesh - &_model->meshes[0];
-    std::ptrdiff_t primNum = primitive - &mesh->primitives[0];
+    std::ptrdiff_t meshNum = mesh - _model->meshes.data();
+    std::ptrdiff_t primNum = primitive - mesh->primitives.data();
     if (meshNum >= 0 && static_cast<size_t>(meshNum) < _model->meshes.size())
     {
         name += " mesh " + std::to_string(meshNum);
@@ -800,13 +763,16 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         vsg::warn(name, ": Can't map glTF mode ", primitive->mode, " to Vulkan topology");
         return {};
     }
-    int materialID = primitive->material;
-    auto convertedMaterial = loadMaterial(materialID, topology);
-    auto mat = convertedMaterial->descriptorConfig;
-    auto config = MultisetPipelineConfigurator::create(mat->shaderSet);
-    config->inputAssemblyState->topology = topology;
-    config->defines() = mat->defines;
-    bool generateTangents = convertedMaterial->texInfo.count("normalMap") != 0
+    auto csMaterial = loadMaterial(primitive->material, topology);
+    auto descConf = csMaterial->descriptorConfig;
+    auto pipelineConf = MultisetPipelineConfigurator::create(descConf->shaderSet);
+    pipelineConf->defines() = descConf->defines;
+    pipelineConf->inputAssemblyState->topology = topology;
+    if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+    {
+        pipelineConf->defines().insert("VSGCS_SIZE_TO_ERROR");
+    }
+    bool generateTangents = csMaterial->texInfo.count("normalMap") != 0
         && primitive->attributes.count("TANGENT") == 0;
     const Accessor* indicesAccessor = Model::getSafe(&_model->accessors, primitive->indices);
     const Accessor* normalAccessor = getAccessor(_model, primitive, "NORMAL");
@@ -816,26 +782,28 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
                                         ? &_model->accessors[primitive->indices] : nullptr);
     vsg::DataList vertexArrays;
     auto positions = createData(_model, pPositionAccessor, expansionIndices);
-    config->assignArray(vertexArrays, "vsg_Vertex", VK_VERTEX_INPUT_RATE_VERTEX, positions);
+    pipelineConf->assignArray(vertexArrays, "vsg_Vertex", VK_VERTEX_INPUT_RATE_VERTEX, positions);
     if (normalAccessor)
     {
-        config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX,
+        pipelineConf->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX,
                             ref_ptr_cast<vsg::vec3Array>(createData(_model, normalAccessor, expansionIndices)));
     }
-    else if (config->inputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+    else if (!isTriangleTopology(pipelineConf->inputAssemblyState->topology)) // Can not make normals
     {
-        config->shaderHints->defines.insert("VSGCS_BILLBOARD_NORMAL");
-        // Won't be used unless we have a bizzare case of points and displacement map
+        if (pipelineConf->inputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+        {
+            pipelineConf->defines().insert("VSGCS_BILLBOARD_NORMAL");
+        }
         auto normal = vsg::vec3Value::create(vsg::vec3(0.0f, 1.0f, 0.0f));
-        config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_INSTANCE, normal);
+        pipelineConf->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_INSTANCE, normal);
     }
     else
     {
         auto posArray = ref_ptr_cast<vsg::vec3Array>(positions);
         auto normals = vsg::vec3Array::create(posArray->size());
-        generateNormals(posArray, normals, config->inputAssemblyState->topology);
-        config->shaderHints->defines.insert("VSGCS_FLAT_SHADING");
-        config->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX, normals);
+        generateNormals(posArray, normals, pipelineConf->inputAssemblyState->topology);
+        pipelineConf->defines().insert("VSGCS_FLAT_SHADING");
+        pipelineConf->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX, normals);
     }
 
     // XXX
@@ -854,16 +822,16 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     if (colorAccessor
         && (colorData = doColors(_model, colorAccessor, expansionIndices)).valid())
     {
-        config->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colorData);
+        pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colorData);
     }
     else
     {
         auto color = vsg::vec4Value::create(vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-        config->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, color);
+        pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, color);
     }
 
     // Textures...
-    const auto& assignTexCoord = [&](std::string texPrefix, int baseLocation)
+    const auto& assignTexCoord = [&](const std::string& texPrefix, int baseLocation)
     {
         std::map<int32_t, int32_t> texAccessors = findTextureCoordAccessors(texPrefix, primitive->attributes);
         for (int i = 0; i < 2; ++i)
@@ -881,17 +849,20 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
             }
             if (texdata.valid())
             {
-                config->assignArray(vertexArrays, arrayName, VK_VERTEX_INPUT_RATE_VERTEX, texdata);
+                pipelineConf->assignArray(vertexArrays, arrayName, VK_VERTEX_INPUT_RATE_VERTEX, texdata);
             }
             else
             {
                 auto texcoord = vsg::vec2Value::create(vsg::vec2(0.0f, 0.0f));
-                config->assignArray(vertexArrays, arrayName, VK_VERTEX_INPUT_RATE_INSTANCE, texcoord);
+                pipelineConf->assignArray(vertexArrays, arrayName, VK_VERTEX_INPUT_RATE_INSTANCE, texcoord);
             }
         }
     };
     assignTexCoord("TEXCOORD_", 0);
-    assignTexCoord("_CESIUMOVERLAY_", 2);
+    if (isEnabled<Cs3DTilesExtension>())
+    {
+        assignTexCoord("_CESIUMOVERLAY_", 2);
+    }
     vsg::ref_ptr<vsg::Command> drawCommand;
     if (indicesAccessor && !expansionIndices)
     {
@@ -912,7 +883,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         drawCommand = vd;
     }
     drawCommand->setValue("name", name);
-    if (mat->blending)
+    if (descConf->blending)
     {
         // figure out what this means someday...
         // These are parameters for blending into the first color attachment in the render
@@ -920,41 +891,41 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         // buried at this low level?
         //
         // Note that this will work for any "compatible" render pass too.
-        config->colorBlendState->attachments = vsg::ColorBlendState::ColorBlendAttachments{
+        pipelineConf->colorBlendState->attachments = vsg::ColorBlendState::ColorBlendAttachments{
             {true, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD,
              VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_SUBTRACT,
              VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT}};
-        _builder->_sharedObjects->share(config->colorBlendState);
+        _builder->_sharedObjects->share(pipelineConf->colorBlendState);
     }
-    if (mat->two_sided)
+    if (descConf->two_sided)
     {
-        config->rasterizationState->cullMode = VK_CULL_MODE_NONE;
+        pipelineConf->rasterizationState->cullMode = VK_CULL_MODE_NONE;
     }
-    if (mat->descriptorSet)
+    if (descConf->descriptorSet)
     {
-        config->descriptorSetLayout = mat->descriptorSet->setLayout;
-        config->descriptorBindings = mat->descriptorBindings;
+        pipelineConf->descriptorSetLayout = descConf->descriptorSet->setLayout;
+        pipelineConf->descriptorBindings = descConf->descriptorBindings;
     }
-    config->init();
-    _builder->_sharedObjects->share(config->bindGraphicsPipeline);
+    pipelineConf->init();
+    _builder->_sharedObjects->share(pipelineConf->bindGraphicsPipeline);
 
     auto stateGroup = vsg::StateGroup::create();
-    stateGroup->add(config->bindGraphicsPipeline);
+    stateGroup->add(pipelineConf->bindGraphicsPipeline);
 
-    if (mat->descriptorSet)
+    if (descConf->descriptorSet)
     {
         auto bindDescriptorSet
-            = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, config->layout, pbr::PRIMITIVE_DESCRIPTOR_SET,
-                                             mat->descriptorSet);
+            = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineConf->layout, pbr::PRIMITIVE_DESCRIPTOR_SET,
+                                             descConf->descriptorSet);
         stateGroup->add(bindDescriptorSet);
     }
 
-    auto bindViewDescriptorSets = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, config->layout, pbr::VIEW_DESCRIPTOR_SET);
+    auto bindViewDescriptorSets = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineConf->layout, pbr::VIEW_DESCRIPTOR_SET);
     stateGroup->add(bindViewDescriptorSets);
 
 
     // assign any custom ArrayState that may be required.
-    stateGroup->prototypeArrayState = config->shaderSet->getSuitableArrayState(config->shaderHints->defines);
+    stateGroup->prototypeArrayState = pipelineConf->shaderSet->getSuitableArrayState(pipelineConf->defines());
 
     stateGroup->addChild(drawCommand);
 
@@ -963,7 +934,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     vsg::dvec3 center = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
     double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.5;
 
-    if (mat->blending)
+    if (descConf->blending)
     {
         auto depthSorted = vsg::DepthSorted::create();
         depthSorted->binNumber = 10;
@@ -972,34 +943,31 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
 
         return depthSorted;
     }
-    else
-    {
-        auto cullNode = vsg::CullNode::create(vsg::dsphere(center[0], center[1], center[2], radius),
-                                              stateGroup);
-        return cullNode;
-    }
+    auto cullNode = vsg::CullNode::create(vsg::dsphere(center[0], center[1], center[2], radius),
+                                          stateGroup);
+    return cullNode;
 }
 
-vsg::ref_ptr<ModelBuilder::ConvertedMaterial>
+vsg::ref_ptr<ModelBuilder::CsMaterial>
 ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopology topology)
 {
-    auto convertedMat = ConvertedMaterial::create();
-    convertedMat->descriptorConfig = DescriptorSetConfigurator::create();
+    auto csMat = CsMaterial::create();
+    csMat->descriptorConfig = DescriptorSetConfigurator::create();
     // XXX Cesium Unreal always enables two-sided, but it should come from the material...
-    convertedMat->descriptorConfig->two_sided = true;
-    convertedMat->descriptorConfig->defines.insert("VSG_TWO_SIDED_LIGHTING");
+    csMat->descriptorConfig->two_sided = true;
+    csMat->descriptorConfig->defines.insert("VSG_TWO_SIDED_LIGHTING");
     if (_options.renderOverlays)
     {
-        convertedMat->descriptorConfig->defines.insert("VSGCS_OVERLAY_MAPS");
+        csMat->descriptorConfig->defines.insert("VSGCS_OVERLAY_MAPS");
     }
     vsg::PbrMaterial pbr;
 
     if (material->alphaMode == CesiumGltf::Material::AlphaMode::BLEND)
     {
-        convertedMat->descriptorConfig->blending = true;
+        csMat->descriptorConfig->blending = true;
         pbr.alphaMaskCutoff = 0.0f;
     }
-    convertedMat->descriptorConfig->shaderSet = _builder->getOrCreatePbrShaderSet(topology);
+    csMat->descriptorConfig->shaderSet = _builder->getOrCreatePbrShaderSet(topology);
     if (material->pbrMetallicRoughness)
     {
         auto const& cesiumPbr = material->pbrMetallicRoughness.value();
@@ -1019,43 +987,43 @@ ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopo
         {
             pbr.roughnessFactor = static_cast<float>(cesiumPbr.roughnessFactor);
         }
-        loadMaterialTexture(convertedMat, "diffuseMap", cesiumPbr.baseColorTexture, true);
-        loadMaterialTexture(convertedMat, "mrMap", cesiumPbr.metallicRoughnessTexture, false);
+        loadMaterialTexture(csMat, "diffuseMap", cesiumPbr.baseColorTexture, true);
+        loadMaterialTexture(csMat, "mrMap", cesiumPbr.metallicRoughnessTexture, false);
     }
-    loadMaterialTexture(convertedMat, "normalMap", material->normalTexture, false);
-    loadMaterialTexture(convertedMat, "aoMap", material->occlusionTexture, false);
-    loadMaterialTexture(convertedMat, "emissiveMap", material->emissiveTexture, true);
-    convertedMat->descriptorConfig->assignUniform("material", vsg::PbrMaterialValue::create(pbr));
+    loadMaterialTexture(csMat, "normalMap", material->normalTexture, false);
+    loadMaterialTexture(csMat, "aoMap", material->occlusionTexture, false);
+    loadMaterialTexture(csMat, "emissiveMap", material->emissiveTexture, true);
+    csMat->descriptorConfig->assignUniform("material", vsg::PbrMaterialValue::create(pbr));
     auto descriptorSetLayout
-        = vsg::DescriptorSetLayout::create(convertedMat->descriptorConfig->descriptorBindings);
-    convertedMat->descriptorConfig->descriptorSet
-        = vsg::DescriptorSet::create(descriptorSetLayout, convertedMat->descriptorConfig->descriptors);
-    return convertedMat;
+        = vsg::DescriptorSetLayout::create(csMat->descriptorConfig->descriptorBindings);
+    csMat->descriptorConfig->descriptorSet
+        = vsg::DescriptorSet::create(descriptorSetLayout, csMat->descriptorConfig->descriptors);
+    return csMat;
 }
 
-vsg::ref_ptr<ModelBuilder::ConvertedMaterial>
+vsg::ref_ptr<ModelBuilder::CsMaterial>
 ModelBuilder::loadMaterial(int i, VkPrimitiveTopology topology)
 {
     int topoIndex = topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST ? 1 : 0;
 
     if (i < 0 || static_cast<unsigned>(i) >= _model->materials.size())
     {
-        if (!_defaultMaterial[topoIndex])
+        if (!_baseMaterial[topoIndex])
         {
-            _defaultMaterial[topoIndex] = ConvertedMaterial::create();
-            _defaultMaterial[topoIndex]->descriptorConfig = DescriptorSetConfigurator::create();
-            _defaultMaterial[topoIndex]->descriptorConfig->shaderSet = _builder->getOrCreatePbrShaderSet(topology);
+            _baseMaterial[topoIndex] = CsMaterial::create();
+            _baseMaterial[topoIndex]->descriptorConfig = DescriptorSetConfigurator::create();
+            _baseMaterial[topoIndex]->descriptorConfig->shaderSet = _builder->getOrCreatePbrShaderSet(topology);
             vsg::PbrMaterial pbr;
-            _defaultMaterial[topoIndex]->descriptorConfig->assignUniform("material",
+            _baseMaterial[topoIndex]->descriptorConfig->assignUniform("material",
                                                                          vsg::PbrMaterialValue::create(pbr));
         }
-        return _defaultMaterial[topoIndex];
+        return _baseMaterial[topoIndex];
     }
-    if (!_convertedMaterials[i][topoIndex])
+    if (!_csMaterials[i][topoIndex])
     {
-        _convertedMaterials[i][topoIndex] = loadMaterial(&_model->materials[i], topology);
+        _csMaterials[i][topoIndex] = loadMaterial(&_model->materials[i], topology);
     }
-    return _convertedMaterials[i][topoIndex];
+    return _csMaterials[i][topoIndex];
 }
 
 vsg::ref_ptr<vsg::Group>
@@ -1072,7 +1040,7 @@ ModelBuilder::operator()()
             resultNode->addChild(loadNode(&_model->nodes[nodeId]));
         }
     }
-    else if (_model->scenes.size() > 0)
+    else if (!_model->scenes.empty())
     {
         // There's no default, so show the first scene
         const Scene& defaultScene = _model->scenes[0];
@@ -1081,12 +1049,12 @@ ModelBuilder::operator()()
             resultNode->addChild(loadNode(&_model->nodes[nodeId]));
         }
     }
-    else if (_model->nodes.size() > 0)
+    else if (!_model->nodes.empty())
     {
         // No scenes at all, use the first node as the root node.
-        resultNode = loadNode(&_model->nodes[0]);
+        resultNode = loadNode(_model->nodes.data());
     }
-    else if (_model->meshes.size() > 0)
+    else if (!_model->meshes.empty())
     {
         // No nodes either, show all the meshes.
         for (const Mesh& mesh : _model->meshes)
@@ -1110,14 +1078,15 @@ struct RasterData
 
 struct Rasters : public vsg::Inherit<vsg::Object, Rasters>
 {
-    Rasters(size_t numOverlays)
+    explicit Rasters(size_t numOverlays)
         : overlayRasters(numOverlays)
     {
     }
     std::vector<RasterData> overlayRasters;
 };
 
-vsg::ref_ptr<vsg::StateCommand> makeTilesetStateCommand(CesiumGltfBuilder& builder, Rasters& rasters)
+vsg::ref_ptr<vsg::StateCommand> makeTileStateCommand(CesiumGltfBuilder& builder, const Rasters& rasters,
+                                                        const Cesium3DTilesSelection::Tile& tile)
 {
     vsg::ImageInfoList rasterImages(rasters.overlayRasters.size());
     // The topology doesn't matter because the pipeline layouts of shader versions are compatible.
@@ -1133,7 +1102,8 @@ vsg::ref_ptr<vsg::StateCommand> makeTilesetStateCommand(CesiumGltfBuilder& build
         overlayParams[i] = rasterData.overlayParams;
     }
     descriptorBuilder->assignTexture("overlayTextures", rasterImages);
-    auto ubo = pbr::makeOverlayData(overlayParams);
+    auto ubo = pbr::makeTileData(tile.getGeometricError(), std::min(builder.getFeatures().pointSizeRange[1], 4.0f),
+                                 overlayParams);
     descriptorBuilder->assignUniform("tileParams", ubo);
     descriptorBuilder->init();
     auto bindDescriptorSet
@@ -1147,7 +1117,9 @@ vsg::ref_ptr<vsg::StateCommand> makeTilesetStateCommand(CesiumGltfBuilder& build
 vsg::ref_ptr<vsg::Group>
 CesiumGltfBuilder::load(CesiumGltf::Model* model, const CreateModelOptions& options)
 {
-    ModelBuilder builder(this, model, options);
+    static ExtensionList tilesExtensions{Cs3DTilesExtension::create()};
+
+    ModelBuilder builder(this, model, options, tilesExtensions);
     return builder();
 }
 
@@ -1176,11 +1148,20 @@ vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::Tile
     transformNode->setObject("vsgCs_rasterData", rasters);
 
     tileStateGroup->add(bindViewDescriptorSets);
-    auto command = makeTilesetStateCommand(*this, *rasters);
-    tileStateGroup->add(command);
     tileStateGroup->addChild(modelNode);
     transformNode->addChild(tileStateGroup);
     return transformNode;
+}
+
+vsg::ref_ptr<vsg::Object> CesiumGltfBuilder::attachTileData(Cesium3DTilesSelection::Tile& tile,
+                                                            const vsg::ref_ptr<vsg::Node>& node)
+{
+    auto rasters = Rasters::create(pbr::maxOverlays);
+    auto transformNode = ref_ptr_cast<vsg::MatrixTransform>(node);
+    auto tileStateGroup = ref_ptr_cast<vsg::StateGroup>(transformNode->children[0]);
+    auto tileStateCommand = makeTileStateCommand(*this, *rasters, tile);
+    tileStateGroup->add(tileStateCommand);
+    return tileStateCommand;
 }
 
 namespace
@@ -1206,46 +1187,50 @@ namespace
     VkFormat cesiumToVk(const CesiumGltf::ImageCesium& image, bool sRGB)
     {
         using namespace CesiumGltf;
+        auto chooseSRGB = [sRGB](VkFormat sRGBFormat, VkFormat normFormat)
+        {
+            return sRGB ? sRGBFormat : normFormat;
+        };
 
         if (image.compressedPixelFormat == GpuCompressedPixelFormat::NONE)
         {
             switch (image.channels) {
             case 1:
-                return sRGB ? VK_FORMAT_R8_SRGB : VK_FORMAT_R8_UNORM;
+                return chooseSRGB(VK_FORMAT_R8_SRGB, VK_FORMAT_R8_UNORM);
             case 2:
-                return sRGB ? VK_FORMAT_R8G8_SRGB : VK_FORMAT_R8G8_UNORM;
+                return chooseSRGB(VK_FORMAT_R8G8_SRGB, VK_FORMAT_R8G8_UNORM);
             case 3:
-                return sRGB ? VK_FORMAT_R8G8B8_SRGB : VK_FORMAT_R8G8B8_UNORM;
+                return chooseSRGB(VK_FORMAT_R8G8B8_SRGB, VK_FORMAT_R8G8B8_UNORM);
             case 4:
             default:
-                return sRGB ? VK_FORMAT_R8G8B8A8_SRGB : VK_FORMAT_R8G8B8A8_UNORM;
+                return chooseSRGB(VK_FORMAT_R8G8B8A8_SRGB, VK_FORMAT_R8G8B8A8_UNORM);
             }
         }
         switch (image.compressedPixelFormat)
         {
         case GpuCompressedPixelFormat::ETC1_RGB:
             // ETC1 is a subset of ETC2
-            return sRGB ? VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK : VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK;
+            return chooseSRGB(VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK, VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK);
         case GpuCompressedPixelFormat::ETC2_RGBA:
-            return sRGB ? VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK : VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK;
+            return chooseSRGB(VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK, VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK);
         case GpuCompressedPixelFormat::BC1_RGB:
-            return sRGB ? VK_FORMAT_BC1_RGB_SRGB_BLOCK : VK_FORMAT_BC1_RGB_UNORM_BLOCK;
+            return chooseSRGB(VK_FORMAT_BC1_RGB_SRGB_BLOCK, VK_FORMAT_BC1_RGB_UNORM_BLOCK);
         case GpuCompressedPixelFormat::BC3_RGBA:
-            return sRGB ? VK_FORMAT_BC3_SRGB_BLOCK : VK_FORMAT_BC3_UNORM_BLOCK;
+            return chooseSRGB(VK_FORMAT_BC3_SRGB_BLOCK, VK_FORMAT_BC3_UNORM_BLOCK);
         case GpuCompressedPixelFormat::BC4_R:
-            return sRGB ? VK_FORMAT_UNDEFINED : VK_FORMAT_BC4_UNORM_BLOCK;
+            return chooseSRGB(VK_FORMAT_UNDEFINED, VK_FORMAT_BC4_UNORM_BLOCK);
         case GpuCompressedPixelFormat::BC5_RG:
-            return sRGB ? VK_FORMAT_UNDEFINED : VK_FORMAT_BC5_UNORM_BLOCK;
+            return chooseSRGB(VK_FORMAT_UNDEFINED, VK_FORMAT_BC5_UNORM_BLOCK);
         case GpuCompressedPixelFormat::BC7_RGBA:
-            return sRGB ? VK_FORMAT_BC7_SRGB_BLOCK : VK_FORMAT_BC7_UNORM_BLOCK;
+            return chooseSRGB(VK_FORMAT_BC7_SRGB_BLOCK, VK_FORMAT_BC7_UNORM_BLOCK);
         case GpuCompressedPixelFormat::ASTC_4x4_RGBA:
-            return sRGB ? VK_FORMAT_ASTC_4x4_SRGB_BLOCK : VK_FORMAT_ASTC_4x4_UNORM_BLOCK;
+            return chooseSRGB(VK_FORMAT_ASTC_4x4_SRGB_BLOCK, VK_FORMAT_ASTC_4x4_UNORM_BLOCK);
         case GpuCompressedPixelFormat::PVRTC2_4_RGBA:
-            return sRGB ? VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG : VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG;
+            return chooseSRGB(VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG, VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG);
         case GpuCompressedPixelFormat::ETC2_EAC_R11:
-            return sRGB ? VK_FORMAT_UNDEFINED : VK_FORMAT_EAC_R11_UNORM_BLOCK;
+            return chooseSRGB(VK_FORMAT_UNDEFINED, VK_FORMAT_EAC_R11_UNORM_BLOCK);
         case GpuCompressedPixelFormat::ETC2_EAC_RG11:
-            return sRGB ? VK_FORMAT_UNDEFINED : VK_FORMAT_EAC_R11G11_UNORM_BLOCK;
+            return chooseSRGB(VK_FORMAT_UNDEFINED, VK_FORMAT_EAC_R11G11_UNORM_BLOCK);
         default:
             // Unsupported compressed texture format.
             return VK_FORMAT_UNDEFINED;
@@ -1370,15 +1355,6 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMap
     {
         return {};
     }
-    if (useMipMaps && image.mipPositions.empty())
-    {
-        std::optional<std::string> errorMsg =
-            CesiumGltfReader::GltfReader::generateMipMaps(image);
-        if (errorMsg)
-        {
-            vsg::warn(errorMsg.value());
-        }
-    }
     VkFormat pixelFormat = cesiumToVk(image, sRGB);
     if (pixelFormat == VK_FORMAT_UNDEFINED)
     {
@@ -1386,7 +1362,14 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMap
     }
     vsg::Data::Properties props;
     props.format = pixelFormat;
-    props.maxNumMipmaps = static_cast<uint8_t>(image.mipPositions.size());
+    if (useMipMaps)
+    {
+        props.maxNumMipmaps = static_cast<uint8_t>(std::max(image.mipPositions.size(), 1ul));
+    }
+    else
+    {
+        props.maxNumMipmaps = 1;
+    }
     std::tie(props.blockWidth, props.blockHeight) = getBlockSize(pixelFormat);
     props.origin = vsg::BOTTOM_LEFT;
     // Assume that the ImageCesium raw format will be fine to upload into Vulkan, except for
@@ -1426,7 +1409,7 @@ vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRG
     {
         return imageData.imageWithMipmap;
     }
-    else if (!useMipMaps && imageData.image.valid())
+    if (!useMipMaps && imageData.image.valid())
     {
         return imageData.image;
     }
@@ -1444,6 +1427,24 @@ vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRG
 
 namespace vsgCs
 {
+    int samplerLOD(const vsg::ref_ptr<vsg::Data>& data, bool generateMipMaps)
+    {
+        int dataMipMaps = data->properties.maxNumMipmaps > 1;
+        if (dataMipMaps > 1)
+        {
+            return dataMipMaps;
+        }
+        uint32_t width = data->width();
+        uint32_t height = data->height();
+        if (!generateMipMaps || (width <= 1 && height <= 1))
+        {
+            return 1;
+        }
+        auto maxDim = std::max(width, height);
+        // from assimp loader; is it correct?
+        return std::floor(std::log2f(static_cast<float>(maxDim)));
+    }
+
     vsg::ref_ptr<vsg::Sampler> makeSampler(VkSamplerAddressMode addressX,
                                            VkSamplerAddressMode addressY,
                                            VkFilter minFilter,
@@ -1498,9 +1499,23 @@ vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumGltf::ImageCes
         return {};
     }
     auto sampler = makeSampler(addressX, addressY, minFilter, maxFilter,
-                                 data->properties.maxNumMipmaps);
+                               samplerLOD(data, useMipMaps));
     _sharedObjects->share(sampler);
     return vsg::ImageInfo::create(sampler, data);
+}
+
+// helper to simplify index validation logic
+namespace
+{
+    template<typename T>
+    std::optional<int32_t> safeIndex(const std::vector<T>& items, int32_t index)
+    {
+        if (index >= 0 || static_cast<uint32_t>(index) < items.size())
+        {
+            return index;
+        }
+        return {};
+    }
 }
 
 vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture& texture,
@@ -1511,11 +1526,10 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
     const CesiumGltf::ExtensionTextureWebp* pWebpExtension =
         texture.getExtension<CesiumGltf::ExtensionTextureWebp>();
 
-    int32_t source = -1;
+    std::optional<int32_t> source;
     if (pKtxExtension)
     {
-        if (pKtxExtension->source < 0 ||
-            static_cast<unsigned>(pKtxExtension->source) >= _model->images.size())
+        if (!(source = safeIndex(_model->images, pKtxExtension->source)))
         {
             vsg::warn("KTX texture source index must be non-negative and less than ",
                       _model->images.size(),
@@ -1523,12 +1537,10 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
                       pKtxExtension->source);
             return {};
         }
-        source = pKtxExtension->source;
     }
     else if (pWebpExtension)
     {
-        if (pWebpExtension->source < 0 ||
-            static_cast<unsigned>(pWebpExtension->source) >= _model->images.size())
+        if (!(source = safeIndex(_model->images, pWebpExtension->source)))
         {
             vsg::warn("WebP texture source index must be non-negative and less than ",
                       _model->images.size(),
@@ -1536,11 +1548,10 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
                       pWebpExtension->source);
             return {};
         }
-        source = pWebpExtension->source;
     }
     else
     {
-        if (texture.source < 0 || static_cast<unsigned>(texture.source) >= _model->images.size())
+        if (!(source = safeIndex(_model->images, texture.source)))
         {
             vsg::warn("Texture source index must be non-negative and less than ",
                       _model->images.size(),
@@ -1548,7 +1559,6 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
                       texture.source);
             return {};
         }
-        source = texture.source;
     }
 
     const CesiumGltf::Sampler* pSampler =
@@ -1619,15 +1629,15 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
             break;
         }
     }
-    auto data = loadImage(source, useMipMaps, sRGB);
+    auto data = loadImage(*source, useMipMaps, sRGB);
     auto sampler = makeSampler(addressX, addressY, minFilter, magFilter,
-                               data->properties.maxNumMipmaps);
+                               samplerLOD(data, useMipMaps));
     _builder->_sharedObjects->share(sampler);
     return vsg::ImageInfo::create(sampler, data);
 }
 
-ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection::Tile&,
-                                                    vsg::ref_ptr<vsg::Node> node,
+ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection::Tile& tile,
+                                                    const vsg::ref_ptr<vsg::Node>& node,
                                                     int32_t overlayTextureCoordinateID,
                                                     const Cesium3DTilesSelection::RasterOverlayTile&,
                                                     void* pMainThreadRendererResources,
@@ -1637,7 +1647,9 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
     ModifyRastersResult result;
     vsg::ref_ptr<vsg::MatrixTransform> matrixTransform = node.cast<vsg::MatrixTransform>();
     if (!matrixTransform)
+    {
         return {};                 // uhhhh
+    }
     vsg::ref_ptr<Rasters> rasters(matrixTransform->getObject<Rasters>("vsgCs_rasterData"));
     if (!rasters)
     {
@@ -1647,7 +1659,9 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
 
     vsg::ref_ptr<vsg::StateGroup> stateGroup = matrixTransform->children[0].cast<vsg::StateGroup>();
     if (!stateGroup)
+    {
         return {};
+    }
     RasterResources *resource = static_cast<RasterResources*>(pMainThreadRendererResources);
     auto raster = resource->raster;
     auto& rasterData = rasters->overlayRasters.at(resource->overlayOptions.layerNumber);
@@ -1657,7 +1671,7 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
     rasterData.overlayParams.coordIndex = overlayTextureCoordinateID;
     rasterData.overlayParams.enabled = 1;
     rasterData.overlayParams.alpha = resource->overlayOptions.alpha;
-    auto command = makeTilesetStateCommand(*this, *rasters);
+    auto command = makeTileStateCommand(*this, *rasters, tile);
     // XXX Should check data or something in the state command instead of relying on the number of
     // commands in the group.
     auto& stateCommands = stateGroup->stateCommands;
@@ -1674,7 +1688,7 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
 
 vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::makeDefaultTexture()
 {
-    vsg::ubvec4 pixel(255, 255, 255, 255);
+    vsg::ubvec4 pixel(255, 255, 255, 255); // NOLINT: it's white
     vsg::Data::Properties props;
     props.format = VK_FORMAT_R8G8B8A8_UNORM;
     props.maxNumMipmaps = 1;
@@ -1685,15 +1699,17 @@ vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::makeDefaultTexture()
 }
 
 ModifyRastersResult
-CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile&,
-                                vsg::ref_ptr<vsg::Node> node,
+CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile& tile,
+                                const vsg::ref_ptr<vsg::Node>& node,
                                 int32_t,
                                 const Cesium3DTilesSelection::RasterOverlayTile& rasterTile)
 {
     ModifyRastersResult result;
     vsg::ref_ptr<vsg::MatrixTransform> matrixTransform = node.cast<vsg::MatrixTransform>();
     if (!matrixTransform)
+    {
         return {};                 // uhhhh
+    }
     vsg::ref_ptr<Rasters> rasters(matrixTransform->getObject<Rasters>("vsgCs_rasterData"));
     if (!rasters)
     {
@@ -1701,13 +1717,15 @@ CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile&,
     }
     vsg::ref_ptr<vsg::StateGroup> stateGroup = matrixTransform->children[0].cast<vsg::StateGroup>();
     if (!stateGroup)
+    {
         return {};
+    }
     RasterResources *resource = static_cast<RasterResources*>(rasterTile.getRendererResources());
     auto& rasterData = rasters->overlayRasters.at(resource->overlayOptions.layerNumber);
     {
         rasterData.rasterImage = {}; // ref to rasterImage is still held by the old StateCommand
         rasterData.overlayParams.enabled = 0;
-        auto newCommand = makeTilesetStateCommand(*this, *rasters);
+        auto newCommand = makeTileStateCommand(*this, *rasters, tile);
         vsg::ref_ptr<vsg::Command> oldCommand;
         // XXX Should check data or something in the state command instead of relying on the number of
         // commands in the group.

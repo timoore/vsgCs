@@ -96,12 +96,14 @@ vsgResourcePreparer::readAndCompile(Cesium3DTilesSelection::TileLoadResult &&til
     return result;
 }
 
-RenderResources* merge(vsgResourcePreparer* preparer, LoadModelResult& result)
+RenderResources* merge(vsgResourcePreparer* preparer, LoadModelResult& result, vsg::ref_ptr<vsg::Object> attachResult)
 {
     vsg::ref_ptr<vsg::Viewer> ref_viewer = preparer->viewer;
     if (ref_viewer)
     {
         updateViewer(*ref_viewer, result.compileResult);
+        auto attachCompileResult = ref_viewer->compileManager->compile(attachResult);
+        vsg::updateViewer(*ref_viewer, attachCompileResult);
         return new RenderResources{result.modelResult};
     }
     return nullptr;
@@ -137,11 +139,14 @@ void*
 vsgResourcePreparer::prepareInMainThread(Cesium3DTilesSelection::Tile& tile,
                                          void* pLoadThreadResult)
 {
+    // Cesium doesn't make the Tile object available to the load thread for some reason. Therefore
+    // we need to attach the descriptor set with tile-specific data here.
     const Cesium3DTilesSelection::TileContent& content = tile.getContent();
     if (content.isRenderContent())
     {
         LoadModelResult* loadModelResult = reinterpret_cast<LoadModelResult*>(pLoadThreadResult);
-        return merge(this, *loadModelResult);
+        auto attachResult = _builder->attachTileData(tile, loadModelResult->modelResult);
+        return merge(this, *loadModelResult, attachResult);
     }
     return nullptr;
 }

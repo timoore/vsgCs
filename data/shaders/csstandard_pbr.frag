@@ -1,5 +1,7 @@
 #version 450
 #extension GL_ARB_separate_shader_objects : enable
+#extension GL_GOOGLE_include_directive : enable
+
 #pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSACLE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSGCS_OVERLAY_MAPS, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, VSGCS_FLAT_SHADING)
 
 #include "descriptor_defs.glsl"
@@ -33,23 +35,6 @@ layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 4) uniform sampler2D emissiveMa
 #ifdef VSG_SPECULAR_MAP
 layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 5) uniform sampler2D specularMap;
 #endif
-
-layout(constant_id = 0) const int maxOverlays = 4;
-
-struct OverlayParamBlock
-{
-  vec2 translation;
-  vec2 scale;
-  float alpha;
-  uint enabled;
-  uint coordIndex;
-  // 4 bytes padding
-};
-
-layout(set = TILE_DESCRIPTOR_SET, binding = 0) uniform TileParams
-  {
-    OverlayParamBlock params[maxOverlays];
-  } tileParams;
 
 layout(set = TILE_DESCRIPTOR_SET, binding = 1) uniform sampler2D overlayTextures[maxOverlays];
 

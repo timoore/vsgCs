@@ -163,7 +163,7 @@ namespace vsgCs
         }
         auto imageData = loadImage(result.image.value(), useMipMaps, sRGB);
         auto sampler = makeSampler(addressX, addressY, minFilter, maxFilter,
-                                   imageData->properties.maxNumMipmaps);
+                                   samplerLOD(imageData, useMipMaps));
         env->options->sharedObjects->share(sampler);
         return vsg::ImageInfo::create(sampler, imageData);
     }

@@ -37,8 +37,8 @@ CsView::CsView()
     viewDependentState = ViewDependentStateExt::create();
 }
 
-CsView::CsView(vsg::ref_ptr<vsg::Camera> in_camera,
-               vsg::ref_ptr<vsg::Node> in_scenegraph)
+CsView::CsView(vsg::ref_ptr<vsg::Camera> in_camera, // NOLINT: Mimic vsg::View
+               vsg::ref_ptr<vsg::Node> in_scenegraph) // NOLINT
     : Inherit(in_camera, in_scenegraph)
 {
     auto vdlExt = ViewDependentStateExt::create();

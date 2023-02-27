@@ -22,7 +22,7 @@ SOFTWARE.
 
 </editor-fold> */
 
-#include "CSDebugColorizeTilesOverlay.h"
+#include "CsDebugColorizeTilesOverlay.h"
 
 #include "jsonUtils.h"
 #include <Cesium3DTilesSelection/DebugColorizeTilesRasterOverlay.h>
@@ -30,7 +30,7 @@ SOFTWARE.
 
 using namespace vsgCs;
 
-Cesium3DTilesSelection::RasterOverlay* CSDebugColorizeTilesOverlay::createOverlay(
+Cesium3DTilesSelection::RasterOverlay* CsDebugColorizeTilesOverlay::createOverlay(
     const Cesium3DTilesSelection::RasterOverlayOptions& options)
 {
     return new Cesium3DTilesSelection::DebugColorizeTilesRasterOverlay(MaterialLayerKey, options);
@@ -38,12 +38,12 @@ Cesium3DTilesSelection::RasterOverlay* CSDebugColorizeTilesOverlay::createOverla
 
 namespace vsgCs
 {
-    vsg::ref_ptr<vsg::Object> buildCSDebugColorizeTilesOverlay(const rapidjson::Value& json,
+    vsg::ref_ptr<vsg::Object> buildCsDebugColorizeTilesOverlay(const rapidjson::Value& json,
                                                               JSONObjectFactory* factory,
                                                               vsg::ref_ptr<vsg::Object> object)
     {
-        auto overlay = create_or<CSDebugColorizeTilesOverlay>(object);
-        factory->build(json, "CSOverlay", overlay);
+        auto overlay = create_or<CsDebugColorizeTilesOverlay>(object);
+        factory->build(json, "CsOverlay", overlay);
         overlay->MaterialLayerKey = CesiumUtility::JsonHelpers::getStringOrDefault(json, "materialKey",
                                                                                    "Overlay0");
 

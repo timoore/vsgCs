@@ -24,15 +24,15 @@ SOFTWARE.
 
 #pragma once
 
-#include "CSOverlay.h"
+#include "CsOverlay.h"
 
 namespace vsgCs
 {
-    class VSGCS_EXPORT CSDebugColorizeTilesOverlay : public vsg::Inherit<CSOverlay,
-                                                                         CSDebugColorizeTilesOverlay>
+    class VSGCS_EXPORT CsDebugColorizeTilesOverlay : public vsg::Inherit<CsOverlay,
+                                                                         CsDebugColorizeTilesOverlay>
     {
     public:
         Cesium3DTilesSelection::RasterOverlay* createOverlay(
-            const Cesium3DTilesSelection::RasterOverlayOptions& options = {}) override;
+            const Cesium3DTilesSelection::RasterOverlayOptions& options) override;
     };
 }
