@@ -43,8 +43,8 @@ ViewDependentStateExt::ViewDependentStateExt(uint32_t maxNumberLights)
     // overwrite the base class' descriptor set layout and descriptor set
     descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
     viewportDescriptor = vsg::DescriptorBuffer::create(vsg::BufferInfoList{viewportDataBufferInfo}, 1);
-    lightDescriptorSet = vsg::DescriptorSet::create(descriptorSetLayout,
-                                                    vsg::Descriptors{lightDescriptor, viewportDescriptor});
+    descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout,
+                                               vsg::Descriptors{descriptor, viewportDescriptor});
 }
 
 void ViewDependentStateExt::update(vsg::View& view)
