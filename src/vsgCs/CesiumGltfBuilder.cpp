@@ -1364,7 +1364,7 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMap
     props.format = pixelFormat;
     if (useMipMaps)
     {
-        props.maxNumMipmaps = static_cast<uint8_t>(std::max(image.mipPositions.size(), 1ul));
+        props.maxNumMipmaps = static_cast<uint8_t>(std::max(image.mipPositions.size(), static_cast<size_t>(1)));
     }
     else
     {
