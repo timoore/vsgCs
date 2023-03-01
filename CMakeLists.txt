@@ -78,6 +78,12 @@ vsg_add_option_maintainer(
 # but we prefer that include files live next to their source files.
 include_directories(${vsgCs_SOURCE_DIR}/src ${GENERATED_HEADERS_DIR})
 
+if(WIN32)
+  set(CMAKE_INSTALL_UCRT_LIBRARIES YES)
+
+  include(InstallRequiredSystemLibraries)
+endif()
+
 # source directory for library and applications
 
 add_subdirectory(src)
