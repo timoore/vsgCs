@@ -63,7 +63,7 @@ endif()
 
 target_compile_definitions(${LIB_NAME} PUBLIC SPDLOG_COMPILED_LIB)
 
-target_link_libraries(${LIB_NAME} vsg::vsg vsgImGui::vsgImGui cesium::3DTilesSelection cesium::GltfReader cesium::Gltf ${CURL_LIBRARIES} spdlog)
+target_link_libraries(${LIB_NAME} PUBLIC vsg::vsg vsgImGui::vsgImGui cesium::3DTilesSelection cesium::GltfReader cesium::Gltf spdlog PRIVATE CURL::libcurl)
 
 install(TARGETS vsgCs EXPORT vsgCsTargets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
@@ -71,3 +71,7 @@ install(TARGETS vsgCs EXPORT vsgCsTargets
   RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
   PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIB_NAME}"
   )
+
+if(WIN32)
+  install(IMPORTED_RUNTIME_ARTIFACTS CURL::libcurl)
+endif()

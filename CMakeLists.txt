@@ -29,7 +29,7 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
-set(VSG_MIN_VERSION 1.0.0)
+set(VSG_MIN_VERSION 1.0.3)
 find_package(vsg ${VSG_MIN_VERSION} REQUIRED)
 
 find_package(vsgXchange)
@@ -77,6 +77,12 @@ vsg_add_option_maintainer(
 # Make the headers visible to everything. This is not OSG / VSG style,
 # but we prefer that include files live next to their source files.
 include_directories(${vsgCs_SOURCE_DIR}/src ${GENERATED_HEADERS_DIR})
+
+if(WIN32)
+  set(CMAKE_INSTALL_UCRT_LIBRARIES YES)
+
+  include(InstallRequiredSystemLibraries)
+endif()
 
 # source directory for library and applications
 
