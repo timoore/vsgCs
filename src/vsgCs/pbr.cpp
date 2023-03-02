@@ -12,7 +12,6 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "pbr.h"
 #include "runtimeSupport.h"
-#include "ViewDependentStateExt.h"
 
 #include <vsg/core/Array.h>
 #include <vsg/core/Array2D.h>
@@ -73,9 +72,9 @@ namespace vsgCs {
             shaderSet->addUniformBinding("material", "", PRIMITIVE_DESCRIPTOR_SET, 10,
                                          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::PbrMaterialValue::create());
             shaderSet->addUniformBinding("lightData", "", VIEW_DESCRIPTOR_SET, 0,
-                                         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
+                                         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
             shaderSet->addUniformBinding("viewData", "", VIEW_DESCRIPTOR_SET, 1,
-                                         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 ,VK_SHADER_STAGE_VERTEX_BIT, vsg::ubyteArray::create(sizeof(viewport)));
+                                         VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 ,VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::ubyteArray::create(sizeof(vsg::vec4)));
             shaderSet->addUniformBinding("tileParams", "", TILE_DESCRIPTOR_SET, 0,
                                          VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(1 + sizeof(OverlayParams)));
             shaderSet->addUniformBinding("overlayTextures", "", TILE_DESCRIPTOR_SET, 1,

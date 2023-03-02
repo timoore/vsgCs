@@ -44,7 +44,6 @@ SOFTWARE.
 
 #include "vsgCs/TilesetNode.h"
 #include "vsgCs/CsOverlay.h"
-#include "vsgCs/CsView.h"
 #include "vsgCs/OpThreadTaskProcessor.h"
 #include "vsgCs/RuntimeEnvironment.h"
 #include "UI.h"
@@ -244,7 +243,7 @@ int main(int argc, char** argv)
         renderGraph->setClearValues({{0.02899f, 0.02899f, 0.13321f}});
         commandGraph->addChild(renderGraph);
 
-        auto view = vsgCs::CsView::create(camera);
+        auto view = vsg::View::create(camera);
         if (useHeadlight)
         {
             view->addChild(vsg::createHeadlight());

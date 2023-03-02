@@ -27,8 +27,10 @@ layout(location = 4) out vec2 texCoord[4];
 layout(set = VIEW_DESCRIPTOR_SET, binding = 1) uniform ViewportParams
 {
     vec4 viewportExtent;     // x, y, width, height
+#if 0
     ivec4 scissorExtent;     // offset x, offset y, width, height
     vec2 depthExtent;        // minDepth, maxDepth
+#endif
 } viewportParams;
 
 out gl_PerVertex{ vec4 gl_Position; float gl_PointSize; };
