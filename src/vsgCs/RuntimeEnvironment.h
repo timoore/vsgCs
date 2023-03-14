@@ -134,11 +134,10 @@ namespace vsgCs
         vsg::ref_ptr<vsg::WindowTraits> traits;
         DeviceFeatures features;
         std::string ionAccessToken;
+        bool generateShaderDebugInfo = false;
         static vsg::ref_ptr<RuntimeEnvironment> get();
     protected:
         std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> _externals;
         std::optional<std::string> _csCacheFile;
     };
-
-    vsg::ref_ptr<RuntimeEnvironment> getRuntimeEnvironment();
 }

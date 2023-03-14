@@ -12,6 +12,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 
 #include "pbr.h"
 #include "runtimeSupport.h"
+#include "RuntimeEnvironment.h"
 
 #include <vsg/core/Array.h>
 #include <vsg/core/Array2D.h>
@@ -101,7 +102,9 @@ namespace vsgCs {
                 vsg::fatal("pbr::makeShaderSet(...) could not find shaders.");
                 return {};
             }
-            auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
+            auto hints = vsg::ShaderCompileSettings::create();
+            hints->generateDebugInfo = RuntimeEnvironment::get()->generateShaderDebugInfo;
+            auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader}, hints);
 
             vsg::ShaderStage::SpecializationConstants specializationConstats{
                 {0, vsg::intValue::create(maxOverlays)}, // numTiles
@@ -122,7 +125,9 @@ namespace vsgCs {
                 vsg::fatal("pbr::makeShaderSet(...) could not find shaders.");
                 return {};
             }
-            auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader});
+            auto hints = vsg::ShaderCompileSettings::create();
+            hints->generateDebugInfo = RuntimeEnvironment::get()->generateShaderDebugInfo;
+            auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader}, hints);
 
             vsg::ShaderStage::SpecializationConstants specializationConstats{
                 {0, vsg::intValue::create(maxOverlays)}, // numTiles

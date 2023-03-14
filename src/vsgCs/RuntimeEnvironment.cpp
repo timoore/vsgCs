@@ -103,6 +103,7 @@ void RuntimeEnvironment::initializeCs(vsg::CommandLine& arguments)
     {
         _csCacheFile = csCacheFile;
     }
+    generateShaderDebugInfo = arguments.read("--shader-debug-info");
 }
 
 void RuntimeEnvironment::initialize(vsg::CommandLine &arguments,
@@ -336,7 +337,8 @@ std::string RuntimeEnvironment::csUsage()
     return std::string(
         "--ion-token token_string user's Cesium ion token\n"
         "--ion-token-file filename file containing user's ion token\n"
-        "--cesium-cache filename\t cache file for 3D Tiles remote requests\n");
+        "--cesium-cache filename\t cache file for 3D Tiles remote requests\n",
+        "--shader-debug-info\t generate symbols for shader source debugging\n");
 }
 
 std::string RuntimeEnvironment::usage()
