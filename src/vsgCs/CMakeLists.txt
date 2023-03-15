@@ -9,10 +9,13 @@ set(LIB_PUBLIC_HEADERS
   CsOverlay.h
   CesiumGltfBuilder.h
   Export.h
+  GraphicsEnvironment.h
   ImageComponent.h
   jsonUtils.h
   LoadGltfResult.h
+  ModelBuilder.h
   RuntimeEnvironment.h
+  ShaderFactory.h
   TilesetNode.h
   vsgResourcePreparer.h
   runtimeSupport.h
@@ -26,11 +29,14 @@ set(SOURCES
   CesiumGltfBuilder.cpp
   CompilableImage.cpp
   DescriptorSetConfigurator.cpp
+  GraphicsEnvironment.cpp
   ImageComponent.cpp
   jsonUtils.cpp
+  ModelBuilder.cpp
   MultisetPipelineConfigurator.cpp
   OpThreadTaskProcessor.cpp
   RuntimeEnvironment.cpp
+  ShaderFactory.cpp
   TilesetNode.cpp
   UrlAssetAccessor.cpp
   runtimeSupport.cpp

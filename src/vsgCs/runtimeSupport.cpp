@@ -143,6 +143,50 @@ namespace vsgCs
         return loadImage(result.image.value(), false, true);
     }
 
+    int samplerLOD(const vsg::ref_ptr<vsg::Data>& data, bool generateMipMaps)
+    {
+        int dataMipMaps = data->properties.maxNumMipmaps > 1;
+        if (dataMipMaps > 1)
+        {
+            return dataMipMaps;
+        }
+        uint32_t width = data->width();
+        uint32_t height = data->height();
+        if (!generateMipMaps || (width <= 1 && height <= 1))
+        {
+            return 1;
+        }
+        auto maxDim = std::max(width, height);
+        // from assimp loader; is it correct?
+        return std::floor(std::log2f(static_cast<float>(maxDim)));
+    }
+
+    vsg::ref_ptr<vsg::Sampler> makeSampler(VkSamplerAddressMode addressX,
+                                           VkSamplerAddressMode addressY,
+                                           VkFilter minFilter,
+                                           VkFilter maxFilter,
+                                           int maxNumMipMaps)
+    {
+        auto result = vsg::Sampler::create();
+        if (maxNumMipMaps > 1)
+        {
+            result->mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        }
+        else
+        {
+            result->mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        }
+        result->minFilter = minFilter;
+        result->magFilter = maxFilter;
+        result->addressModeU = addressX;
+        result->addressModeV = addressY;
+        result->addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        result->anisotropyEnable = VK_TRUE;
+        result->maxAnisotropy = 16.0f;
+        result->maxLod = static_cast<float>(maxNumMipMaps);
+        return result;
+    }
+
     vsg::ref_ptr<vsg::ImageInfo> makeImage(gsl::span<const std::byte> data, bool useMipMaps, bool sRGB,
                                            VkSamplerAddressMode addressX,
                                            VkSamplerAddressMode addressY,
@@ -231,4 +275,219 @@ namespace vsgCs
                     return ReadRemoteImageResult{imageInfo, {}};
                 });
     }
+} // namespace vsgCs
+
+namespace
+{
+    VkFormat cesiumToVk(const CesiumGltf::ImageCesium& image, bool sRGB)
+    {
+        using namespace CesiumGltf;
+        auto chooseSRGB = [sRGB](VkFormat sRGBFormat, VkFormat normFormat)
+        {
+            return sRGB ? sRGBFormat : normFormat;
+        };
+
+        if (image.compressedPixelFormat == GpuCompressedPixelFormat::NONE)
+        {
+            switch (image.channels) {
+            case 1:
+                return chooseSRGB(VK_FORMAT_R8_SRGB, VK_FORMAT_R8_UNORM);
+            case 2:
+                return chooseSRGB(VK_FORMAT_R8G8_SRGB, VK_FORMAT_R8G8_UNORM);
+            case 3:
+                return chooseSRGB(VK_FORMAT_R8G8B8_SRGB, VK_FORMAT_R8G8B8_UNORM);
+            case 4:
+            default:
+                return chooseSRGB(VK_FORMAT_R8G8B8A8_SRGB, VK_FORMAT_R8G8B8A8_UNORM);
+            }
+        }
+        switch (image.compressedPixelFormat)
+        {
+        case GpuCompressedPixelFormat::ETC1_RGB:
+            // ETC1 is a subset of ETC2
+            return chooseSRGB(VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK, VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK);
+        case GpuCompressedPixelFormat::ETC2_RGBA:
+            return chooseSRGB(VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK, VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK);
+        case GpuCompressedPixelFormat::BC1_RGB:
+            return chooseSRGB(VK_FORMAT_BC1_RGB_SRGB_BLOCK, VK_FORMAT_BC1_RGB_UNORM_BLOCK);
+        case GpuCompressedPixelFormat::BC3_RGBA:
+            return chooseSRGB(VK_FORMAT_BC3_SRGB_BLOCK, VK_FORMAT_BC3_UNORM_BLOCK);
+        case GpuCompressedPixelFormat::BC4_R:
+            return chooseSRGB(VK_FORMAT_UNDEFINED, VK_FORMAT_BC4_UNORM_BLOCK);
+        case GpuCompressedPixelFormat::BC5_RG:
+            return chooseSRGB(VK_FORMAT_UNDEFINED, VK_FORMAT_BC5_UNORM_BLOCK);
+        case GpuCompressedPixelFormat::BC7_RGBA:
+            return chooseSRGB(VK_FORMAT_BC7_SRGB_BLOCK, VK_FORMAT_BC7_UNORM_BLOCK);
+        case GpuCompressedPixelFormat::ASTC_4x4_RGBA:
+            return chooseSRGB(VK_FORMAT_ASTC_4x4_SRGB_BLOCK, VK_FORMAT_ASTC_4x4_UNORM_BLOCK);
+        case GpuCompressedPixelFormat::PVRTC2_4_RGBA:
+            return chooseSRGB(VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG, VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG);
+        case GpuCompressedPixelFormat::ETC2_EAC_R11:
+            return chooseSRGB(VK_FORMAT_UNDEFINED, VK_FORMAT_EAC_R11_UNORM_BLOCK);
+        case GpuCompressedPixelFormat::ETC2_EAC_RG11:
+            return chooseSRGB(VK_FORMAT_UNDEFINED, VK_FORMAT_EAC_R11G11_UNORM_BLOCK);
+        default:
+            // Unsupported compressed texture format.
+            return VK_FORMAT_UNDEFINED;
+        }
+    }
+
+    using BlockSize = std::tuple<uint8_t, uint8_t>;
+    BlockSize
+    getBlockSize(VkFormat format)
+    {
+        switch (format)
+        {
+        case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK:
+        case VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK:
+        case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
+        case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK:
+
+        case VK_FORMAT_BC1_RGB_SRGB_BLOCK:
+        case VK_FORMAT_BC1_RGB_UNORM_BLOCK:
+
+        case VK_FORMAT_BC3_SRGB_BLOCK:
+        case VK_FORMAT_BC3_UNORM_BLOCK:
+
+        case VK_FORMAT_BC4_UNORM_BLOCK:
+
+        case VK_FORMAT_BC5_UNORM_BLOCK:
+
+        case VK_FORMAT_BC7_SRGB_BLOCK:
+        case VK_FORMAT_BC7_UNORM_BLOCK:
+
+        case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
+
+        case VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG:
+        case VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG:
+
+        case VK_FORMAT_EAC_R11_UNORM_BLOCK:
+
+        case VK_FORMAT_EAC_R11G11_UNORM_BLOCK:
+            return BlockSize(4, 4);
+        default:
+            return BlockSize(1, 1);
+        }
+    }
+
+    vsg::ref_ptr<vsg::Data>
+    makeArray(uint32_t width, uint32_t height, void* data, vsg::Data::Properties in_properties)
+    {
+        switch (in_properties.format)
+        {
+        case VK_FORMAT_R8_SRGB:
+        case VK_FORMAT_R8_UNORM:
+            return vsg::ubyteArray2D::create(width, height,
+                                             reinterpret_cast<vsg::ubyteArray2D::value_type*>(data),
+                                             in_properties);
+        case VK_FORMAT_R8G8_SRGB:
+        case VK_FORMAT_R8G8_UNORM:
+            return vsg::ubvec2Array2D::create(width, height,
+                                             reinterpret_cast<vsg::ubvec2Array2D::value_type*>(data),
+                                             in_properties);
+
+        case VK_FORMAT_R8G8B8A8_SRGB:
+        case VK_FORMAT_R8G8B8A8_UNORM:
+            return vsg::ubvec4Array2D::create(width, height,
+                                             reinterpret_cast<vsg::ubvec4Array2D::value_type*>(data),
+                                             in_properties);
+        case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK:
+        case VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK:
+        case VK_FORMAT_BC1_RGB_SRGB_BLOCK:
+        case VK_FORMAT_BC1_RGB_UNORM_BLOCK:
+        case VK_FORMAT_BC4_UNORM_BLOCK:
+        case VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG:
+        case VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG:
+        case VK_FORMAT_EAC_R11_UNORM_BLOCK:
+            return vsg::block64Array2D::create(width, height,
+                                               reinterpret_cast<vsg::block64Array2D::value_type*>(data),
+                                               in_properties);
+        case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
+        case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK:
+        case VK_FORMAT_BC3_SRGB_BLOCK:
+        case VK_FORMAT_BC3_UNORM_BLOCK:
+        case VK_FORMAT_BC5_UNORM_BLOCK:
+        case VK_FORMAT_BC7_SRGB_BLOCK:
+        case VK_FORMAT_BC7_UNORM_BLOCK:
+        case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
+        case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
+        case VK_FORMAT_EAC_R11G11_UNORM_BLOCK:
+            return vsg::block128Array2D::create(width, height,
+                                                reinterpret_cast<vsg::block128Array2D::value_type*>(data),
+                                                in_properties);
+        default:
+            return {};
+        }
+    }
+
+    void* rgbExpand(CesiumGltf::ImageCesium& image)
+    {
+        size_t sourceSize = image.pixelData.size();
+        size_t destSize = sourceSize * 4 / 3;
+        uint8_t* destData
+            = new (vsg::allocate(sizeof(uint8_t) * destSize, vsg::ALLOCATOR_AFFINITY_DATA)) uint8_t[destSize];
+        uint8_t* pDest = destData;
+        auto srcItr = image.pixelData.begin();
+        while (srcItr != image.pixelData.end())
+        {
+            for (int i = 0; i < 3; ++i)
+            {
+                *pDest++ = std::to_integer<uint8_t>(*srcItr++);
+            }
+            *pDest++ = 1;
+        }
+        return destData;
+    }
 }
+
+namespace vsgCs
+{
+
+vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMaps, bool sRGB)
+{
+    if (image.pixelData.empty() || image.width == 0 || image.height == 0)
+    {
+        return {};
+    }
+    VkFormat pixelFormat = cesiumToVk(image, sRGB);
+    if (pixelFormat == VK_FORMAT_UNDEFINED)
+    {
+        return {};
+    }
+    vsg::Data::Properties props;
+    props.format = pixelFormat;
+    if (useMipMaps)
+    {
+        props.maxNumMipmaps = static_cast<uint8_t>(std::max(image.mipPositions.size(), static_cast<size_t>(1)));
+    }
+    else
+    {
+        props.maxNumMipmaps = 1;
+    }
+    std::tie(props.blockWidth, props.blockHeight) = getBlockSize(pixelFormat);
+    props.origin = vsg::BOTTOM_LEFT;
+    // Assume that the ImageCesium raw format will be fine to upload into Vulkan, except for
+    // R8G8B8 uncompressed textures, which are rarely supported.
+    void* imageSource = nullptr;
+    if (pixelFormat == VK_FORMAT_R8G8B8_UNORM || pixelFormat == VK_FORMAT_R8G8B8_SRGB)
+    {
+        imageSource = rgbExpand(image);
+    }
+    else
+    {
+        uint8_t* destData
+            = new (vsg::allocate(sizeof(uint8_t) * image.pixelData.size(), vsg::ALLOCATOR_AFFINITY_DATA))
+            uint8_t[image.pixelData.size()];
+        std::transform(image.pixelData.begin(), image.pixelData.end(), destData,
+                       [](std::byte b)
+                       {
+                           return std::to_integer<uint8_t>(b);
+                       });
+        imageSource = destData;
+    }
+    // Assume that there is no advantage in sharing the texture data; might be very false!
+    return makeArray(image.width, image.height, imageSource, props);
+}
+}
+
