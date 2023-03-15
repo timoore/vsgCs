@@ -99,12 +99,31 @@ namespace vsgCs
     /**
      * @brief Create an image from binary data.
      */
-    vsg::ref_ptr<vsg::ImageInfo>
+    vsg::ref_ptr<vsg::ImageInfo> VSGCS_EXPORT
     makeImage(gsl::span<const std::byte> data, bool useMipMaps, bool sRGB,
               VkSamplerAddressMode addressX = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
               VkSamplerAddressMode addressY = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
               VkFilter minFilter = VK_FILTER_LINEAR,
               VkFilter maxFilter = VK_FILTER_LINEAR);
+
+    /**
+     * @brief Load an image as vsg::Data.
+     *
+     * This returns vsg::Data because the vsg::Array2D template class does not have a more specific
+     * superclass.
+     */
+    vsg::ref_ptr<vsg::Data> VSGCS_EXPORT loadImage(CesiumGltf::ImageCesium& image, bool useMipMaps, bool sRGB);
+
+    int samplerLOD(const vsg::ref_ptr<vsg::Data>& data, bool generateMipMaps);
+
+    /**
+     * @brief create a VSG sampler.
+     */
+    vsg::ref_ptr<vsg::Sampler> VSGCS_EXPORT makeSampler(VkSamplerAddressMode addressX,
+                                                        VkSamplerAddressMode addressY,
+                                                        VkFilter minFilter,
+                                                        VkFilter maxFilter,
+                                                        int maxNumMipMaps);
 
     struct ReadRemoteImageResult
     {

@@ -146,31 +146,11 @@ namespace vsgCs
 
     class ModelBuilder;
 
-    /**
-     * @brief Load an image as vsg::Data.
-     *
-     * This returns vsg::Data because the vsg::Array2D template class does not have a more specific
-     * superclass.
-     */
-    vsg::ref_ptr<vsg::Data> VSGCS_EXPORT loadImage(CesiumGltf::ImageCesium& image, bool useMipMaps, bool sRGB);
-
-    int samplerLOD(const vsg::ref_ptr<vsg::Data>& data, bool generateMipMaps);
-
-    /**
-     * @brief create a VSG sampler.
-     */
-    vsg::ref_ptr<vsg::Sampler> VSGCS_EXPORT makeSampler(VkSamplerAddressMode addressX,
-                                                        VkSamplerAddressMode addressY,
-                                                        VkFilter minFilter,
-                                                        VkFilter maxFilter,
-                                                        int maxNumMipMaps);
-
     class VSGCS_EXPORT CesiumGltfBuilder : public vsg::Inherit<vsg::Object, CesiumGltfBuilder>
     {
     public:
         CesiumGltfBuilder(const vsg::ref_ptr<vsg::Options>& vsgOptions, const DeviceFeatures& deviceFeatures);
 
-        friend class ModelBuilder;
         vsg::ref_ptr<vsg::Group> load(CesiumGltf::Model* model, const CreateModelOptions& options);
         vsg::ref_ptr<vsg::Node> loadTile(Cesium3DTilesSelection::TileLoadResult&& tileLoadResult,
                                          const glm::dmat4& transform,
@@ -191,7 +171,6 @@ namespace vsgCs
                                                  VkFilter maxFilter,
                                                  bool useMipMaps,
                                                  bool sRGB);
-        vsg::ref_ptr<vsg::ShaderSet> getOrCreatePbrShaderSet(VkPrimitiveTopology topology);
 
         ModifyRastersResult attachRaster(const Cesium3DTilesSelection::Tile& tile,
                                          const vsg::ref_ptr<vsg::Node>& node,
@@ -204,32 +183,7 @@ namespace vsgCs
                                          const vsg::ref_ptr<vsg::Node>& node,
                                          int32_t overlayTextureCoordinateID,
                                          const Cesium3DTilesSelection::RasterOverlayTile& rasterTile);
-        vsg::ref_ptr<vsg::ImageInfo> getDefaultTexture()
-        {
-            return _defaultTexture;
-        }
-        vsg::ref_ptr<vsg::PipelineLayout> getViewParamsPipelineLayout()
-        {
-            return _viewParamsPipelineLayout;
-        }
-        vsg::ref_ptr<vsg::PipelineLayout> getOverlayPipelineLayout()
-        {
-            return _overlayPipelineLayout;
-        }
-        const DeviceFeatures& getFeatures()
-        {
-            return _deviceFeatures;
-        }
     protected:
-        static vsg::ref_ptr<vsg::ImageInfo> makeDefaultTexture();
-        vsg::ref_ptr<vsg::SharedObjects> _sharedObjects;
-        vsg::ref_ptr<vsg::ShaderSet> _pbrShaderSet;
-        vsg::ref_ptr<vsg::ShaderSet> _pbrPointShaderSet;
-        vsg::ref_ptr<vsg::Options> _vsgOptions;
-        vsg::ref_ptr<vsg::PipelineLayout> _viewParamsPipelineLayout;
-        vsg::ref_ptr<vsg::PipelineLayout> _overlayPipelineLayout;
-        vsg::ref_ptr<vsg::ImageInfo> _defaultTexture;
-        DeviceFeatures _deviceFeatures;
         vsg::ref_ptr<GraphicsEnvironment> _genv;
     };
 

@@ -23,13 +23,38 @@ SOFTWARE.
 </editor-fold> */
 
 #include "GraphicsEnvironment.h"
+#include "MultisetPipelineConfigurator.h"
+#include "pbr.h"
 #include "runtimeSupport.h"
 
 using namespace vsgCs;
 
+namespace
+{
+    vsg::ref_ptr<vsg::ImageInfo> makeDefaultTexture()
+    {
+        vsg::ubvec4 pixel(255, 255, 255, 255); // NOLINT: it's white
+        vsg::Data::Properties props;
+        props.format = VK_FORMAT_R8G8B8A8_SRGB;
+        props.maxNumMipmaps = 1;
+        auto arrayData = vsg::ubvec4Array2D::create(1, 1, &pixel, props);
+        auto sampler = makeSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
+                                   VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_NEAREST, VK_FILTER_NEAREST, 1);
+        return vsg::ImageInfo::create(sampler, arrayData);
+    }
+}
 GraphicsEnvironment::GraphicsEnvironment(const vsg::ref_ptr<vsg::Options> &vsgOptions,
                                          const DeviceFeatures& in_features)
     : shaderFactory(ShaderFactory::create(vsgOptions)), features(in_features),
-      sharedObjects(create_or<vsg::SharedObjects>(vsgOptions->sharedObjects))
+      sharedObjects(create_or<vsg::SharedObjects>(vsgOptions->sharedObjects)),
+      defaultTexture(makeDefaultTexture())
+
 {
+    std::set<std::string> shaderDefines;
+    shaderDefines.insert("VSG_TWO_SIDED_LIGHTING");
+    shaderDefines.insert("VSGCS_OVERLAY_MAPS");
+    overlayPipelineLayout
+        = makePipelineLayout(shaderFactory->getShaderSet(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
+                             shaderDefines,
+                             pbr::TILE_DESCRIPTOR_SET);
 }

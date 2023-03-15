@@ -143,6 +143,50 @@ namespace vsgCs
         return loadImage(result.image.value(), false, true);
     }
 
+    int samplerLOD(const vsg::ref_ptr<vsg::Data>& data, bool generateMipMaps)
+    {
+        int dataMipMaps = data->properties.maxNumMipmaps > 1;
+        if (dataMipMaps > 1)
+        {
+            return dataMipMaps;
+        }
+        uint32_t width = data->width();
+        uint32_t height = data->height();
+        if (!generateMipMaps || (width <= 1 && height <= 1))
+        {
+            return 1;
+        }
+        auto maxDim = std::max(width, height);
+        // from assimp loader; is it correct?
+        return std::floor(std::log2f(static_cast<float>(maxDim)));
+    }
+
+    vsg::ref_ptr<vsg::Sampler> makeSampler(VkSamplerAddressMode addressX,
+                                           VkSamplerAddressMode addressY,
+                                           VkFilter minFilter,
+                                           VkFilter maxFilter,
+                                           int maxNumMipMaps)
+    {
+        auto result = vsg::Sampler::create();
+        if (maxNumMipMaps > 1)
+        {
+            result->mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+        }
+        else
+        {
+            result->mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
+        }
+        result->minFilter = minFilter;
+        result->magFilter = maxFilter;
+        result->addressModeU = addressX;
+        result->addressModeV = addressY;
+        result->addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        result->anisotropyEnable = VK_TRUE;
+        result->maxAnisotropy = 16.0f;
+        result->maxLod = static_cast<float>(maxNumMipMaps);
+        return result;
+    }
+
     vsg::ref_ptr<vsg::ImageInfo> makeImage(gsl::span<const std::byte> data, bool useMipMaps, bool sRGB,
                                            VkSamplerAddressMode addressX,
                                            VkSamplerAddressMode addressY,

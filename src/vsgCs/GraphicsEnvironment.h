@@ -27,6 +27,8 @@ SOFTWARE.
 #include "ShaderFactory.h"
 #include "vsgCs/RuntimeEnvironment.h"
 
+#include <vsg/state/ImageInfo.h>
+
 namespace vsgCs
 {
     class GraphicsEnvironment : public vsg::Inherit<vsg::Object, GraphicsEnvironment>
@@ -36,5 +38,10 @@ namespace vsgCs
         vsg::ref_ptr<ShaderFactory> shaderFactory;
         const DeviceFeatures features;
         vsg::ref_ptr<vsg::SharedObjects> sharedObjects;
+        /**
+         * @brief a white, one pixel texture
+         */
+        vsg::ref_ptr<vsg::ImageInfo> defaultTexture;
+        vsg::ref_ptr<vsg::PipelineLayout> overlayPipelineLayout;
     };
 }

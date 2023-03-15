@@ -183,28 +183,8 @@ inline VkDescriptorSetLayoutBinding getVk(const vsg::UniformBinding& binding)
 
 CesiumGltfBuilder::CesiumGltfBuilder(const vsg::ref_ptr<vsg::Options>& vsgOptions,
                                      const DeviceFeatures& deviceFeatures)
-    : _sharedObjects(create_or<vsg::SharedObjects>(vsgOptions->sharedObjects)),
-      _pbrShaderSet(pbr::makeShaderSet(vsgOptions)),
-      _pbrPointShaderSet(pbr::makePointShaderSet(vsgOptions)),
-      _vsgOptions(vsgOptions),
-      _deviceFeatures(deviceFeatures),
-      _genv(GraphicsEnvironment::create(vsgOptions, deviceFeatures))
+    : _genv(GraphicsEnvironment::create(vsgOptions, deviceFeatures))
 {
-    std::set<std::string> shaderDefines;
-    shaderDefines.insert("VSG_TWO_SIDED_LIGHTING");
-    shaderDefines.insert("VSGCS_OVERLAY_MAPS");
-    _viewParamsPipelineLayout = makePipelineLayout(_pbrShaderSet, shaderDefines, pbr::VIEW_DESCRIPTOR_SET);
-    _overlayPipelineLayout = makePipelineLayout(_pbrShaderSet, shaderDefines, pbr::TILE_DESCRIPTOR_SET);
-    _defaultTexture = makeDefaultTexture();
-}
-
-vsg::ref_ptr<vsg::ShaderSet> CesiumGltfBuilder::getOrCreatePbrShaderSet(VkPrimitiveTopology topology)
-{
-    if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
-    {
-        return _pbrPointShaderSet;
-    }
-    return _pbrShaderSet;
 }
 
 ModelBuilder::ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, CesiumGltf::Model* model,
@@ -1086,30 +1066,31 @@ struct Rasters : public vsg::Inherit<vsg::Object, Rasters>
     std::vector<RasterData> overlayRasters;
 };
 
-vsg::ref_ptr<vsg::StateCommand> makeTileStateCommand(CesiumGltfBuilder& builder, const Rasters& rasters,
-                                                        const Cesium3DTilesSelection::Tile& tile)
+vsg::ref_ptr<vsg::StateCommand> makeTileStateCommand(const vsg::ref_ptr<GraphicsEnvironment>& genv,
+                                                     const Rasters& rasters,
+                                                     const Cesium3DTilesSelection::Tile& tile)
 {
     vsg::ImageInfoList rasterImages(rasters.overlayRasters.size());
     // The topology doesn't matter because the pipeline layouts of shader versions are compatible.
     vsg::ref_ptr<DescriptorSetConfigurator> descriptorBuilder
         = DescriptorSetConfigurator::create(pbr::TILE_DESCRIPTOR_SET,
-                                            builder.getOrCreatePbrShaderSet(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST));
+                                            genv->shaderFactory->getShaderSet(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST));
     std::vector<pbr::OverlayParams> overlayParams(rasters.overlayRasters.size());
     for (size_t i = 0; i < rasters.overlayRasters.size(); ++i)
     {
         const auto& rasterData = rasters.overlayRasters[i];
         rasterImages[i] = rasterData.rasterImage.valid()
-            ? rasterData.rasterImage : builder.getDefaultTexture();
+            ? rasterData.rasterImage : genv->defaultTexture;
         overlayParams[i] = rasterData.overlayParams;
     }
     descriptorBuilder->assignTexture("overlayTextures", rasterImages);
-    auto ubo = pbr::makeTileData(tile.getGeometricError(), std::min(builder.getFeatures().pointSizeRange[1], 4.0f),
+    auto ubo = pbr::makeTileData(tile.getGeometricError(), std::min(genv->features.pointSizeRange[1], 4.0f),
                                  overlayParams);
     descriptorBuilder->assignUniform("tileParams", ubo);
     descriptorBuilder->init();
     auto bindDescriptorSet
             = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                             builder.getOverlayPipelineLayout(), pbr::TILE_DESCRIPTOR_SET,
+                                             genv->overlayPipelineLayout, pbr::TILE_DESCRIPTOR_SET,
                                              descriptorBuilder->descriptorSet);
     return bindDescriptorSet;
  }
@@ -1142,7 +1123,7 @@ vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::Tile
     auto modelNode = load(pModel, modelOptions);
     auto tileStateGroup = vsg::StateGroup::create();
     auto bindViewDescriptorSets = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                                                      _overlayPipelineLayout, 0);
+                                                                      _genv->overlayPipelineLayout, 0);
     // Make uniforms (tile and raster parameters) and default textures for the tile.
 
     auto rasters = Rasters::create(pbr::maxOverlays);
@@ -1160,7 +1141,7 @@ vsg::ref_ptr<vsg::Object> CesiumGltfBuilder::attachTileData(Cesium3DTilesSelecti
     auto rasters = Rasters::create(pbr::maxOverlays);
     auto transformNode = ref_ptr_cast<vsg::MatrixTransform>(node);
     auto tileStateGroup = ref_ptr_cast<vsg::StateGroup>(transformNode->children[0]);
-    auto tileStateCommand = makeTileStateCommand(*this, *rasters, tile);
+    auto tileStateCommand = makeTileStateCommand(_genv, *rasters, tile);
     tileStateGroup->add(tileStateCommand);
     return tileStateCommand;
 }
@@ -1426,53 +1407,6 @@ vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRG
     }
 }
 
-namespace vsgCs
-{
-    int samplerLOD(const vsg::ref_ptr<vsg::Data>& data, bool generateMipMaps)
-    {
-        int dataMipMaps = data->properties.maxNumMipmaps > 1;
-        if (dataMipMaps > 1)
-        {
-            return dataMipMaps;
-        }
-        uint32_t width = data->width();
-        uint32_t height = data->height();
-        if (!generateMipMaps || (width <= 1 && height <= 1))
-        {
-            return 1;
-        }
-        auto maxDim = std::max(width, height);
-        // from assimp loader; is it correct?
-        return std::floor(std::log2f(static_cast<float>(maxDim)));
-    }
-
-    vsg::ref_ptr<vsg::Sampler> makeSampler(VkSamplerAddressMode addressX,
-                                           VkSamplerAddressMode addressY,
-                                           VkFilter minFilter,
-                                           VkFilter maxFilter,
-                                           int maxNumMipMaps)
-    {
-        auto result = vsg::Sampler::create();
-        if (maxNumMipMaps > 1)
-        {
-            result->mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
-        }
-        else
-        {
-            result->mipmapMode = VK_SAMPLER_MIPMAP_MODE_NEAREST;
-        }
-        result->minFilter = minFilter;
-        result->magFilter = maxFilter;
-        result->addressModeU = addressX;
-        result->addressModeV = addressY;
-        result->addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-        result->anisotropyEnable = VK_TRUE;
-        result->maxAnisotropy = 16.0f;
-        result->maxLod = static_cast<float>(maxNumMipMaps);
-        return result;
-    }
-}
-
 vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumTextureSource&& imageSource,
                                                             VkSamplerAddressMode addressX,
                                                             VkSamplerAddressMode addressY,
@@ -1501,7 +1435,7 @@ vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumGltf::ImageCes
     }
     auto sampler = makeSampler(addressX, addressY, minFilter, maxFilter,
                                samplerLOD(data, useMipMaps));
-    _sharedObjects->share(sampler);
+    _genv->sharedObjects->share(sampler);
     return vsg::ImageInfo::create(sampler, data);
 }
 
@@ -1672,7 +1606,7 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
     rasterData.overlayParams.coordIndex = overlayTextureCoordinateID;
     rasterData.overlayParams.enabled = 1;
     rasterData.overlayParams.alpha = resource->overlayOptions.alpha;
-    auto command = makeTileStateCommand(*this, *rasters, tile);
+    auto command = makeTileStateCommand(_genv, *rasters, tile);
     // XXX Should check data or something in the state command instead of relying on the number of
     // commands in the group.
     auto& stateCommands = stateGroup->stateCommands;
@@ -1685,18 +1619,6 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
     stateCommands.push_back(command);
     result.compileObjects.push_back(command);
     return result;
-}
-
-vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::makeDefaultTexture()
-{
-    vsg::ubvec4 pixel(255, 255, 255, 255); // NOLINT: it's white
-    vsg::Data::Properties props;
-    props.format = VK_FORMAT_R8G8B8A8_UNORM;
-    props.maxNumMipmaps = 1;
-    auto arrayData = makeArray(1, 1, &pixel, props);
-    auto sampler = makeSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
-                               VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_NEAREST, VK_FILTER_NEAREST, 1);
-    return vsg::ImageInfo::create(sampler, arrayData);
 }
 
 ModifyRastersResult
@@ -1726,7 +1648,7 @@ CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile& tile,
     {
         rasterData.rasterImage = {}; // ref to rasterImage is still held by the old StateCommand
         rasterData.overlayParams.enabled = 0;
-        auto newCommand = makeTileStateCommand(*this, *rasters, tile);
+        auto newCommand = makeTileStateCommand(_genv, *rasters, tile);
         vsg::ref_ptr<vsg::Command> oldCommand;
         // XXX Should check data or something in the state command instead of relying on the number of
         // commands in the group.
