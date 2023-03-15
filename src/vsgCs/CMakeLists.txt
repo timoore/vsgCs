@@ -13,6 +13,7 @@ set(LIB_PUBLIC_HEADERS
   ImageComponent.h
   jsonUtils.h
   LoadGltfResult.h
+  ModelBuilder.h
   RuntimeEnvironment.h
   ShaderFactory.h
   TilesetNode.h
@@ -31,6 +32,7 @@ set(SOURCES
   GraphicsEnvironment.cpp
   ImageComponent.cpp
   jsonUtils.cpp
+  ModelBuilder.cpp
   MultisetPipelineConfigurator.cpp
   OpThreadTaskProcessor.cpp
   RuntimeEnvironment.cpp

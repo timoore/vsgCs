@@ -95,6 +95,63 @@ namespace vsgCs
     vsg::ref_ptr<vsg::Data> readImageFile(const vsg::Path& filename,
                                           vsg::ref_ptr<const vsg::Options> options);
 
+    // There is a lot of hair in Cesium Unreal to support these variants. It's unclear if any
+    // are actually used other than GltfImagePtr
+
+    /**
+     * @brief A pointer to a glTF image. This image will be cached and used on the
+     * game thread and render thread during texture creation.
+     *
+     * WARNING: Do not use this form of texture creation if the given pointer will
+     * be invalidated before the render-thread texture preparation work is done.
+     * XXX Can that happen in VSG? "render thread" textures have safe data.
+     */
+    struct GltfImagePtr
+    {
+        CesiumGltf::ImageCesium* pImage;
+    };
+
+    /**
+     * @brief An index to an image that can be looked up later in the corresponding
+     * glTF.
+     */
+    struct GltfImageIndex
+    {
+        int32_t index = -1;
+        GltfImagePtr resolveImage(const CesiumGltf::Model& model) const;
+    };
+
+    /**
+     * @brief An embedded image resource.
+     */
+    struct EmbeddedImageSource
+    {
+        CesiumGltf::ImageCesium image;
+    };
+
+    typedef std::variant<
+        GltfImagePtr,
+        GltfImageIndex,
+        EmbeddedImageSource>
+    CesiumTextureSource;
+
+    struct GetImageFromSource
+    {
+        CesiumGltf::ImageCesium*
+        operator()(GltfImagePtr& imagePtr) {
+            return imagePtr.pImage;
+        }
+
+        CesiumGltf::ImageCesium*
+        operator()(EmbeddedImageSource& embeddedImage) {
+            return &embeddedImage.image;
+        }
+
+        template <typename TSource>
+        CesiumGltf::ImageCesium* operator()(TSource& /*source*/) {
+            return nullptr;
+        }
+    };
 
     /**
      * @brief Create an image from binary data.
