@@ -187,7 +187,8 @@ CesiumGltfBuilder::CesiumGltfBuilder(const vsg::ref_ptr<vsg::Options>& vsgOption
       _pbrShaderSet(pbr::makeShaderSet(vsgOptions)),
       _pbrPointShaderSet(pbr::makePointShaderSet(vsgOptions)),
       _vsgOptions(vsgOptions),
-      _deviceFeatures(deviceFeatures)
+      _deviceFeatures(deviceFeatures),
+      _genv(GraphicsEnvironment::create(vsgOptions, deviceFeatures))
 {
     std::set<std::string> shaderDefines;
     shaderDefines.insert("VSG_TWO_SIDED_LIGHTING");
@@ -206,11 +207,11 @@ vsg::ref_ptr<vsg::ShaderSet> CesiumGltfBuilder::getOrCreatePbrShaderSet(VkPrimit
     return _pbrShaderSet;
 }
 
-ModelBuilder::ModelBuilder(CesiumGltfBuilder* builder, CesiumGltf::Model* model,
+ModelBuilder::ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, CesiumGltf::Model* model,
                            const CreateModelOptions& options,
                            const ExtensionList& enabledExtensions
     )
-    : _builder(builder), _model(model), _options(options),
+    : _genv(genv), _model(model), _options(options),
       _csMaterials(model->materials.size()),
       _loadedImages(model->images.size()),
       _activeExtensions(enabledExtensions)
@@ -895,7 +896,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
             {true, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD,
              VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_SUBTRACT,
              VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT}};
-        _builder->_sharedObjects->share(pipelineConf->colorBlendState);
+        _genv->sharedObjects->share(pipelineConf->colorBlendState);
     }
     if (descConf->two_sided)
     {
@@ -907,7 +908,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         pipelineConf->descriptorBindings = descConf->descriptorBindings;
     }
     pipelineConf->init();
-    _builder->_sharedObjects->share(pipelineConf->bindGraphicsPipeline);
+    _genv->sharedObjects->share(pipelineConf->bindGraphicsPipeline);
 
     auto stateGroup = vsg::StateGroup::create();
     stateGroup->add(pipelineConf->bindGraphicsPipeline);
@@ -967,7 +968,7 @@ ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopo
         csMat->descriptorConfig->blending = true;
         pbr.alphaMaskCutoff = 0.0f;
     }
-    csMat->descriptorConfig->shaderSet = _builder->getOrCreatePbrShaderSet(topology);
+    csMat->descriptorConfig->shaderSet = _genv->shaderFactory->getShaderSet(topology);
     if (material->pbrMetallicRoughness)
     {
         auto const& cesiumPbr = material->pbrMetallicRoughness.value();
@@ -1012,7 +1013,7 @@ ModelBuilder::loadMaterial(int i, VkPrimitiveTopology topology)
         {
             _baseMaterial[topoIndex] = CsMaterial::create();
             _baseMaterial[topoIndex]->descriptorConfig = DescriptorSetConfigurator::create();
-            _baseMaterial[topoIndex]->descriptorConfig->shaderSet = _builder->getOrCreatePbrShaderSet(topology);
+            _baseMaterial[topoIndex]->descriptorConfig->shaderSet = _genv->shaderFactory->getShaderSet(topology);
             vsg::PbrMaterial pbr;
             _baseMaterial[topoIndex]->descriptorConfig->assignUniform("material",
                                                                          vsg::PbrMaterialValue::create(pbr));
@@ -1119,7 +1120,7 @@ CesiumGltfBuilder::load(CesiumGltf::Model* model, const CreateModelOptions& opti
 {
     static ExtensionList tilesExtensions{Cs3DTilesExtension::create()};
 
-    ModelBuilder builder(this, model, options, tilesExtensions);
+    ModelBuilder builder(_genv, model, options, tilesExtensions);
     return builder();
 }
 
@@ -1632,7 +1633,7 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
     auto data = loadImage(*source, useMipMaps, sRGB);
     auto sampler = makeSampler(addressX, addressY, minFilter, magFilter,
                                samplerLOD(data, useMipMaps));
-    _builder->_sharedObjects->share(sampler);
+    _genv->sharedObjects->share(sampler);
     return vsg::ImageInfo::create(sampler, data);
 }
 

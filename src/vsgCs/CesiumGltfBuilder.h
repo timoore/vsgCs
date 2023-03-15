@@ -35,9 +35,11 @@ SOFTWARE.
 
 #include "Export.h"
 #include "DescriptorSetConfigurator.h"
+#include "GraphicsEnvironment.h"
 #include "MultisetPipelineConfigurator.h"
 #include "RuntimeEnvironment.h"
 #include "runtimeSupport.h"
+
 
 #include <array>
 
@@ -228,14 +230,15 @@ namespace vsgCs
         vsg::ref_ptr<vsg::PipelineLayout> _overlayPipelineLayout;
         vsg::ref_ptr<vsg::ImageInfo> _defaultTexture;
         DeviceFeatures _deviceFeatures;
+        vsg::ref_ptr<GraphicsEnvironment> _genv;
     };
 
-    // This class should load a standard glTF model, without having builting support for extensions
+    // This class should load a standard glTF model, without having builtin support for extensions
     // or our own 3D Tiles cruft. Not there yet...
     class VSGCS_EXPORT ModelBuilder
     {
     public:
-        ModelBuilder(CesiumGltfBuilder* builder, CesiumGltf::Model* model, const CreateModelOptions& options,
+    ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, CesiumGltf::Model* model, const CreateModelOptions& options,
                      const ExtensionList& enabledExtensions = {});
         vsg::ref_ptr<vsg::Group> operator()();
         vsg::ref_ptr<vsg::Group> loadNode(const CesiumGltf::Node* node);
@@ -276,7 +279,7 @@ namespace vsgCs
         }
         std::string makeName(const CesiumGltf::Mesh* mesh, const CesiumGltf::MeshPrimitive* primitive) const;
 
-        CesiumGltfBuilder* _builder;
+        vsg::ref_ptr<GraphicsEnvironment>_genv;
         CesiumGltf::Model* _model;
         std::string _name;
         CreateModelOptions _options;
