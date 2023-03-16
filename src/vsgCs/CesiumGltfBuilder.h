@@ -64,7 +64,7 @@ namespace vsgCs
     {
     public:
         CesiumGltfBuilder(const vsg::ref_ptr<vsg::Options>& vsgOptions, const DeviceFeatures& deviceFeatures);
-
+        CesiumGltfBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv);
         vsg::ref_ptr<vsg::Group> load(CesiumGltf::Model* model, const CreateModelOptions& options);
         vsg::ref_ptr<vsg::Node> loadTile(Cesium3DTilesSelection::TileLoadResult&& tileLoadResult,
                                          const glm::dmat4& transform,

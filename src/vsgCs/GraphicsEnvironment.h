@@ -24,13 +24,32 @@ SOFTWARE.
 
 #pragma once
 
+#include "Export.h"
 #include "ShaderFactory.h"
-#include "vsgCs/RuntimeEnvironment.h"
+
+#include <CesiumGltf/Ktx2TranscodeTargets.h>
 
 #include <vsg/state/ImageInfo.h>
+#include <vsg/utils/SharedObjects.h>
 
 namespace vsgCs
 {
+    /**
+     * @brief A compact representation of supported Vulkan features that are important to vsgCs.
+     */
+    struct VSGCS_EXPORT DeviceFeatures
+    {
+        bool indexTypeUint8 = false;
+        bool largePoints = false;
+        bool textureCompressionETC2 = false;
+        bool textureCompressionASTC_LDR = false;
+        bool textureCompressionBC = false;
+        bool textureCompressionPVRTC = false;
+        CesiumGltf::Ktx2TranscodeTargets ktx2TranscodeTargets;
+        float pointSizeRange[2];
+    };
+
+
     class GraphicsEnvironment : public vsg::Inherit<vsg::Object, GraphicsEnvironment>
     {
     public:

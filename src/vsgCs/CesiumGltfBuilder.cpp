@@ -64,6 +64,11 @@ CesiumGltfBuilder::CesiumGltfBuilder(const vsg::ref_ptr<vsg::Options>& vsgOption
 {
 }
 
+CesiumGltfBuilder::CesiumGltfBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv)
+    : _genv(genv)
+{
+}
+
 
 
 // Hold Raster data that we can attach to the VSG tile in order to easily find

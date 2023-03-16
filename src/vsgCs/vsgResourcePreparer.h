@@ -29,6 +29,7 @@ SOFTWARE.
 #include <vsg/core/ref_ptr.h>
 #include <vsg/io/Options.h>
 
+#include "GraphicsEnvironment.h"
 #include "LoadGltfResult.h"
 #include "CesiumGltfBuilder.h"
 
@@ -70,11 +71,8 @@ namespace vsgCs
     class VSGCS_EXPORT vsgResourcePreparer : public Cesium3DTilesSelection::IPrepareRendererResources
     {
     public:
-        vsgResourcePreparer(vsg::ref_ptr<vsg::Options> vsgOptions, const DeviceFeatures& features,
-                            vsg::ref_ptr<vsg::Viewer> viewer = {})
-            : viewer(viewer), _builder(CesiumGltfBuilder::create(vsgOptions, features))
-        {
-        }
+        vsgResourcePreparer(const vsg::ref_ptr<GraphicsEnvironment>& genv,
+                            vsg::ref_ptr<vsg::Viewer> viewer = {});
     
         CesiumAsync::Future<Cesium3DTilesSelection::TileLoadResultAndRenderResources>
             prepareInLoadThread(const CesiumAsync::AsyncSystem& asyncSystem,

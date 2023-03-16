@@ -23,7 +23,9 @@ SOFTWARE.
 </editor-fold> */
 
 #include "vsgResourcePreparer.h"
+
 #include "CompilableImage.h"
+#include "RuntimeEnvironment.h"
 
 #include <Cesium3DTilesSelection/GltfUtilities.h>
 #include <Cesium3DTilesSelection/Tile.h>
@@ -79,6 +81,12 @@ void DeletionQueue::run(vsg::ref_ptr<vsg::Viewer> viewer)
         }
     }
     lastFrameRun = frameStamp->frameCount;
+}
+
+vsgResourcePreparer::vsgResourcePreparer(const vsg::ref_ptr<GraphicsEnvironment>& genv,
+                                         vsg::ref_ptr<vsg::Viewer> viewer)
+    : viewer(viewer), _builder(CesiumGltfBuilder::create(genv))
+{
 }
 
 LoadModelResult*

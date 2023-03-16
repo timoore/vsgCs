@@ -234,12 +234,18 @@ DeviceFeatures RuntimeEnvironment::prepareFeaturesAndExtensions(vsg::ref_ptr<vsg
     return features;
 }
 
+void RuntimeEnvironment::initGraphicsEnvironment()
+{
+    genv = GraphicsEnvironment::create(options, features);
+}
+
 vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openWindow(const std::string& name,
                                                          vsg::ref_ptr<vsg::WindowTraits> in_traits,
                                                          vsg::ref_ptr<vsg::Options> in_options)
 {
     auto result = openSystemWindow(name, in_traits, in_options);
     prepareFeaturesAndExtensions(result);
+    initGraphicsEnvironment();
     return result;
 }
 
@@ -249,6 +255,7 @@ vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openWindow(vsg::CommandLine& argum
 {
     auto result = openSystemWindow(arguments, name, in_traits, in_options);
     prepareFeaturesAndExtensions(result);
+    initGraphicsEnvironment();
     return result;
     
 }
@@ -293,7 +300,7 @@ std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> RuntimeEnvironment::ge
         assetAccessor = urlAccessor;
     }
     const CesiumAsync::AsyncSystem& asyncSystem = getAsyncSystem();
-    auto resourcePreparer = std::make_shared<vsgResourcePreparer>(options, features);
+    auto resourcePreparer = std::make_shared<vsgResourcePreparer>(genv);
     auto creditSystem = std::make_shared<Cesium3DTilesSelection::CreditSystem>();
     using TE = Cesium3DTilesSelection::TilesetExternals;
     return _externals

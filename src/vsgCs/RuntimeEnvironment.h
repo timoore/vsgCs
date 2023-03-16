@@ -25,8 +25,8 @@ SOFTWARE.
 #pragma once
 
 #include "Export.h"
+#include "GraphicsEnvironment.h"
 #include <Cesium3DTilesSelection/TilesetExternals.h>
-#include <CesiumGltf/Ktx2TranscodeTargets.h>
 #include <vsg/app/WindowTraits.h>
 #include <vsg/core/Inherit.h>
 #include <vsg/io/Options.h>
@@ -34,20 +34,6 @@ SOFTWARE.
 namespace vsgCs
 {
 
-    /**
-     * @brief A compact representation of supported Vulkan features that are important to vsgCs.
-     */
-    struct VSGCS_EXPORT DeviceFeatures
-    {
-        bool indexTypeUint8 = false;
-        bool largePoints = false;
-        bool textureCompressionETC2 = false;
-        bool textureCompressionASTC_LDR = false;
-        bool textureCompressionBC = false;
-        bool textureCompressionPVRTC = false;
-        CesiumGltf::Ktx2TranscodeTargets ktx2TranscodeTargets;
-        float pointSizeRange[2];
-    };
 
     /**
      * Objects that are needed by vsgCs for initializing VSG, Vulkan, Cesium Ion...
@@ -81,6 +67,13 @@ namespace vsgCs
          */
 
         DeviceFeatures prepareFeaturesAndExtensions(vsg::ref_ptr<vsg::Window> window);
+
+        /**
+         * @brief Initialize the graphics environment object. Not called by client code unless
+         * it is doing its own intitialization of the RuntimeEnvironment.
+         */
+        void initGraphicsEnvironment();
+        
         // Open window and prepare features and extensions for vsgCs.
         vsg::ref_ptr<vsg::Window> openWindow(const std::string& name,
                                              vsg::ref_ptr<vsg::WindowTraits> traits = {},
@@ -135,6 +128,7 @@ namespace vsgCs
         DeviceFeatures features;
         std::string ionAccessToken;
         bool generateShaderDebugInfo = false;
+        vsg::ref_ptr<GraphicsEnvironment> genv;
         static vsg::ref_ptr<RuntimeEnvironment> get();
     protected:
         std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> _externals;
