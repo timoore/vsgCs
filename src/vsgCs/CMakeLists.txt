@@ -29,6 +29,7 @@ set(SOURCES
   CesiumGltfBuilder.cpp
   CompilableImage.cpp
   DescriptorSetConfigurator.cpp
+  GltfLoader.cpp
   GraphicsEnvironment.cpp
   ImageComponent.cpp
   jsonUtils.cpp
