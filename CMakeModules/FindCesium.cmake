@@ -123,6 +123,16 @@ find_library(URIPARSER_LIBRARY_DEBUG
   HINTS ${CESIUM_ROOT_DIR}/lib ${CESIUM_LIBDIR}
   PATH_SUFFIXES Debug)
 
+find_library(TURBOJPEG_LIBRARY
+  NAME turbojpeg
+  HINTS ${CESIUM_ROOT_DIR}/lib ${CESIUM_LIBDIR}
+  PATH_SUFFIXES Release Debug)
+
+find_library(TURBOJPEG_LIBRARY_DEBUG
+  NAME turbojpegd turbojpeg
+  HINTS ${CESIUM_ROOT_DIR}/lib ${CESIUM_LIBDIR}
+  PATH_SUFFIXES Debug)
+
 
 find_path(CESIUM_INCLUDE_DIR
   NAMES Cesium3DTilesSelection/Tileset.h
@@ -233,6 +243,7 @@ add_library(ktx_read UNKNOWN IMPORTED)
 add_library(webpdecoder UNKNOWN IMPORTED)
 add_library(tinyxml2 UNKNOWN IMPORTED)
 add_library(uriparser UNKNOWN IMPORTED)
+add_library(turbojpeg UNKNOWN IMPORTED)
 
 add_library(cesium::Utility UNKNOWN IMPORTED)
 add_library(cesium::JsonReader UNKNOWN IMPORTED)
@@ -301,6 +312,11 @@ set_target_properties(uriparser PROPERTIES
 
 set_debug(uriparser "${URIPARSER_LIBRARY_DEBUG}")
 
+set_target_properties(turbojpeg PROPERTIES
+  IMPORTED_LOCATION "${TURBOJPEG_LIBRARY}")
+
+set_debug(turbojpeg "${TURBOJPEG_LIBRARY_DEBUG}")
+
 set_target_properties(cesium::Utility PROPERTIES
   IMPORTED_LOCATION "${CESIUM_UTILITY_LIBRARY}"
   INTERFACE_INCLUDE_DIRECTORIES "${CESIUM_INCLUDE_DIR}"
@@ -364,7 +380,8 @@ target_link_libraries(cesium::GltfReader
   modp_b64
   draco
   ktx_read
-  webpdecoder)
+  webpdecoder
+  turbojpeg)
 
 set_target_properties(cesium::GltfReader PROPERTIES
   IMPORTED_LOCATION "${CESIUM_GLTFREADER_LIBRARY}"
