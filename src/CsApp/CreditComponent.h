@@ -37,10 +37,10 @@ SOFTWARE.
 
 namespace CsApp
 {
-    class IonIconComponent : public vsg::Inherit<vsg::Object, IonIconComponent>
+    class CreditComponent : public vsg::Inherit<vsg::Object, CreditComponent>
     {
     public:
-        IonIconComponent(vsg::ref_ptr<vsg::Window> window, vsg::ref_ptr<vsg::Options> options, bool in_usesIon);
+        CreditComponent(vsg::ref_ptr<vsg::Window> window, vsg::ref_ptr<vsg::Options> options, bool in_usesIon);
         void compile(vsg::ref_ptr<vsg::Window> window, vsg::ref_ptr<vsg::Viewer> viewer);
         bool operator()();
         bool usesIon;

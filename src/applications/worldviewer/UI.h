@@ -27,7 +27,7 @@ SOFTWARE.
 #include <vsg/all.h>
 #include <vsgImGui/RenderImGui.h>
 #include <vsgImGui/SendEventsToImGui.h>
-#include "CsApp/IonIconComponent.h"
+#include "CsApp/CreditComponent.h"
 
 namespace vsgCs
 {
@@ -54,7 +54,7 @@ namespace vsgCs
                                                         bool in_usesIon);
 
         vsg::ref_ptr<vsgImGui::RenderImGui> _renderImGui;
-        vsg::ref_ptr<CsApp::IonIconComponent> _ionIconComponent;
+        vsg::ref_ptr<CsApp::CreditComponent> _ionIconComponent;
         vsg::ref_ptr<vsg::Trackball> _trackball;
     };
 }

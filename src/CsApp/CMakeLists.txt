@@ -1,11 +1,11 @@
 set(LIB_NAME CsApp)
 
 set(LIB_PUBLIC_HEADERS
-  IonIconComponent.h
+  CreditComponent.h
 )
 
 set(SOURCES
-  IonIconComponent.cpp
+  CreditComponent.cpp
 )
 
 add_library(

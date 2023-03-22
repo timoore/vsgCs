@@ -25,7 +25,7 @@ SOFTWARE.
 #include <vsg/all.h>
 #include <vsgImGui/imgui.h>
 
-#include "IonIconComponent.h"
+#include "CreditComponent.h"
 #include "vsgCs/Config.h"
 #include "vsgCs/runtimeSupport.h"
 #include "vsgCs/RuntimeEnvironment.h"
@@ -36,7 +36,7 @@ SOFTWARE.
 
 using namespace CsApp;
 
-IonIconComponent::IonIconComponent(vsg::ref_ptr<vsg::Window> window,
+CreditComponent::CreditComponent(vsg::ref_ptr<vsg::Window> window,
                                vsg::ref_ptr<vsg::Options> options, bool in_usesIon)
     : usesIon(in_usesIon)
 {
@@ -48,7 +48,7 @@ IonIconComponent::IonIconComponent(vsg::ref_ptr<vsg::Window> window,
     }
 }
 
-void IonIconComponent::compile(vsg::ref_ptr<vsg::Window>, vsg::ref_ptr<vsg::Viewer> viewer)
+void CreditComponent::compile(vsg::ref_ptr<vsg::Window>, vsg::ref_ptr<vsg::Viewer> viewer)
 {
     // XXX Should probably use the context select function.
     viewer->compileManager->compile(ionLogo);
@@ -93,7 +93,7 @@ namespace
 // make a future for it. When the future is resolved, then we can keep the image
 // in the map and return it.
 
-vsg::ref_ptr<vsgCs::ImageComponent> IonIconComponent::getImage(std::string url)
+vsg::ref_ptr<vsgCs::ImageComponent> CreditComponent::getImage(std::string url)
 {
     auto env = vsgCs::RuntimeEnvironment::get();
     auto insertResult = imageCache.insert(std::pair(url, RemoteImage()));
@@ -140,7 +140,7 @@ vsg::ref_ptr<vsgCs::ImageComponent> IonIconComponent::getImage(std::string url)
 
 // This is the lamest renderer ever: render a small line of HTML using ImGui.
 
-bool IonIconComponent::operator()()
+bool CreditComponent::operator()()
 {
     auto env = vsgCs::RuntimeEnvironment::get();
     bool visibleComponents = false;
