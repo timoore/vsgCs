@@ -138,6 +138,61 @@ vsg::ref_ptr<vsgCs::ImageComponent> CreditComponent::getImage(std::string url)
     }
 }
 
+vsg::ref_ptr<vsgImGui::Texture> CreditComponent::getTexture(std::string url)
+{
+    auto env = vsgCs::RuntimeEnvironment::get();
+    auto insertResult = imageCache.insert(std::pair(url, RemoteImage()));
+    RemoteImage& remoteImage = insertResult.first->second;
+    if (insertResult.second)
+    {
+        // New entry - image will be available later
+        remoteImage.imageResult = std::make_shared<ImageFuture>(vsgCs::readRemoteImage(url));
+    }
+
+    if (remoteImage.texture)
+    {
+        return remoteImage.texture;
+    }
+    else if (remoteImage.imageResult)
+    {
+        vsg::ref_ptr<vsgImGui::Texture> retval;
+        if (remoteImage.imageResult->isReady())
+        {
+            auto remoteResult = remoteImage.imageResult->wait();
+            if (!remoteResult.info)
+            {
+                for (auto& err : remoteResult.errors)
+                {
+                    vsg::error(err);
+                }
+            }
+            else
+            {
+                vsg::DescriptorSetLayoutBindings descriptorBindings{
+                    // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+                    {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}};
+
+                auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
+
+                retval = vsgImGui::Texture::create();
+                retval->height = remoteResult.info->imageView->image->data->height();
+                retval->width = remoteResult.info->imageView->image->data->width();
+                auto di = vsg::DescriptorImage::create(remoteResult.info, 0, 0);
+                retval->descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{di});
+                env->getViewer()->compileManager->compile(retval);
+                remoteImage.texture = retval;
+            }
+            remoteImage.imageResult.reset();
+        }
+        return retval;
+    }
+    else
+    {
+        // The Future was resolved, but with an error.
+        return {};
+    }
+}
+
 // This is the lamest renderer ever: render a small line of HTML using ImGui.
 
 bool CreditComponent::operator()()

@@ -31,6 +31,8 @@ SOFTWARE.
 
 #include <CesiumAsync/Future.h>
 
+#include <vsgImGui/Texture.h>
+
 #include <map>
 #include <string>
 #include <optional>
@@ -52,8 +54,10 @@ namespace CsApp
         {
             std::shared_ptr<ImageFuture> imageResult;
             vsg::ref_ptr<vsgCs::ImageComponent> component;
+            vsg::ref_ptr<vsgImGui::Texture> texture;
         };
         std::map<std::string, RemoteImage> imageCache;
         vsg::ref_ptr<vsgCs::ImageComponent> getImage(std::string url);
+        vsg::ref_ptr<vsgImGui::Texture> getTexture(std::string url);
     };
 }
