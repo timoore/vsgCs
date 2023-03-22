@@ -25,7 +25,7 @@ SOFTWARE.
 #include <vsg/all.h>
 #include <vsgImGui/imgui.h>
 
-#include "IonIconComponent.h"
+#include "CreditComponent.h"
 #include "vsgCs/Config.h"
 #include "vsgCs/runtimeSupport.h"
 #include "vsgCs/RuntimeEnvironment.h"
@@ -35,24 +35,6 @@ SOFTWARE.
 
 
 using namespace CsApp;
-
-IonIconComponent::IonIconComponent(vsg::ref_ptr<vsg::Window> window,
-                               vsg::ref_ptr<vsg::Options> options, bool in_usesIon)
-    : usesIon(in_usesIon)
-{
-    vsg::Path filename("images/Cesium_ion_256.png");
-    auto data = vsgCs::readImageFile(filename, options);
-    if (data)
-    {
-        ionLogo = vsgCs::ImageComponent::create(window, data);
-    }
-}
-
-void IonIconComponent::compile(vsg::ref_ptr<vsg::Window>, vsg::ref_ptr<vsg::Viewer> viewer)
-{
-    // XXX Should probably use the context select function.
-    viewer->compileManager->compile(ionLogo);
-}
 
 // This could quickly get out of hand... Fix the breakage we know about i.e., img with no closing />
 namespace
@@ -93,7 +75,7 @@ namespace
 // make a future for it. When the future is resolved, then we can keep the image
 // in the map and return it.
 
-vsg::ref_ptr<vsgCs::ImageComponent> IonIconComponent::getImage(std::string url)
+vsg::ref_ptr<vsgImGui::Texture> CreditComponent::getTexture(std::string url) const
 {
     auto env = vsgCs::RuntimeEnvironment::get();
     auto insertResult = imageCache.insert(std::pair(url, RemoteImage()));
@@ -101,20 +83,19 @@ vsg::ref_ptr<vsgCs::ImageComponent> IonIconComponent::getImage(std::string url)
     if (insertResult.second)
     {
         // New entry - image will be available later
-        remoteImage.imageResult = std::make_shared<ImageFuture>(vsgCs::readRemoteImage(url));
+        remoteImage.imageResult = std::make_shared<TextureFuture>(vsgCs::readRemoteTexture(url));
     }
-
-    if (remoteImage.component)
+    if (remoteImage.texture)
     {
-        return remoteImage.component;
+        return remoteImage.texture;
     }
     else if (remoteImage.imageResult)
     {
-        vsg::ref_ptr<vsgCs::ImageComponent> retval;
+        vsg::ref_ptr<vsgImGui::Texture> retval;
         if (remoteImage.imageResult->isReady())
         {
             auto remoteResult = remoteImage.imageResult->wait();
-            if (!remoteResult.info)
+            if (!remoteResult.texture)
             {
                 for (auto& err : remoteResult.errors)
                 {
@@ -123,9 +104,8 @@ vsg::ref_ptr<vsgCs::ImageComponent> IonIconComponent::getImage(std::string url)
             }
             else
             {
-                remoteImage.component = vsgCs::ImageComponent::create(ionLogo->_window, remoteResult.info);
-                env->getViewer()->compileManager->compile(remoteImage.component);
-                retval = remoteImage.component;
+                retval = remoteResult.texture;
+                remoteImage.texture = retval;
             }
             remoteImage.imageResult.reset();
         }
@@ -140,10 +120,9 @@ vsg::ref_ptr<vsgCs::ImageComponent> IonIconComponent::getImage(std::string url)
 
 // This is the lamest renderer ever: render a small line of HTML using ImGui.
 
-bool IonIconComponent::operator()()
+void CreditComponent::record(vsg::CommandBuffer& cb) const
 {
     auto env = vsgCs::RuntimeEnvironment::get();
-    bool visibleComponents = false;
     // Shamelessly copied from imgui_demo.cpp simple overlay
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
     const float PAD = 10.0f;
@@ -172,7 +151,6 @@ bool IonIconComponent::operator()()
             {
                 continue;
             }
-            visibleComponents = true;
             cleanHtml(html);
             tinyxml2::XMLDocument doc;
             tinyxml2::XMLError xerr = doc.Parse(html.c_str());
@@ -203,11 +181,12 @@ bool IonIconComponent::operator()()
                     {
                         auto src = element->Attribute("src");
                         auto alt = element->Attribute("alt");
-                        auto component = getImage(src);
+                        auto component = getTexture(src);
                         if (component)
                         {
                             auto height = component->height;
-                            (*component)();
+                            ImGui::Image(component->id(cb.deviceID), ImVec2(component->width,
+                                                                            component->height));
                             ImGui::SameLine();
                             auto pos = ImGui::GetCursorPos();
                             ImGui::SetCursorPosY(pos.y + height / 2.0 - ImGui::GetFontSize() / 2);
@@ -226,5 +205,4 @@ bool IonIconComponent::operator()()
 
     ImGui::End();
     ImGui::PopStyleVar();
-    return visibleComponents;
 }

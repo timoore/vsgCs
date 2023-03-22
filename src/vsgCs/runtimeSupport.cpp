@@ -275,6 +275,34 @@ namespace vsgCs
                     return ReadRemoteImageResult{imageInfo, {}};
                 });
     }
+
+    CesiumAsync::Future<ReadImGuiTextureResult> readRemoteTexture(const std::string &url, bool compile)
+    {
+        return readRemoteImage(url, false)
+            .thenImmediately([compile](ReadRemoteImageResult&& imageResult)
+            {
+                if (!imageResult.info)
+                {
+                    return ReadImGuiTextureResult{{}, imageResult.errors};
+                }
+                static const vsg::DescriptorSetLayoutBindings descriptorBindings{
+                    // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
+                    {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}};
+                static auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
+                auto retval = vsgImGui::Texture::create();
+                retval->height = imageResult.info->imageView->image->data->height();
+                retval->width = imageResult.info->imageView->image->data->width();
+                auto di = vsg::DescriptorImage::create(imageResult.info, 0, 0);
+                retval->descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{di});
+                if (compile)
+                {
+                    auto env = RuntimeEnvironment::get();
+                    env->getViewer()->compileManager->compile(retval);
+                }
+                return ReadImGuiTextureResult{retval, {}};
+            });
+    }
+
 } // namespace vsgCs
 
 namespace

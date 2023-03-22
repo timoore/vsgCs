@@ -245,7 +245,7 @@ int main(int argc, char** argv)
         // Create this application's user interface, including the trackball manipulator and the
         // graphical overlay.
         auto ui = vsgCs::UI::create();
-        ui->createUI(window, viewer, camera, ellipsoidModel, environment->options, true);
+        ui->createUI(window, viewer, camera, ellipsoidModel, environment->options);
         // Basic VSG objects for rendering
         auto commandGraph = vsg::CommandGraph::create(window);
         auto renderGraph = vsg::RenderGraph::create(window);
@@ -265,7 +265,6 @@ int main(int argc, char** argv)
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
         // Compile everything we can at this point.
         viewer->compile();
-        ui->compile(window, viewer);
         // Perform any late initialization of TilesetNode objects. Most importantly, this tracks VSG
         // cameras so that they can be used by cesium-native to determine visible tiles.
         worldNode->initialize(viewer);

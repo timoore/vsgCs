@@ -27,6 +27,8 @@ SOFTWARE.
 #include <glm/gtc/type_ptr.hpp>
 
 #include <vsg/all.h>
+#include <vsgImGui/Texture.h>
+
 #include <Cesium3DTilesSelection/Tile.h>
 
 #include "Export.h"
@@ -191,8 +193,20 @@ namespace vsgCs
     /**
      * @brief Read an image from a URL asynchronously.
      */
-    CesiumAsync::Future<ReadRemoteImageResult>
+    CesiumAsync::Future<ReadRemoteImageResult> VSGCS_EXPORT
     readRemoteImage(const std::string& url, bool compile = true);
+
+    struct ReadImGuiTextureResult
+    {
+        vsg::ref_ptr<vsgImGui::Texture> texture;
+        std::vector<std::string> errors{};
+    };
+
+    /**
+     * @brief Read a vsgImGui::Texture from a URL asynchronously.
+     */
+    CesiumAsync::Future<ReadImGuiTextureResult> VSGCS_EXPORT
+    readRemoteTexture(const std::string& url, bool compile = true);
 
     /**
      * @brief Creates a vsg::ref_ptr to a subclass using dynamic_cast from another ref_ptr.
