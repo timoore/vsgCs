@@ -44,10 +44,10 @@ namespace CsApp
         void record(vsg::CommandBuffer& cb) const override;
     protected:
         // level of indirection because of deleted Future constructors?
-        using ImageFuture = CesiumAsync::Future<vsgCs::ReadRemoteImageResult>;
+        using TextureFuture = CesiumAsync::Future<vsgCs::ReadImGuiTextureResult>;
         struct RemoteImage
         {
-            std::shared_ptr<ImageFuture> imageResult;
+            std::shared_ptr<TextureFuture> imageResult;
             vsg::ref_ptr<vsgImGui::Texture> texture;
         };
         mutable std::map<std::string, RemoteImage> imageCache;

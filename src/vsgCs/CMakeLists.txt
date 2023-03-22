@@ -10,7 +10,6 @@ set(LIB_PUBLIC_HEADERS
   CesiumGltfBuilder.h
   Export.h
   GraphicsEnvironment.h
-  ImageComponent.h
   jsonUtils.h
   LoadGltfResult.h
   ModelBuilder.h
@@ -30,7 +29,6 @@ set(SOURCES
   CompilableImage.cpp
   DescriptorSetConfigurator.cpp
   GraphicsEnvironment.cpp
-  ImageComponent.cpp
   jsonUtils.cpp
   ModelBuilder.cpp
   MultisetPipelineConfigurator.cpp

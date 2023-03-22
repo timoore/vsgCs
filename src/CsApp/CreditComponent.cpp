@@ -83,9 +83,8 @@ vsg::ref_ptr<vsgImGui::Texture> CreditComponent::getTexture(std::string url) con
     if (insertResult.second)
     {
         // New entry - image will be available later
-        remoteImage.imageResult = std::make_shared<ImageFuture>(vsgCs::readRemoteImage(url));
+        remoteImage.imageResult = std::make_shared<TextureFuture>(vsgCs::readRemoteTexture(url));
     }
-
     if (remoteImage.texture)
     {
         return remoteImage.texture;
@@ -96,7 +95,7 @@ vsg::ref_ptr<vsgImGui::Texture> CreditComponent::getTexture(std::string url) con
         if (remoteImage.imageResult->isReady())
         {
             auto remoteResult = remoteImage.imageResult->wait();
-            if (!remoteResult.info)
+            if (!remoteResult.texture)
             {
                 for (auto& err : remoteResult.errors)
                 {
@@ -105,18 +104,7 @@ vsg::ref_ptr<vsgImGui::Texture> CreditComponent::getTexture(std::string url) con
             }
             else
             {
-                vsg::DescriptorSetLayoutBindings descriptorBindings{
-                    // { binding, descriptorTpe, descriptorCount, stageFlags, pImmutableSamplers}
-                    {0, VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, nullptr}};
-
-                auto descriptorSetLayout = vsg::DescriptorSetLayout::create(descriptorBindings);
-
-                retval = vsgImGui::Texture::create();
-                retval->height = remoteResult.info->imageView->image->data->height();
-                retval->width = remoteResult.info->imageView->image->data->width();
-                auto di = vsg::DescriptorImage::create(remoteResult.info, 0, 0);
-                retval->descriptorSet = vsg::DescriptorSet::create(descriptorSetLayout, vsg::Descriptors{di});
-                env->getViewer()->compileManager->compile(retval);
+                retval = remoteResult.texture;
                 remoteImage.texture = retval;
             }
             remoteImage.imageResult.reset();
