@@ -36,24 +36,6 @@ SOFTWARE.
 
 using namespace CsApp;
 
-CreditComponent::CreditComponent(vsg::ref_ptr<vsg::Window> window,
-                               vsg::ref_ptr<vsg::Options> options, bool in_usesIon)
-    : usesIon(in_usesIon)
-{
-    vsg::Path filename("images/Cesium_ion_256.png");
-    auto data = vsgCs::readImageFile(filename, options);
-    if (data)
-    {
-        ionLogo = vsgCs::ImageComponent::create(window, data);
-    }
-}
-
-void CreditComponent::compile(vsg::ref_ptr<vsg::Window>, vsg::ref_ptr<vsg::Viewer> viewer)
-{
-    // XXX Should probably use the context select function.
-    viewer->compileManager->compile(ionLogo);
-}
-
 // This could quickly get out of hand... Fix the breakage we know about i.e., img with no closing />
 namespace
 {
@@ -93,52 +75,7 @@ namespace
 // make a future for it. When the future is resolved, then we can keep the image
 // in the map and return it.
 
-vsg::ref_ptr<vsgCs::ImageComponent> CreditComponent::getImage(std::string url)
-{
-    auto env = vsgCs::RuntimeEnvironment::get();
-    auto insertResult = imageCache.insert(std::pair(url, RemoteImage()));
-    RemoteImage& remoteImage = insertResult.first->second;
-    if (insertResult.second)
-    {
-        // New entry - image will be available later
-        remoteImage.imageResult = std::make_shared<ImageFuture>(vsgCs::readRemoteImage(url));
-    }
-
-    if (remoteImage.component)
-    {
-        return remoteImage.component;
-    }
-    else if (remoteImage.imageResult)
-    {
-        vsg::ref_ptr<vsgCs::ImageComponent> retval;
-        if (remoteImage.imageResult->isReady())
-        {
-            auto remoteResult = remoteImage.imageResult->wait();
-            if (!remoteResult.info)
-            {
-                for (auto& err : remoteResult.errors)
-                {
-                    vsg::error(err);
-                }
-            }
-            else
-            {
-                remoteImage.component = vsgCs::ImageComponent::create(ionLogo->_window, remoteResult.info);
-                env->getViewer()->compileManager->compile(remoteImage.component);
-                retval = remoteImage.component;
-            }
-            remoteImage.imageResult.reset();
-        }
-        return retval;
-    }
-    else
-    {
-        // The Future was resolved, but with an error.
-        return {};
-    }
-}
-
-vsg::ref_ptr<vsgImGui::Texture> CreditComponent::getTexture(std::string url)
+vsg::ref_ptr<vsgImGui::Texture> CreditComponent::getTexture(std::string url) const
 {
     auto env = vsgCs::RuntimeEnvironment::get();
     auto insertResult = imageCache.insert(std::pair(url, RemoteImage()));
@@ -195,10 +132,9 @@ vsg::ref_ptr<vsgImGui::Texture> CreditComponent::getTexture(std::string url)
 
 // This is the lamest renderer ever: render a small line of HTML using ImGui.
 
-bool CreditComponent::operator()()
+void CreditComponent::record(vsg::CommandBuffer& cb) const
 {
     auto env = vsgCs::RuntimeEnvironment::get();
-    bool visibleComponents = false;
     // Shamelessly copied from imgui_demo.cpp simple overlay
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
     const float PAD = 10.0f;
@@ -227,7 +163,6 @@ bool CreditComponent::operator()()
             {
                 continue;
             }
-            visibleComponents = true;
             cleanHtml(html);
             tinyxml2::XMLDocument doc;
             tinyxml2::XMLError xerr = doc.Parse(html.c_str());
@@ -258,11 +193,12 @@ bool CreditComponent::operator()()
                     {
                         auto src = element->Attribute("src");
                         auto alt = element->Attribute("alt");
-                        auto component = getImage(src);
+                        auto component = getTexture(src);
                         if (component)
                         {
                             auto height = component->height;
-                            (*component)();
+                            ImGui::Image(component->id(cb.deviceID), ImVec2(component->width,
+                                                                            component->height));
                             ImGui::SameLine();
                             auto pos = ImGui::GetCursorPos();
                             ImGui::SetCursorPosY(pos.y + height / 2.0 - ImGui::GetFontSize() / 2);
@@ -281,5 +217,4 @@ bool CreditComponent::operator()()
 
     ImGui::End();
     ImGui::PopStyleVar();
-    return visibleComponents;
 }

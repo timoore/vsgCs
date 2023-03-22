@@ -40,10 +40,9 @@ bool UI::createUI(vsg::ref_ptr<vsg::Window> window,
                   vsg::ref_ptr<vsg::Viewer> viewer,
                   vsg::ref_ptr<vsg::Camera> camera,
                   vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel,
-                  vsg::ref_ptr<vsg::Options> options,
-                  bool usesIon)
+                  vsg::ref_ptr<vsg::Options>)
 {
-    createImGui(window, viewer,  options, usesIon);
+    createImGui(window);
     // Add the ImGui event handler first to handle events early
     viewer->addEventHandler(vsgImGui::SendEventsToImGui::create());
     _trackball = vsg::Trackball::create(camera, ellipsoidModel);
@@ -68,19 +67,11 @@ bool UI::createUI(vsg::ref_ptr<vsg::Window> window,
     return true;
 }
 
-vsg::ref_ptr<vsgImGui::RenderImGui> UI::createImGui(vsg::ref_ptr<vsg::Window> window,
-                                                   vsg::ref_ptr<vsg::Viewer>,
-                                                   vsg::ref_ptr<vsg::Options> options,
-                                                   bool usesIon)
+vsg::ref_ptr<vsgImGui::RenderImGui> UI::createImGui(vsg::ref_ptr<vsg::Window> window)
 {
-    _ionIconComponent = CsApp::CreditComponent::create(window, options, usesIon);
-    _renderImGui = vsgImGui::RenderImGui::create(window, *_ionIconComponent);
+    _ionIconComponent = CsApp::CreditComponent::create();
+    _renderImGui = vsgImGui::RenderImGui::create(window, _ionIconComponent);
     return _renderImGui;
-}
-
-void UI::compile(vsg::ref_ptr<vsg::Window> window, vsg::ref_ptr<vsg::Viewer> viewer)
-{
-    _ionIconComponent->compile(window, viewer);
 }
 
 void UI::setViewpoint(vsg::ref_ptr<vsg::LookAt> lookAt, float duration)

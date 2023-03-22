@@ -237,7 +237,7 @@ int main(int argc, char** argv)
         }
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
         auto ui = vsgCs::UI::create();
-        ui->createUI(window, viewer, camera, ellipsoidModel, environment->options, ionAsset >= 0);
+        ui->createUI(window, viewer, camera, ellipsoidModel, environment->options);
         auto commandGraph = vsg::CommandGraph::create(window);
         auto renderGraph = vsg::RenderGraph::create(window);
         renderGraph->setClearValues({{0.02899f, 0.02899f, 0.13321f}});
@@ -254,7 +254,6 @@ int main(int argc, char** argv)
         renderGraph->addChild(ui->getImGui());
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
         viewer->compile();
-        ui->compile(window, viewer);
 
         tilesetNode->initialize(viewer);
         

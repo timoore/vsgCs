@@ -27,7 +27,6 @@ SOFTWARE.
 #include "vsgCs/runtimeSupport.h"
 #include <vsgImGui/RenderImGui.h>
 #include <vsgImGui/SendEventsToImGui.h>
-#include "vsgCs/ImageComponent.h"
 
 #include <CesiumAsync/Future.h>
 
@@ -39,25 +38,19 @@ SOFTWARE.
 
 namespace CsApp
 {
-    class CreditComponent : public vsg::Inherit<vsg::Object, CreditComponent>
+    class CreditComponent : public vsg::Inherit<vsg::Command, CreditComponent>
     {
     public:
-        CreditComponent(vsg::ref_ptr<vsg::Window> window, vsg::ref_ptr<vsg::Options> options, bool in_usesIon);
-        void compile(vsg::ref_ptr<vsg::Window> window, vsg::ref_ptr<vsg::Viewer> viewer);
-        bool operator()();
-        bool usesIon;
+        void record(vsg::CommandBuffer& cb) const override;
     protected:
-        vsg::ref_ptr<vsgCs::ImageComponent> ionLogo;
         // level of indirection because of deleted Future constructors?
         using ImageFuture = CesiumAsync::Future<vsgCs::ReadRemoteImageResult>;
         struct RemoteImage
         {
             std::shared_ptr<ImageFuture> imageResult;
-            vsg::ref_ptr<vsgCs::ImageComponent> component;
             vsg::ref_ptr<vsgImGui::Texture> texture;
         };
-        std::map<std::string, RemoteImage> imageCache;
-        vsg::ref_ptr<vsgCs::ImageComponent> getImage(std::string url);
-        vsg::ref_ptr<vsgImGui::Texture> getTexture(std::string url);
+        mutable std::map<std::string, RemoteImage> imageCache;
+        vsg::ref_ptr<vsgImGui::Texture> getTexture(std::string url) const;
     };
 }
