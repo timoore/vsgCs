@@ -250,7 +250,7 @@ int main(int argc, char** argv)
         // Create this application's user interface, including the trackball manipulator and the
         // graphical overlay.
         auto ui = vsgCs::UI::create();
-        ui->createUI(window, viewer, camera, ellipsoidModel, environment->options);
+        ui->createUI(window, viewer, camera, ellipsoidModel, environment->options, worldNode);
         // Basic VSG objects for rendering
         auto commandGraph = vsg::CommandGraph::create(window);
         auto renderGraph = vsg::RenderGraph::create(window);

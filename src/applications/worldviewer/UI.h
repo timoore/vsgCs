@@ -28,6 +28,7 @@ SOFTWARE.
 #include <vsgImGui/RenderImGui.h>
 #include <vsgImGui/SendEventsToImGui.h>
 #include "CsApp/CreditComponent.h"
+#include "CsApp/MapManipulator.h"
 
 namespace vsgCs
 {
@@ -38,7 +39,8 @@ namespace vsgCs
                       vsg::ref_ptr<vsg::Viewer> viewer,
                       vsg::ref_ptr<vsg::Camera> camera,
                       vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel,
-                      vsg::ref_ptr<vsg::Options> options);
+                      vsg::ref_ptr<vsg::Options> options,
+                      vsg::ref_ptr<WorldNode> worldNode);
         vsg::ref_ptr<vsgImGui::RenderImGui> getImGui()
         {
             return _renderImGui;
@@ -50,5 +52,6 @@ namespace vsgCs
         vsg::ref_ptr<vsgImGui::RenderImGui> _renderImGui;
         vsg::ref_ptr<CsApp::CreditComponent> _ionIconComponent;
         vsg::ref_ptr<vsg::Trackball> _trackball;
+        vsg::ref_ptr<MapManipulator> _mapManipulator;
     };
 }

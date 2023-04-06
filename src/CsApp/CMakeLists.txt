@@ -2,10 +2,12 @@ set(LIB_NAME CsApp)
 
 set(LIB_PUBLIC_HEADERS
   CreditComponent.h
+  MapManipulator.h
 )
 
 set(SOURCES
   CreditComponent.cpp
+  MapManipulator.cpp
 )
 
 add_library(
