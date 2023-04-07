@@ -57,6 +57,43 @@ SOFTWARE.
 using namespace vsgCs;
 using namespace CesiumGltf;
 
+// Translate from a Cesium3dTilesSelection::BoundingVolume to a bounding sphere. Inspired by
+// cesium-unreal.
+struct BoundingSphereOperation
+{
+
+    vsg::dsphere operator()(const CesiumGeometry::BoundingSphere& sphere) const
+    {
+        return vsg::dsphere(glm2vsg(sphere.getCenter()), sphere.getRadius());
+    }
+
+    vsg::dsphere operator()(const CesiumGeometry::OrientedBoundingBox& box) const
+    {
+        vsg::dvec3 center = glm2vsg(box.getCenter());
+        glm::dmat3 halfAxes = box.getHalfAxes();
+        glm::dvec3 corner1 = halfAxes[0] + halfAxes[1];
+        glm::dvec3 corner2 = halfAxes[0] + halfAxes[2];
+        glm::dvec3 corner3 = halfAxes[1] + halfAxes[2];
+        double sphereRadius = glm::max(glm::length(corner1), glm::length(corner2));
+        sphereRadius = glm::max(sphereRadius, glm::length(corner3));
+        return vsg::dsphere(center, sphereRadius);
+    }
+
+  vsg::dsphere operator()(const CesiumGeospatial::BoundingRegion& region) const
+    {
+        return (*this)(region.getBoundingBox());
+    }
+
+  vsg::dsphere operator()(const CesiumGeospatial::BoundingRegionWithLooseFittingHeights& region) const
+    {
+        return (*this)(region.getBoundingRegion());
+    }
+
+  vsg::dsphere operator()(const CesiumGeospatial::S2CellBoundingVolume& s2) const
+    {
+        return (*this)(s2.computeBoundingRegion());
+    }
+};
 
 CesiumGltfBuilder::CesiumGltfBuilder(const vsg::ref_ptr<vsg::Options>& vsgOptions,
                                      const DeviceFeatures& deviceFeatures)
@@ -75,21 +112,36 @@ CesiumGltfBuilder::CesiumGltfBuilder(const vsg::ref_ptr<GraphicsEnvironment>& ge
 // it later.
 //
 
-struct RasterData
+namespace
 {
-    std::string name;
-    vsg::ref_ptr<vsg::ImageInfo> rasterImage;
-    pbr::OverlayParams overlayParams;
-};
-
-struct Rasters : public vsg::Inherit<vsg::Object, Rasters>
-{
-    explicit Rasters(size_t numOverlays)
-        : overlayRasters(numOverlays)
+    struct RasterData
     {
+        std::string name;
+        vsg::ref_ptr<vsg::ImageInfo> rasterImage;
+        pbr::OverlayParams overlayParams;
+    };
+
+    struct Rasters : public vsg::Inherit<vsg::Object, Rasters>
+    {
+        explicit Rasters(size_t numOverlays)
+            : overlayRasters(numOverlays)
+        {
+        }
+        std::vector<RasterData> overlayRasters;
+    };
+
+    // Create a new Rasters object and store it in node if necessary
+    vsg::ref_ptr<Rasters> getOrCreateRasters(const vsg::ref_ptr<vsg::Node>& node)
+    {
+        vsg::ref_ptr<Rasters> rasters(node->getObject<Rasters>("vsgCs_rasterData"));
+        if (!rasters.valid())
+        {
+            rasters = Rasters::create(pbr::maxOverlays);
+            node->setObject("vsgCs_rasterData", rasters);
+        }
+        return rasters;
     }
-    std::vector<RasterData> overlayRasters;
-};
+}
 
 vsg::ref_ptr<vsg::StateCommand> makeTileStateCommand(const vsg::ref_ptr<GraphicsEnvironment>& genv,
                                                      const Rasters& rasters,
@@ -130,6 +182,26 @@ CesiumGltfBuilder::load(CesiumGltf::Model* model, const CreateModelOptions& opti
     return builder();
 }
 
+vsg::ref_ptr<vsg::StateGroup> CesiumGltfBuilder::getTileStateGroup(const vsg::ref_ptr<vsg::Node>& node)
+{
+    vsg::ref_ptr<vsg::MatrixTransform> transformNode;
+    auto cullNode = ref_ptr_cast<vsg::CullNode>(node);
+    if (cullNode.valid())
+    {
+        transformNode = ref_ptr_cast<vsg::MatrixTransform>(cullNode->child);
+    }
+    else
+    {
+        transformNode = ref_ptr_cast<vsg::MatrixTransform>(node);
+    }
+    if (!transformNode.valid())
+    {
+        vsg::warn("Weird tile graph");
+        return {};
+    }
+    return ref_ptr_cast<vsg::StateGroup>(transformNode->children[0]);
+}
+
 vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::TileLoadResult&& tileLoadResult,
                                                     const glm::dmat4 &transform,
                                                     const CreateModelOptions& modelOptions)
@@ -157,15 +229,20 @@ vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::Tile
     tileStateGroup->add(bindViewDescriptorSets);
     tileStateGroup->addChild(modelNode);
     transformNode->addChild(tileStateGroup);
+    if (tileLoadResult.updatedBoundingVolume)
+    {
+        vsg::dsphere bounds = visit(BoundingSphereOperation(), *tileLoadResult.updatedBoundingVolume);
+        auto cullNode = vsg::CullNode::create(bounds, transformNode);
+        return cullNode;
+    }
     return transformNode;
 }
 
 vsg::ref_ptr<vsg::Object> CesiumGltfBuilder::attachTileData(Cesium3DTilesSelection::Tile& tile,
                                                             const vsg::ref_ptr<vsg::Node>& node)
 {
-    auto rasters = Rasters::create(pbr::maxOverlays);
-    auto transformNode = ref_ptr_cast<vsg::MatrixTransform>(node);
-    auto tileStateGroup = ref_ptr_cast<vsg::StateGroup>(transformNode->children[0]);
+    auto rasters = getOrCreateRasters(node);
+    auto tileStateGroup = getTileStateGroup(node);
     auto tileStateCommand = makeTileStateCommand(_genv, *rasters, tile);
     tileStateGroup->add(tileStateCommand);
     return tileStateCommand;
@@ -213,19 +290,8 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
                                                     const glm::dvec2& scale)
 {
     ModifyRastersResult result;
-    vsg::ref_ptr<vsg::MatrixTransform> matrixTransform = node.cast<vsg::MatrixTransform>();
-    if (!matrixTransform)
-    {
-        return {};                 // uhhhh
-    }
-    vsg::ref_ptr<Rasters> rasters(matrixTransform->getObject<Rasters>("vsgCs_rasterData"));
-    if (!rasters)
-    {
-        rasters = Rasters::create(pbr::maxOverlays);
-        matrixTransform->setObject("vsgCs_rasterData", rasters);
-    }
-
-    vsg::ref_ptr<vsg::StateGroup> stateGroup = matrixTransform->children[0].cast<vsg::StateGroup>();
+    vsg::ref_ptr<Rasters> rasters = getOrCreateRasters(node);
+    vsg::ref_ptr<vsg::StateGroup> stateGroup = getTileStateGroup(node);
     if (!stateGroup)
     {
         return {};
@@ -261,17 +327,8 @@ CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile& tile,
                                 const Cesium3DTilesSelection::RasterOverlayTile& rasterTile)
 {
     ModifyRastersResult result;
-    vsg::ref_ptr<vsg::MatrixTransform> matrixTransform = node.cast<vsg::MatrixTransform>();
-    if (!matrixTransform)
-    {
-        return {};                 // uhhhh
-    }
-    vsg::ref_ptr<Rasters> rasters(matrixTransform->getObject<Rasters>("vsgCs_rasterData"));
-    if (!rasters)
-    {
-        return {};
-    }
-    vsg::ref_ptr<vsg::StateGroup> stateGroup = matrixTransform->children[0].cast<vsg::StateGroup>();
+    vsg::ref_ptr<Rasters> rasters = getOrCreateRasters(node);
+    vsg::ref_ptr<vsg::StateGroup> stateGroup = getTileStateGroup(node);
     if (!stateGroup)
     {
         return {};
