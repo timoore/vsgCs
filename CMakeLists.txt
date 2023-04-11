@@ -24,6 +24,8 @@ endif()
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
+option(RUN_CLANG_TIDY "run the clang-tidy checker" OFF)
+
 # Find Vulkan and the VSG
 if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
@@ -41,6 +43,13 @@ find_package(vsgImGui ${VSGIMGUI_MIN_VERSION} REQUIRED)
 set(FIND_DEPENDENCY ${FIND_DEPENDENCY} "find_dependency(vsg ${VSG_MIN_VERSION} REQUIRED)")
 
 find_package(Cesium REQUIRED)
+
+if (RUN_CLANG_TIDY)
+  find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
+  if(CLANG_TIDY_EXE)
+    set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=google-*,performance-*,portability-*,readability-*,modernize-*,-google-build-using-namespace,-readability-identifier-length,-readability-uppercase-literal-suffix,-google-readability-namespace-comments,-readability-named-parameter,-readability-implicit-bool-conversion,-readability-magic-numbers,-modernize-use-trailing-return-type)
+  endif()
+endif()
 
 vsgcs_setup_build_vars()
 # This does include(GNUInstallDirs), which sets up all the correct install directories.
