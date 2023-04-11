@@ -225,7 +225,12 @@ vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::Tile
 
     auto rasters = Rasters::create(pbr::maxOverlays);
     transformNode->setObject("vsgCs_rasterData", rasters);
-
+    // For debugging
+    auto it = model.extras.find("Cesium3DTiles_TileUrl");
+    std::string url = it != model.extras.end()
+        ? it->second.getStringOrDefault("Unknown Tile URL")
+        : "Unknown Tile URL";
+    transformNode->setValue("tileUrl", url);
     tileStateGroup->add(bindViewDescriptorSets);
     tileStateGroup->addChild(modelNode);
     transformNode->addChild(tileStateGroup);
@@ -238,14 +243,31 @@ vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::Tile
     return transformNode;
 }
 
-vsg::ref_ptr<vsg::Object> CesiumGltfBuilder::attachTileData(Cesium3DTilesSelection::Tile& tile,
-                                                            const vsg::ref_ptr<vsg::Node>& node)
+AttachTileDataResult
+CesiumGltfBuilder::attachTileData(Cesium3DTilesSelection::Tile& tile,
+                                  const vsg::ref_ptr<vsg::Node>& node)
 {
     auto rasters = getOrCreateRasters(node);
     auto tileStateGroup = getTileStateGroup(node);
     auto tileStateCommand = makeTileStateCommand(_genv, *rasters, tile);
     tileStateGroup->add(tileStateCommand);
-    return tileStateCommand;
+    // Were we able to create a CullNode for this tile?
+    auto transformNode = ref_ptr_cast<vsg::MatrixTransform>(node);
+    if (transformNode.valid())
+    {
+        vsg::dsphere bounds;
+        if (tile.getContentBoundingVolume())
+        {
+            bounds = visit(BoundingSphereOperation(), *tile.getContentBoundingVolume());
+        }
+        else
+        {
+            bounds = visit(BoundingSphereOperation(), tile.getBoundingVolume());
+        }
+        auto cullNode = vsg::CullNode::create(bounds, transformNode);
+        return {tileStateCommand, cullNode};
+    }
+    return {tileStateCommand, node};
 }
 
 vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumTextureSource&& imageSource,

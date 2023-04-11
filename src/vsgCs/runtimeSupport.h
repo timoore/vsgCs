@@ -300,4 +300,6 @@ namespace vsgCs
     }
 
     std::optional<uint32_t> getUintSuffix(const std::string& prefix, const std::string& data);
+
+    std::string getTileUrl(const vsg::Object* obj);
 }

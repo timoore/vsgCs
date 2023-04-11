@@ -106,15 +106,16 @@ vsgResourcePreparer::readAndCompile(Cesium3DTilesSelection::TileLoadResult &&til
     return result;
 }
 
-RenderResources* merge(vsgResourcePreparer* preparer, LoadModelResult& result, vsg::ref_ptr<vsg::Object> attachResult)
+RenderResources* merge(vsgResourcePreparer* preparer, LoadModelResult& result,
+                       const AttachTileDataResult& attachResult)
 {
     vsg::ref_ptr<vsg::Viewer> ref_viewer = preparer->viewer;
     if (ref_viewer)
     {
         updateViewer(*ref_viewer, result.compileResult);
-        auto attachCompileResult = ref_viewer->compileManager->compile(attachResult);
+        auto attachCompileResult = ref_viewer->compileManager->compile(attachResult.descriptorData);
         vsg::updateViewer(*ref_viewer, attachCompileResult);
-        return new RenderResources{result.modelResult};
+        return new RenderResources{attachResult.updatedModel};
     }
     return nullptr;
 }
