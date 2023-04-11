@@ -24,10 +24,13 @@ SOFTWARE.
 
 #include "UrlAssetAccessor.h"
 
+#include "Tracing.h"
+
 #include <CesiumAsync/IAssetResponse.h>
 
 #include <curl/curl.h>
 #include <cstring>
+
 
 using namespace vsgCs;
 
@@ -205,6 +208,7 @@ UrlAssetAccessor::get(const CesiumAsync::AsyncSystem& asyncSystem,
                       const std::string& url,
                       const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers)
 {
+    VSGCS_ZONESCOPED;
     const auto& userAgent = _userAgent;
     return asyncSystem.createFuture<std::shared_ptr<CesiumAsync::IAssetRequest>>(
         [&url, &headers, &userAgent, &asyncSystem](const auto& promise)
@@ -251,6 +255,7 @@ UrlAssetAccessor::request(const CesiumAsync::AsyncSystem& asyncSystem,
                           const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers,
                           const gsl::span<const std::byte>& contentPayload)
 {
+    VSGCS_ZONESCOPED;
     const auto& userAgent = _userAgent;
     return asyncSystem.createFuture<std::shared_ptr<CesiumAsync::IAssetRequest>>(
         [&url, &headers, &userAgent, &verb, &contentPayload, &asyncSystem](const auto& promise)

@@ -9,13 +9,17 @@ INCLUDE_DIRECTORIES(${Vulkan_INCLUDE_DIR})
 
 add_executable(worldviewer ${SOURCES})
 
-target_link_libraries(worldviewer vsgCs CsApp vsg::vsg)
+target_link_libraries(worldviewer PUBLIC vsgCs CsApp vsg::vsg)
 
-target_link_libraries(worldviewer vsgImGui::vsgImGui)
+target_link_libraries(worldviewer PUBLIC vsgImGui::vsgImGui)
 
 if (vsgXchange_FOUND)
   target_compile_definitions(worldviewer PRIVATE vsgXchange_FOUND)
-  target_link_libraries(worldviewer vsgXchange::vsgXchange)
+  target_link_libraries(worldviewer PRIVATE vsgXchange::vsgXchange)
+endif()
+
+if (TRACY_ENABLE)
+  target_link_libraries(worldviewer PUBLIC Tracy::TracyClient)
 endif()
 
 install(TARGETS worldviewer

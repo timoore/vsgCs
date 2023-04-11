@@ -25,7 +25,11 @@ else()
   target_compile_definitions(${LIB_NAME} PUBLIC VSGCS_LIBRARY_STATIC)
 endif()
 
-target_link_libraries(${LIB_NAME} vsgCs vsg::vsg vsgImGui::vsgImGui cesium::3DTilesSelection cesium::GltfReader cesium::Gltf)
+target_link_libraries(${LIB_NAME} PUBLIC vsgCs vsg::vsg vsgImGui::vsgImGui cesium::3DTilesSelection cesium::GltfReader cesium::Gltf)
+
+if(TRACY_ENABLE)
+  target_link_libraries(${LIB_NAME} PUBLIC Tracy::TracyClient)
+endif()
 
 install(TARGETS CsApp EXPORT CsAppTargets
   LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}

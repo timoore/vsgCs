@@ -28,6 +28,7 @@ SOFTWARE.
 #include "jsonUtils.h"
 #include "OpThreadTaskProcessor.h"
 #include "RuntimeEnvironment.h"
+#include "Tracing.h"
 #include "UrlAssetAccessor.h"
 
 #include <CesiumUtility/JsonHelpers.h>
@@ -336,6 +337,7 @@ void TilesetNode::UpdateTileset::run()
     {
         return;
     }
+    VSGCS_ZONESCOPEDN("update view");
     std::vector<Cesium3DTilesSelection::ViewState> viewStates;
     for_each_view(viewer,
                   [&viewStates](vsg::ref_ptr<vsg::View> view, vsg::ref_ptr<vsg::RenderGraph> rg)

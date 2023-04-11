@@ -26,6 +26,7 @@ SOFTWARE.
 
 #include "CompilableImage.h"
 #include "RuntimeEnvironment.h"
+#include "Tracing.h"
 
 #include <Cesium3DTilesSelection/GltfUtilities.h>
 #include <Cesium3DTilesSelection/Tile.h>
@@ -58,6 +59,7 @@ void DeletionQueue::run()
 
 void DeletionQueue::run(vsg::ref_ptr<vsg::Viewer> viewer)
 {
+    VSGCS_ZONESCOPED;
     const auto frameStamp = viewer->getFrameStamp();
     if (lastFrameRun == std::numeric_limits<uint64_t>::max())
     {
@@ -123,6 +125,7 @@ vsgResourcePreparer::prepareInLoadThread(const CesiumAsync::AsyncSystem& asyncSy
                                          const glm::dmat4& transform,
                                          const std::any&)
 {
+    VSGCS_ZONESCOPED;
     CesiumGltf::Model* pModel = std::get_if<CesiumGltf::Model>(&tileLoadResult.contentKind);
     if (!pModel)
     {
@@ -147,6 +150,7 @@ void*
 vsgResourcePreparer::prepareInMainThread(Cesium3DTilesSelection::Tile& tile,
                                          void* pLoadThreadResult)
 {
+    VSGCS_ZONESCOPED;
     // Cesium doesn't make the Tile object available to the load thread for some reason. Therefore
     // we need to attach the descriptor set with tile-specific data here.
     const Cesium3DTilesSelection::TileContent& content = tile.getContent();
@@ -163,6 +167,7 @@ void vsgResourcePreparer::free(Cesium3DTilesSelection::Tile&,
                                void* pLoadThreadResult,
                                void* pMainThreadResult) noexcept
 {
+    VSGCS_ZONESCOPED;
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     LoadModelResult* loadModelResult = reinterpret_cast<LoadModelResult*>(pLoadThreadResult);
     RenderResources* renderResources = reinterpret_cast<RenderResources*>(pMainThreadResult);
@@ -189,6 +194,7 @@ void*
 vsgResourcePreparer::prepareRasterInLoadThread(CesiumGltf::ImageCesium& image,
                                                const std::any& rendererOptions)
 {
+    VSGCS_ZONESCOPED;
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     if (!ref_viewer)
         return nullptr;
@@ -208,6 +214,7 @@ void*
 vsgResourcePreparer::prepareRasterInMainThread(Cesium3DTilesSelection::RasterOverlayTile&,
                                                void* rawLoadResult)
 {
+    VSGCS_ZONESCOPED;
     LoadRasterResult* loadRasterResult = static_cast<LoadRasterResult*>(rawLoadResult);
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     if (ref_viewer)
@@ -223,6 +230,7 @@ vsgResourcePreparer::freeRaster(const Cesium3DTilesSelection::RasterOverlayTile&
                                 void* loadThreadResult,
                                 void* mainThreadResult) noexcept
 {
+    VSGCS_ZONESCOPED;
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     LoadRasterResult* loadRasterResult = static_cast<LoadRasterResult*>(loadThreadResult);
     RasterResources* rasterResources = static_cast<RasterResources*>(mainThreadResult);
@@ -269,6 +277,7 @@ vsgResourcePreparer::attachRasterInMainThread(const Cesium3DTilesSelection::Tile
                                   const glm::dvec2& translation,
                                   const glm::dvec2& scale)
 {
+    VSGCS_ZONESCOPED;
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     if (!ref_viewer)
         return;
@@ -291,6 +300,7 @@ vsgResourcePreparer::detachRasterInMainThread(const Cesium3DTilesSelection::Tile
                                               const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
                                               void*) noexcept
 {
+    VSGCS_ZONESCOPED;
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     if (!ref_viewer)
         return;

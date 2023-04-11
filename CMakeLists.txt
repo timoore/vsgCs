@@ -100,3 +100,11 @@ add_subdirectory(src)
 add_subdirectory(data)
 
 vsg_add_feature_summary()
+
+option(BUILD_TRACY "build with tracy profiling and server" OFF)
+
+if (BUILD_TRACY)
+  option ( TRACY_ENABLE "" ON)
+  option ( TRACY_ON_DEMAND "" ON)
+  add_subdirectory(3rdparty/tracy)
+endif()

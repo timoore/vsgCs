@@ -49,9 +49,14 @@ SOFTWARE.
 #include "vsgCs/CsOverlay.h"
 #include "vsgCs/jsonUtils.h"
 #include "vsgCs/OpThreadTaskProcessor.h"
+#include "vsgCs/Tracing.h"
 #include "vsgCs/RuntimeEnvironment.h"
 #include "vsgCs/WorldNode.h"
 #include "UI.h"
+
+#ifdef TRACY_ENABLE
+#include "tracy/Tracy.hpp"
+#endif
 
 void usage(const char* name)
 {
@@ -286,11 +291,17 @@ int main(int argc, char** argv)
             viewer->handleEvents();
             // XXX This should be moved to vsg::Viewer update operation.
             environment->update();
-            viewer->update();
-
-            viewer->recordAndSubmit();
+            {
+                VSGCS_ZONESCOPEDN("viewer update");
+                viewer->update();
+            }
+            {
+                VSGCS_ZONESCOPEDN("viewer record");
+                viewer->recordAndSubmit();
+            }
 
             viewer->present();
+            VSGCS_FRAMEMARK;
         }
     }
     catch (const vsg::Exception& ve)
