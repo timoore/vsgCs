@@ -28,7 +28,6 @@ SOFTWARE.
 
 #include <CesiumAsync/IAssetResponse.h>
 
-#include <curl/curl.h>
 #include <cstring>
 
 
@@ -84,12 +83,12 @@ public:
     }
 
     
-    virtual const std::string& method() const
+    virtual const std::string& method() const override
     {
         return this->_method;
     }
 
-    virtual const std::string& url() const
+    virtual const std::string& url() const override
     {
         return this->_url;
     }
@@ -172,7 +171,7 @@ void UrlAssetResponse::setCallbacks(CURL* curl)
 }
 
 UrlAssetAccessor::UrlAssetAccessor()
-    : _userAgent("Mozilla/5.0 Cesium for VSG")
+    :  userAgent("Mozilla/5.0 Cesium for VSG")
 {
     // XXX Do we need to worry about the thread safety problems with this?
     curl_global_init(CURL_GLOBAL_ALL);
@@ -183,14 +182,41 @@ UrlAssetAccessor::~UrlAssetAccessor()
     curl_global_cleanup();
 }
 
-static curl_slist* setCommonOptions(CURL* curl, const std::string& url, const std::string& userAgent,
-                                    const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers)
+class CurlHandle
+{
+public:
+    CurlHandle(UrlAssetAccessor* in_accessor)
+        : _accessor(in_accessor)
+
+    {
+        _curl = _accessor->curlCache.get();
+    }
+
+    ~CurlHandle()
+    {
+        _accessor->curlCache.release(_curl);
+    }
+
+    CURL* operator()() const
+    {
+        return _curl;
+    }
+
+private:
+    UrlAssetAccessor* _accessor;
+    CURL* _curl;
+};
+
+template <typename TC>
+curl_slist* setCommonOptions(CURL* curl, const std::string& url, const std::string& userAgent,
+                                    const TC& headers)
 {
     curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
+    // curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_slist* list = nullptr;
-    for (const CesiumAsync::IAssetAccessor::THeader& header : headers)
+    for (const typename TC::value_type& header : headers)
     {
         std::string fullHeader = header.first + ":" + header.second;
         list = curl_slist_append(list, fullHeader.c_str());
@@ -208,28 +234,29 @@ UrlAssetAccessor::get(const CesiumAsync::AsyncSystem& asyncSystem,
                       const std::string& url,
                       const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers)
 {
-    VSGCS_ZONESCOPED;
-    const auto& userAgent = _userAgent;
     return asyncSystem.createFuture<std::shared_ptr<CesiumAsync::IAssetRequest>>(
-        [&url, &headers, &userAgent, &asyncSystem](const auto& promise)
+        [&](const auto& promise)
       {
           std::shared_ptr<UrlAssetRequest> request
               = std::make_shared<UrlAssetRequest>("GET", url, headers);
-          auto curl = curl_easy_init();
-          curl_slist* list = setCommonOptions(curl, url, userAgent, headers);
-          asyncSystem.runInWorkerThread([curl, list, promise, request]()
+          auto accessor = this;
+          asyncSystem.runInWorkerThread([promise, request, accessor]()
           {
+              VSGCS_ZONESCOPEDN("UrlAssetAccessor::get inner");
+              CurlHandle curl(accessor);
+              curl_slist* list = setCommonOptions(curl(), request->url(), accessor->userAgent,
+                                                  request->headers());
               std::unique_ptr<UrlAssetResponse> response = std::make_unique<UrlAssetResponse>();
-              response->setCallbacks(curl);
-              CURLcode responseCode = curl_easy_perform(curl);
+              response->setCallbacks(curl());
+              CURLcode responseCode = curl_easy_perform(curl());
               curl_slist_free_all(list);
               if (responseCode == 0)
               {
                   long httpResponseCode = 0;
-                  curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpResponseCode);
+                  curl_easy_getinfo(curl(), CURLINFO_RESPONSE_CODE, &httpResponseCode);
                   response->_statusCode = static_cast<uint16_t>(httpResponseCode);
                   char *ct = nullptr;
-                  curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &ct);
+                  curl_easy_getinfo(curl(), CURLINFO_CONTENT_TYPE, &ct);
                   if (ct)
                   {
                       response->_contentType = ct;
@@ -241,7 +268,6 @@ UrlAssetAccessor::get(const CesiumAsync::AsyncSystem& asyncSystem,
               {
                   promise.reject(std::runtime_error(curl_easy_strerror(responseCode)));
               }
-              curl_easy_cleanup(curl);
           });
       });
 }
@@ -255,38 +281,45 @@ UrlAssetAccessor::request(const CesiumAsync::AsyncSystem& asyncSystem,
                           const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers,
                           const gsl::span<const std::byte>& contentPayload)
 {
-    VSGCS_ZONESCOPED;
-    const auto& userAgent = _userAgent;
+
     return asyncSystem.createFuture<std::shared_ptr<CesiumAsync::IAssetRequest>>(
-        [&url, &headers, &userAgent, &verb, &contentPayload, &asyncSystem](const auto& promise)
+        [&](const auto& promise)
         {
             std::shared_ptr<UrlAssetRequest> request
                 = std::make_shared<UrlAssetRequest>(verb, url, headers);
-            auto curl = curl_easy_init();
-            curl_slist* list = setCommonOptions(curl, url, userAgent, headers);
-            if (contentPayload.size() > 1UL << 31)
+            auto accessor = this;
+            auto payloadCopy
+                = std::make_shared<std::vector<std::byte>>(contentPayload.begin(), contentPayload.end());
+            auto verbCopy = std::make_shared<std::string>(verb);
+            asyncSystem.runInWorkerThread([promise, request, payloadCopy, verbCopy, accessor]()
             {
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE_LARGE, contentPayload.size());
-            }
-            else
-            {
-                curl_easy_setopt(curl, CURLOPT_POSTFIELDSIZE, contentPayload.size());
-            }
-            curl_easy_setopt(curl, CURLOPT_COPYPOSTFIELDS, reinterpret_cast<const char*>(contentPayload.data()));
-            curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, verb.c_str());
-            asyncSystem.runInWorkerThread([curl, list, promise, request]()
-            {
+                VSGCS_ZONESCOPEDN("UrlAssetAccessor::request inner");
+                CurlHandle curl(accessor);
+
+                curl_slist* list = setCommonOptions(curl(), request->url(), accessor->userAgent,
+                                                    request->headers());
+                if (payloadCopy->size() > 1UL << 31)
+                {
+                    curl_easy_setopt(curl(), CURLOPT_POSTFIELDSIZE_LARGE, payloadCopy->size());
+                }
+                else
+                {
+                    curl_easy_setopt(curl(), CURLOPT_POSTFIELDSIZE, payloadCopy->size());
+                }
+                curl_easy_setopt(curl(), CURLOPT_COPYPOSTFIELDS,
+                                 reinterpret_cast<const char*>(payloadCopy->data()));
+                curl_easy_setopt(curl(), CURLOPT_CUSTOMREQUEST, verbCopy->c_str());
                 std::unique_ptr<UrlAssetResponse> response = std::make_unique<UrlAssetResponse>();
-                response->setCallbacks(curl);
-                CURLcode responseCode = curl_easy_perform(curl);
+                response->setCallbacks(curl());
+                CURLcode responseCode = curl_easy_perform(curl());
                 curl_slist_free_all(list);
                 if (responseCode == 0)
                 {
                     long httpResponseCode = 0;
-                    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &httpResponseCode);
+                    curl_easy_getinfo(curl(), CURLINFO_RESPONSE_CODE, &httpResponseCode);
                     response->_statusCode = static_cast<uint16_t>(httpResponseCode);
                     char *ct = nullptr;
-                    curl_easy_getinfo(curl, CURLINFO_CONTENT_TYPE, &ct);
+                    curl_easy_getinfo(curl(), CURLINFO_CONTENT_TYPE, &ct);
                     if (ct)
                     {
                         response->_contentType = ct;
@@ -298,7 +331,6 @@ UrlAssetAccessor::request(const CesiumAsync::AsyncSystem& asyncSystem,
                 {
                     promise.reject(std::runtime_error(curl_easy_strerror(responseCode)));
                 }
-                curl_easy_cleanup(curl);
             });
         });
 }

@@ -29,6 +29,7 @@ SOFTWARE.
 #include "MultisetPipelineConfigurator.h"
 #include "LoadGltfResult.h"
 #include "runtimeSupport.h"
+#include "Tracing.h"
 
 // Some include file in Cesium (actually, it's spdlog.h) unleashes the hell of windows.h. We need to
 // turn off GDI defines to avoid a redefinition of the GLSL constant OPAQUE.
@@ -206,6 +207,7 @@ vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::Tile
                                                     const glm::dmat4 &transform,
                                                     const CreateModelOptions& modelOptions)
 {
+    VSGCS_ZONESCOPED;
     CesiumGltf::Model* pModel = std::get_if<CesiumGltf::Model>(&tileLoadResult.contentKind);
     if (!pModel)
     {

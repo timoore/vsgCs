@@ -102,6 +102,7 @@ vsgResourcePreparer::readAndCompile(Cesium3DTilesSelection::TileLoadResult &&til
     auto resultNode = _builder->loadTile(std::move(tileLoadResult), transform, options);
     LoadModelResult* result = new LoadModelResult;
     result->modelResult = resultNode;
+    VSGCS_ZONESCOPEDN("model compile");
     result->compileResult = ref_viewer->compileManager->compile(resultNode);
     return result;
 }
