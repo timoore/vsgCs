@@ -28,7 +28,7 @@ SOFTWARE.
 #include "tracy/Tracy.hpp"
 
 #define VSGCS_ZONESCOPED ZoneScoped
-#define VSGCS_ZONESCOPEDN(name) ZoneScoped(name)
+#define VSGCS_ZONESCOPEDN(name) ZoneScopedN(name)
 #define VSGCS_FRAMEMARK FrameMark
 #else
 #define VSGCS_ZONESCOPED

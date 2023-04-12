@@ -208,7 +208,6 @@ UrlAssetAccessor::get(const CesiumAsync::AsyncSystem& asyncSystem,
                       const std::string& url,
                       const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers)
 {
-    VSGCS_ZONESCOPED;
     const auto& userAgent = _userAgent;
     return asyncSystem.createFuture<std::shared_ptr<CesiumAsync::IAssetRequest>>(
         [&url, &headers, &userAgent, &asyncSystem](const auto& promise)
@@ -219,6 +218,7 @@ UrlAssetAccessor::get(const CesiumAsync::AsyncSystem& asyncSystem,
           curl_slist* list = setCommonOptions(curl, url, userAgent, headers);
           asyncSystem.runInWorkerThread([curl, list, promise, request]()
           {
+              VSGCS_ZONESCOPEDN("UrlAssetAccessor::get inner");
               std::unique_ptr<UrlAssetResponse> response = std::make_unique<UrlAssetResponse>();
               response->setCallbacks(curl);
               CURLcode responseCode = curl_easy_perform(curl);
@@ -255,7 +255,6 @@ UrlAssetAccessor::request(const CesiumAsync::AsyncSystem& asyncSystem,
                           const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers,
                           const gsl::span<const std::byte>& contentPayload)
 {
-    VSGCS_ZONESCOPED;
     const auto& userAgent = _userAgent;
     return asyncSystem.createFuture<std::shared_ptr<CesiumAsync::IAssetRequest>>(
         [&url, &headers, &userAgent, &verb, &contentPayload, &asyncSystem](const auto& promise)
@@ -276,6 +275,7 @@ UrlAssetAccessor::request(const CesiumAsync::AsyncSystem& asyncSystem,
             curl_easy_setopt(curl, CURLOPT_CUSTOMREQUEST, verb.c_str());
             asyncSystem.runInWorkerThread([curl, list, promise, request]()
             {
+                VSGCS_ZONESCOPEDN("UrlAssetAccessor::request inner");
                 std::unique_ptr<UrlAssetResponse> response = std::make_unique<UrlAssetResponse>();
                 response->setCallbacks(curl);
                 CURLcode responseCode = curl_easy_perform(curl);
