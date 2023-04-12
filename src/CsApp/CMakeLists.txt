@@ -1,11 +1,13 @@
 set(LIB_NAME CsApp)
 
 set(LIB_PUBLIC_HEADERS
+  CsViewer.h
   CreditComponent.h
   MapManipulator.h
 )
 
 set(SOURCES
+  CsViewer.cpp
   CreditComponent.cpp
   MapManipulator.cpp
 )

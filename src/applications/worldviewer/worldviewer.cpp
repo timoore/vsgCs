@@ -53,6 +53,7 @@ SOFTWARE.
 #include "vsgCs/RuntimeEnvironment.h"
 #include "vsgCs/WorldNode.h"
 #include "UI.h"
+#include "CsApp/CsViewer.h"
 
 #ifdef TRACY_ENABLE
 #include "tracy/Tracy.hpp"
@@ -190,7 +191,7 @@ int main(int argc, char** argv)
         // Do early cesium-native initialization
         vsgCs::startup();
         // create the VSG viewer and assign window(s) to it
-        auto viewer = vsg::Viewer::create();
+        auto viewer = CsApp::CsViewer::create();
 
         if (!window)
         {
