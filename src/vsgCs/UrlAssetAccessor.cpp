@@ -189,6 +189,7 @@ static curl_slist* setCommonOptions(CURL* curl, const std::string& url, const st
     curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");
+    curl_easy_setopt(curl, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_slist* list = nullptr;
     for (const CesiumAsync::IAssetAccessor::THeader& header : headers)
     {
