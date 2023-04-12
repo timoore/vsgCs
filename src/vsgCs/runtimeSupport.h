@@ -86,6 +86,41 @@ namespace vsgCs
         return true;
     }
 
+    template<typename T>
+    inline T clamp(const T& x, const T& lo, const T& hi)
+    {
+        return x<lo ? lo : x>hi ? hi : x;
+    }
+
+        // equal within a threshold
+    template<typename A, typename B>
+    inline bool equiv(A x, B y, double epsilon)
+    {
+        double delta = x - y;
+        return delta < 0.0 ? delta >= -epsilon : delta <= epsilon;
+    }
+
+    // equal within a default threshold
+    template<typename A, typename B>
+    inline bool equiv(A x, B y)
+    {
+        return equiv(x, y, 1e-6);
+    }
+
+    // equal within a default threshold
+    template<>
+    inline bool equiv<vsg::dvec3>(vsg::dvec3 a, vsg::dvec3 b, double E)
+    {
+        return equiv(a.x, b.x, E) && equiv(a.y, b.y, E) && equiv(a.z, b.z, E);
+    }
+
+    // equal within a default threshold
+    template<>
+    inline bool equiv<vsg::dvec3>(vsg::dvec3 a, vsg::dvec3 b)
+    {
+        return equiv(a.x, b.x) && equiv(a.y, b.y) && equiv(a.z, b.z);
+    }
+
     /**
      * @brief Read an entire file as a string.
      */
@@ -265,4 +300,6 @@ namespace vsgCs
     }
 
     std::optional<uint32_t> getUintSuffix(const std::string& prefix, const std::string& data);
+
+    std::string getTileUrl(const vsg::Object* obj);
 }

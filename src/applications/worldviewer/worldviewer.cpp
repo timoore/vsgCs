@@ -53,6 +53,7 @@ SOFTWARE.
 #include "vsgCs/RuntimeEnvironment.h"
 #include "vsgCs/WorldNode.h"
 #include "UI.h"
+#include "CsApp/CsViewer.h"
 
 #ifdef TRACY_ENABLE
 #include "tracy/Tracy.hpp"
@@ -190,7 +191,7 @@ int main(int argc, char** argv)
         // Do early cesium-native initialization
         vsgCs::startup();
         // create the VSG viewer and assign window(s) to it
-        auto viewer = vsg::Viewer::create();
+        auto viewer = CsApp::CsViewer::create();
 
         if (!window)
         {
@@ -250,7 +251,7 @@ int main(int argc, char** argv)
         // Create this application's user interface, including the trackball manipulator and the
         // graphical overlay.
         auto ui = vsgCs::UI::create();
-        ui->createUI(window, viewer, camera, ellipsoidModel, environment->options);
+        ui->createUI(window, viewer, camera, ellipsoidModel, environment->options, worldNode);
         // Basic VSG objects for rendering
         auto commandGraph = vsg::CommandGraph::create(window);
         auto renderGraph = vsg::RenderGraph::create(window);

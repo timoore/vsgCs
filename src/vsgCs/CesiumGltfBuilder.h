@@ -57,8 +57,18 @@ namespace vsgCs
         std::vector<vsg::ref_ptr<vsg::Object>> deleteObjects;
     };
 
+    // attachTileData(), called by prepareInMainThread(), returns both a descriptor set that has
+    // been compiled as well as possibly updated model tile (with a tile bounding volume).
+    struct AttachTileDataResult
+    {
+        vsg::ref_ptr<vsg::Object> descriptorData;
+        vsg::ref_ptr<vsg::Node> updatedModel;
+    };
+
     // Interface from Cesium Native to the VSG scene graph. CesiumGltfBuilder can load Models (glTF
-    // assets) and images that are not part of a model.
+    // assets) and images that are not part of a model. The exact type of the VSG scene graph node
+    // is isolated from the rest of vsgCs. The only functions that should care -- i.e., that modify the
+    // tile subscene graph -- are here in CesiumGltfBuilder.
 
     class VSGCS_EXPORT CesiumGltfBuilder : public vsg::Inherit<vsg::Object, CesiumGltfBuilder>
     {
@@ -69,8 +79,8 @@ namespace vsgCs
         vsg::ref_ptr<vsg::Node> loadTile(Cesium3DTilesSelection::TileLoadResult&& tileLoadResult,
                                          const glm::dmat4& transform,
                                          const CreateModelOptions& options);
-        vsg::ref_ptr<vsg::Object> attachTileData(Cesium3DTilesSelection::Tile& tile,
-                                                 const vsg::ref_ptr<vsg::Node>& node);
+        AttachTileDataResult attachTileData(Cesium3DTilesSelection::Tile& tile,
+                                            const vsg::ref_ptr<vsg::Node>& node);
         vsg::ref_ptr<vsg::ImageInfo> loadTexture(CesiumGltf::ImageCesium& image,
                                                  VkSamplerAddressMode addressX,
                                                  VkSamplerAddressMode addressY,
@@ -98,6 +108,7 @@ namespace vsgCs
                                          int32_t overlayTextureCoordinateID,
                                          const Cesium3DTilesSelection::RasterOverlayTile& rasterTile);
     protected:
+        static vsg::ref_ptr<vsg::StateGroup> getTileStateGroup(const vsg::ref_ptr<vsg::Node>& node);
         vsg::ref_ptr<GraphicsEnvironment> _genv;
     };
 

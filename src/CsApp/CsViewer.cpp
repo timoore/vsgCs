@@ -22,36 +22,31 @@ SOFTWARE.
 
 </editor-fold> */
 
-#pragma once
+#include "CsViewer.h"
 
-#include <vsg/all.h>
-#include <vsgImGui/RenderImGui.h>
-#include <vsgImGui/SendEventsToImGui.h>
-#include "CsApp/CreditComponent.h"
-#include "CsApp/MapManipulator.h"
+#include "vsgCs/runtimeSupport.h"
 
-namespace vsgCs
+using namespace CsApp;
+
+void CsViewer::handleEvents()
 {
-    class UI : public vsg::Inherit<vsg::Object, UI>
+    // X Windows famously sends way too many motion events. So, if there is another MoveEvent in the
+    // buffer, then skip the current motion event.
+    for (auto itr = _events.begin(); itr != _events.end(); ++itr)
     {
-        public:
-        bool createUI(vsg::ref_ptr<vsg::Window> window,
-                      vsg::ref_ptr<vsg::Viewer> viewer,
-                      vsg::ref_ptr<vsg::Camera> camera,
-                      vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel,
-                      vsg::ref_ptr<vsg::Options> options,
-                      vsg::ref_ptr<WorldNode> worldNode);
-        vsg::ref_ptr<vsgImGui::RenderImGui> getImGui()
+        auto& vsg_event = *itr;
+        auto eventAsMove = vsgCs::ref_ptr_cast<vsg::MoveEvent>(vsg_event);
+        if (eventAsMove.valid() && next(itr) != _events.end())
         {
-            return _renderImGui;
+            auto nextEvent = vsgCs::ref_ptr_cast<vsg::MoveEvent>(*next(itr));
+            if (nextEvent.valid() && nextEvent->mask == eventAsMove->mask)
+            {
+                continue;
+            }
         }
-        void setViewpoint(vsg::ref_ptr<vsg::LookAt> lookAt, float duration);
-        protected:
-        vsg::ref_ptr<vsgImGui::RenderImGui> createImGui(vsg::ref_ptr<vsg::Window> window);
-
-        vsg::ref_ptr<vsgImGui::RenderImGui> _renderImGui;
-        vsg::ref_ptr<CsApp::CreditComponent> _ionIconComponent;
-        vsg::ref_ptr<vsg::Trackball> _trackball;
-        vsg::ref_ptr<MapManipulator> _mapManipulator;
-    };
+        for (auto& handler : _eventHandlers)
+        {
+            vsg_event->accept(*handler);
+        }
+    }
 }

@@ -517,5 +517,11 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMap
     // Assume that there is no advantage in sharing the texture data; might be very false!
     return makeArray(image.width, image.height, imageSource, props);
 }
+    std::string getTileUrl(const vsg::Object* obj)
+    {
+        std::string result("");
+        obj->getValue("tileUrl", result);
+        return result;
+    }
 }
 
