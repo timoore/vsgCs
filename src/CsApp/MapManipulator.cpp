@@ -5,6 +5,7 @@
  */
 #include "MapManipulator.h"
 
+#include "vsgCs/Tracing.h"
 #include "vsgCs/WorldNode.h"
 
 
@@ -1240,6 +1241,7 @@ MapManipulator::intersect(
     const vsg::dvec3& end,
     vsg::dvec3& out_intersection) const
 {
+    VSGCS_ZONESCOPED;
     vsg::ref_ptr<WorldNode> mapNode = _mapNode;
     if (mapNode)
     {
@@ -1567,6 +1569,7 @@ MapManipulator::isMouseClick() const
 bool
 MapManipulator::recalculateCenterFromLookVector()
 {
+    VSGCS_ZONESCOPED;
     vsg::LookAt lookat;
     lookat.set(_camera->viewMatrix->inverse());
     auto look = vsg::normalize(lookat.center - lookat.eye);
