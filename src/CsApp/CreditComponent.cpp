@@ -23,6 +23,7 @@ SOFTWARE.
 </editor-fold> */
 
 #include <vsg/all.h>
+#include <vsgImGui/Texture.h>
 #include <vsgImGui/imgui.h>
 
 #include "CreditComponent.h"

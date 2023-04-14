@@ -31,7 +31,7 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
-set(VSG_MIN_VERSION 1.0.4)
+set(VSG_MIN_VERSION 1.0.5)
 find_package(vsg ${VSG_MIN_VERSION} REQUIRED)
 
 find_package(vsgXchange)
