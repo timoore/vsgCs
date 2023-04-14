@@ -72,7 +72,7 @@ namespace vsgCs
          * @brief Initialize the graphics environment object. Not called by client code unless
          * it is doing its own intitialization of the RuntimeEnvironment.
          */
-        void initGraphicsEnvironment();
+        void initGraphicsEnvironment(const vsg::ref_ptr<vsg::Device>& device);
         
         // Open window and prepare features and extensions for vsgCs.
         vsg::ref_ptr<vsg::Window> openWindow(const std::string& name,

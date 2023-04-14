@@ -87,7 +87,7 @@ void DeletionQueue::run(vsg::ref_ptr<vsg::Viewer> viewer)
 
 vsgResourcePreparer::vsgResourcePreparer(const vsg::ref_ptr<GraphicsEnvironment>& genv,
                                          vsg::ref_ptr<vsg::Viewer> viewer)
-    : viewer(viewer), _builder(CesiumGltfBuilder::create(genv))
+    : viewer(viewer),  genv(genv), _builder(CesiumGltfBuilder::create(genv))
 {
 }
 
@@ -114,7 +114,7 @@ RenderResources* merge(vsgResourcePreparer* preparer, LoadModelResult& result,
     if (ref_viewer)
     {
         updateViewer(*ref_viewer, result.compileResult);
-        auto attachCompileResult = ref_viewer->compileManager->compile(attachResult.descriptorData);
+        auto attachCompileResult = preparer->genv->miniCompile(attachResult.descriptorData);
         vsg::updateViewer(*ref_viewer, attachCompileResult);
         return new RenderResources{attachResult.updatedModel};
     }
@@ -208,8 +208,11 @@ vsgResourcePreparer::prepareRasterInLoadThread(CesiumGltf::ImageCesium& image,
                                         true,
                                         true);
     auto compilable = CompilableImage::create(result);
-    return new LoadRasterResult{compilable->imageInfo, ref_viewer->compileManager->compile(compilable),
-                                std::any_cast<OverlayRendererOptions>(rendererOptions)};
+    {
+        VSGCS_ZONESCOPEDN("compile raster");
+        return new LoadRasterResult{compilable->imageInfo, ref_viewer->compileManager->compile(compilable),
+                                    std::any_cast<OverlayRendererOptions>(rendererOptions)};
+    }
 }
 
 void*
@@ -261,8 +264,8 @@ void vsgResourcePreparer::compileAndDelete(ModifyRastersResult& result)
         return;
     for (auto object : result.compileObjects)
     {
-        auto compileResult = ref_viewer->compileManager->compile(object);
-        vsg::updateViewer(*ref_viewer, compileResult);
+
+        genv->miniCompile(object);
     }
     if (!result.deleteObjects.empty())
     {

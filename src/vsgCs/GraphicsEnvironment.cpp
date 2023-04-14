@@ -43,10 +43,13 @@ namespace
         return vsg::ImageInfo::create(sampler, arrayData);
     }
 }
+
 GraphicsEnvironment::GraphicsEnvironment(const vsg::ref_ptr<vsg::Options> &vsgOptions,
-                                         const DeviceFeatures& in_features)
+                                         const DeviceFeatures& in_features,
+                                         const vsg::ref_ptr<vsg::Device>& in_device)
     : shaderFactory(ShaderFactory::create(vsgOptions)), features(in_features),
       sharedObjects(create_or<vsg::SharedObjects>(vsgOptions->sharedObjects)),
+      device(in_device),
       defaultTexture(makeDefaultTexture())
 
 {
@@ -57,4 +60,59 @@ GraphicsEnvironment::GraphicsEnvironment(const vsg::ref_ptr<vsg::Options> &vsgOp
         = makePipelineLayout(shaderFactory->getShaderSet(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
                              shaderDefines,
                              pbr::TILE_DESCRIPTOR_SET);
+    miniCompileTraversal = vsg::CompileTraversal::create(device);
+}
+
+// Copied from vsg::CompileManager
+
+vsg::CompileResult GraphicsEnvironment::miniCompile(vsg::ref_ptr<vsg::Object> object)
+{
+    vsg::CollectResourceRequirements collectRequirements;
+    object->accept(collectRequirements);
+
+    auto& requirements = collectRequirements.requirements;
+    auto& binStack = requirements.binStack;
+
+    vsg::CompileResult result;
+    result.maxSlot = requirements.maxSlot;
+    result.containsPagedLOD = requirements.containsPagedLOD;
+    result.views = requirements.views;
+    result.earlyDynamicData = requirements.earlyDynamicData;
+    result.lateDynamicData = requirements.lateDynamicData;
+
+    auto run_compile_traversal = [&]() -> void {
+        for (auto& context : miniCompileTraversal->contexts)
+        {
+            vsg::ref_ptr<vsg::View> view = context->view;
+            if (view && !binStack.empty())
+            {
+                if (auto itr = result.views.find(view.get()); itr == result.views.end())
+                {
+                    result.views[view] = binStack.top();
+                }
+            }
+
+            context->reserve(requirements);
+        }
+
+        object->accept(*miniCompileTraversal);
+
+        //debug("Finished compile traversal ", object);
+
+        if (miniCompileTraversal->record())
+        {
+            // This happens on startup. I think it's caused by the default texture.
+            vsg::warn("miniCompile did recording!");
+        }
+
+        miniCompileTraversal->waitForCompletion();
+
+        debug("Finished waiting for compile ", object);
+    };
+
+    run_compile_traversal();
+
+    result.result = VK_SUCCESS;
+    return result;
+
 }

@@ -108,6 +108,7 @@ namespace vsgCs
                                       const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
                                       void* pMainThreadRendererResources) noexcept override;
         vsg::observer_ptr<vsg::Viewer> viewer;
+        vsg::ref_ptr<GraphicsEnvironment> genv;
     protected:
         LoadModelResult* readAndCompile(Cesium3DTilesSelection::TileLoadResult &&tileLoadResult,
                                         const glm::dmat4& transform,

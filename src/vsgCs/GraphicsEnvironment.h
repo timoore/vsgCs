@@ -29,8 +29,10 @@ SOFTWARE.
 
 #include <CesiumGltf/Ktx2TranscodeTargets.h>
 
+#include <vsg/app/CompileManager.h>
 #include <vsg/state/ImageInfo.h>
 #include <vsg/utils/SharedObjects.h>
+#include <vsg/vk/Context.h>
 
 namespace vsgCs
 {
@@ -49,18 +51,26 @@ namespace vsgCs
         float pointSizeRange[2];
     };
 
-
-    class GraphicsEnvironment : public vsg::Inherit<vsg::Object, GraphicsEnvironment>
+    class VSGCS_EXPORT GraphicsEnvironment : public vsg::Inherit<vsg::Object, GraphicsEnvironment>
     {
     public:
-        GraphicsEnvironment(const vsg::ref_ptr<vsg::Options>& vsgOptions, const DeviceFeatures& in_features);
+        GraphicsEnvironment(const vsg::ref_ptr<vsg::Options>& vsgOptions, const DeviceFeatures& in_features,
+                            const vsg::ref_ptr<vsg::Device>& in_device);
+        /**
+         * @brief Run a compile traversal with a minimal context for updating Vulkan handles and such.
+         */
+        vsg::CompileResult miniCompile(vsg::ref_ptr<vsg::Object> object);
         vsg::ref_ptr<ShaderFactory> shaderFactory;
         const DeviceFeatures features;
         vsg::ref_ptr<vsg::SharedObjects> sharedObjects;
+        // XXX If / when multiple devices are supported, this will have to be expanded.
+        vsg::ref_ptr<vsg::Device> device;
         /**
          * @brief a white, one pixel texture
          */
         vsg::ref_ptr<vsg::ImageInfo> defaultTexture;
         vsg::ref_ptr<vsg::PipelineLayout> overlayPipelineLayout;
+    protected:
+        vsg::ref_ptr<vsg::CompileTraversal> miniCompileTraversal;
     };
 }

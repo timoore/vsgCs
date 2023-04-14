@@ -96,12 +96,6 @@ struct BoundingSphereOperation
     }
 };
 
-CesiumGltfBuilder::CesiumGltfBuilder(const vsg::ref_ptr<vsg::Options>& vsgOptions,
-                                     const DeviceFeatures& deviceFeatures)
-    : _genv(GraphicsEnvironment::create(vsgOptions, deviceFeatures))
-{
-}
-
 CesiumGltfBuilder::CesiumGltfBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv)
     : _genv(genv)
 {

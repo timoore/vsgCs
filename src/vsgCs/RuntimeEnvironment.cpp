@@ -234,9 +234,9 @@ DeviceFeatures RuntimeEnvironment::prepareFeaturesAndExtensions(vsg::ref_ptr<vsg
     return features;
 }
 
-void RuntimeEnvironment::initGraphicsEnvironment()
+void RuntimeEnvironment::initGraphicsEnvironment(const vsg::ref_ptr<vsg::Device>& device)
 {
-    genv = GraphicsEnvironment::create(options, features);
+    genv = GraphicsEnvironment::create(options, features, device);
 }
 
 vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openWindow(const std::string& name,
@@ -245,7 +245,7 @@ vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openWindow(const std::string& name
 {
     auto result = openSystemWindow(name, in_traits, in_options);
     prepareFeaturesAndExtensions(result);
-    initGraphicsEnvironment();
+    initGraphicsEnvironment(result->getOrCreateDevice());
     return result;
 }
 
@@ -255,7 +255,7 @@ vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openWindow(vsg::CommandLine& argum
 {
     auto result = openSystemWindow(arguments, name, in_traits, in_options);
     prepareFeaturesAndExtensions(result);
-    initGraphicsEnvironment();
+    initGraphicsEnvironment(result->getOrCreateDevice());
     return result;
     
 }
