@@ -25,6 +25,7 @@ SOFTWARE.
 #include "CesiumGltfBuilder.h"
 #include "CompilableImage.h"
 #include "OpThreadTaskProcessor.h"
+#include "Tracing.h"
 #include "runtimeSupport.h"
 #include "RuntimeEnvironment.h"
 
@@ -451,10 +452,14 @@ namespace
 
     void* rgbExpand(CesiumGltf::ImageCesium& image)
     {
+        VSGCS_ZONESCOPED;
         size_t sourceSize = image.pixelData.size();
         size_t destSize = sourceSize * 4 / 3;
-        uint8_t* destData
-            = new (vsg::allocate(sizeof(uint8_t) * destSize, vsg::ALLOCATOR_AFFINITY_DATA)) uint8_t[destSize];
+        uint8_t* destData = nullptr;
+        {
+            VSGCS_ZONESCOPEDN("rgbExpand allocate");
+            destData = new (vsg::allocate(sizeof(uint8_t) * destSize, vsg::ALLOCATOR_AFFINITY_DATA)) uint8_t[destSize];
+        }
         uint8_t* pDest = destData;
         auto srcItr = image.pixelData.begin();
         while (srcItr != image.pixelData.end())
@@ -474,6 +479,7 @@ namespace vsgCs
 
 vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMaps, bool sRGB)
 {
+    VSGCS_ZONESCOPED;
     if (image.pixelData.empty() || image.width == 0 || image.height == 0)
     {
         return {};
