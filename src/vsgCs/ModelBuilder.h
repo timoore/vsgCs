@@ -28,14 +28,15 @@ SOFTWARE.
 #include "Export.h"
 #include "GraphicsEnvironment.h"
 #include "runtimeSupport.h"
-#include "Styling.h"
-
 
 #include <vsg/core/Inherit.h>
 #include <vsg/io/Logger.h>
 
 namespace vsgCs
 {
+    class Styling;
+    class Stylist;
+
     /**
      * @brief Class for representing supported extensions during glTF parsing.
      *
@@ -84,7 +85,9 @@ namespace vsgCs
      */
     struct CreateModelOptions
     {
-        bool renderOverlays = false;
+        CreateModelOptions(bool in_renderOverlays = false, vsg::ref_ptr<Styling> styling = {});
+        ~CreateModelOptions();
+        bool renderOverlays;
         vsg::ref_ptr<Styling> styling;
     };
 
@@ -93,8 +96,10 @@ namespace vsgCs
     class VSGCS_EXPORT ModelBuilder
     {
     public:
-    ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, CesiumGltf::Model* model, const CreateModelOptions& options,
+        ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, CesiumGltf::Model* model,
+                     const CreateModelOptions& options,
                      const ExtensionList& enabledExtensions = {});
+        ~ModelBuilder();
         vsg::ref_ptr<vsg::Group> operator()();
         vsg::ref_ptr<vsg::Group> loadNode(const CesiumGltf::Node* node);
         vsg::ref_ptr<vsg::Group> loadMesh(const CesiumGltf::Mesh* mesh);
@@ -169,5 +174,6 @@ namespace vsgCs
                                 }) != _activeExtensions.end();
         }
         ExtensionList _activeExtensions;
+        vsg::ref_ptr<Stylist> _stylist;
     };
 }

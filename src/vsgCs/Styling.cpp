@@ -279,6 +279,11 @@ vsg::vec4 parseColorExpr(const std::string& expr)
     return vsg::vec4(0.0, 0.0, 0.0, 1.0);
 }
 
+vsg::ref_ptr<Stylist> Styling::getStylist(ModelBuilder* in_modelBuilder)
+{
+    return Stylist::create(this, in_modelBuilder);
+}
+
 namespace vsgCs
 {
     vsg::ref_ptr<vsg::Object> buildStyling(const rapidjson::Value& json,
@@ -295,4 +300,22 @@ namespace vsgCs
         }
         return Styling::create(show);
     }
+}
+
+Stylist::Stylist(Styling* in_styling, ModelBuilder*)
+    : styling(in_styling)
+{
+}
+
+Stylist::PrimitiveStyling Stylist::getStyling(const CesiumGltf::MeshPrimitive *,
+                                              const CesiumGltf::Accessor *)
+{
+    PrimitiveStyling result;
+    result.show = styling->show;
+    if (styling->color)
+    {
+        result.colors = vsg::vec4Value::create(*styling->color);
+        result.vertexRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+    }
+    return result;
 }

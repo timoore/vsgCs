@@ -26,6 +26,7 @@ SOFTWARE.
 
 #include "CompilableImage.h"
 #include "RuntimeEnvironment.h"
+#include "Styling.h"
 #include "Tracing.h"
 
 #include <Cesium3DTilesSelection/GltfUtilities.h>

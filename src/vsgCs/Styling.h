@@ -26,6 +26,8 @@ SOFTWARE.
 // A very preliminary implementation of 3D Tiles styling. No JavaScript
 // expressions yet.
 
+#include "ModelBuilder.h"
+
 #include <vsg/core/Object.h>
 #include <vsg/core/Inherit.h>
 
@@ -33,13 +35,40 @@ SOFTWARE.
 namespace vsgCs
 {
 
+    class Stylist;
+
+    /**
+     * @brief Encapsulate styling declarations and prepare any data needed for a Stylist class to
+     * modify model data.
+     */
     class Styling : public vsg::Inherit<vsg::Object, Styling>
     {
     public:
         Styling();
         Styling(bool in_show);
         Styling(bool in_show, const vsg::vec4& in_color);
+        virtual vsg::ref_ptr<Stylist> getStylist(ModelBuilder* in_modelBuilder);
         bool show;
         std::optional<vsg::vec4> color;
+    };
+
+    /**
+     * @brief A Stylist is created for each model (tile), mostly to give it the ability to preprocess
+     * the tile's feature tables.
+     */
+    class Stylist : public vsg::Inherit<vsg::Object, Stylist>
+    {
+        public:
+        Stylist(Styling* in_styling,
+                ModelBuilder* in_modelBuilder);
+        vsg::ref_ptr<Styling> styling;
+        struct PrimitiveStyling
+        {
+            bool show = true;
+            vsg::ref_ptr<vsg::Data> colors;
+            VkVertexInputRate vertexRate = VK_VERTEX_INPUT_RATE_VERTEX;
+        };
+        PrimitiveStyling getStyling(const CesiumGltf::MeshPrimitive* primitive,
+                                    const CesiumGltf::Accessor* expansionIndices);
     };
 }

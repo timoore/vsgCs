@@ -29,6 +29,7 @@ SOFTWARE.
 #include "MultisetPipelineConfigurator.h"
 #include "LoadGltfResult.h"
 #include "pbr.h"
+#include "Styling.h"
 
 #include <CesiumGltf/ExtensionKhrTextureBasisu.h>
 #include <CesiumGltf/ExtensionTextureWebp.h>
@@ -167,6 +168,15 @@ inline VkDescriptorSetLayoutBinding getVk(const vsg::UniformBinding& binding)
                                         binding.stageFlags, nullptr};
 }
 
+CreateModelOptions::CreateModelOptions(bool in_renderOverlays, vsg::ref_ptr<Styling> in_styling)
+    : renderOverlays(in_renderOverlays), styling(in_styling)
+{
+}
+
+CreateModelOptions::~CreateModelOptions()
+{
+}
+
 ModelBuilder::ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, CesiumGltf::Model* model,
                            const CreateModelOptions& options,
                            const ExtensionList& enabledExtensions
@@ -183,6 +193,14 @@ ModelBuilder::ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, Cesium
         _name = urlIt->second.getStringOrDefault("glTF");
         _name = constrainLength(_name, 256); // NOLINT
     }
+    if (isEnabled<StylingExtension>() && options.styling.valid())
+    {
+        _stylist = options.styling->getStylist(this);
+    }
+}
+
+ModelBuilder::~ModelBuilder()
+{
 }
 
 vsg::ref_ptr<vsg::Group>
@@ -740,6 +758,15 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     // The indices will be used to expand the attribute arrays.
     const Accessor* expansionIndices = ((!hasNormals || generateTangents) && indicesAccessor
                                         ? &_model->accessors[primitive->indices] : nullptr);
+    Stylist::PrimitiveStyling primStyling;
+    if (_stylist)
+    {
+        primStyling = _stylist->getStyling(primitive, expansionIndices);
+    }
+    if (!primStyling.show)
+    {
+        return {};
+    }
     vsg::DataList vertexArrays;
     auto positions = createData(_model, pPositionAccessor, expansionIndices);
     pipelineConf->assignArray(vertexArrays, "vsg_Vertex", VK_VERTEX_INPUT_RATE_VERTEX, positions);
@@ -777,31 +804,28 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     // Bounding volumes aren't stored in most nodes in VSG and are computed when needed. Should we
     // store the the position min / max, or just not bother?
 
-    const Accessor* colorAccessor = getAccessor(_model, primitive, "COLOR_0");
-    vsg::ref_ptr<vsg::Data> colorData;
-    if (colorAccessor)
+    if (primStyling.colors.valid())
     {
-        colorData = doColors(_model, colorAccessor, expansionIndices);
-    }
-    if ((_options.styling.valid() && _options.styling->color) || !colorData)
-    {
-        vsg::ref_ptr<vsg::vec4Value> color;
-        if (_options.styling.valid() && _options.styling->color)
-        {
-            color = vsg::vec4Value::create(*_options.styling->color);
-        }
-        else
-        {
-            color = vsg::vec4Value::create(vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-        }
-        pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, color);
-
+        pipelineConf->assignArray(vertexArrays, "vsg_Color", primStyling.vertexRate, primStyling.colors);
     }
     else
     {
-        pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colorData);
+        const Accessor* colorAccessor = getAccessor(_model, primitive, "COLOR_0");
+        vsg::ref_ptr<vsg::Data> colorData;
+        if (colorAccessor)
+        {
+            colorData = doColors(_model, colorAccessor, expansionIndices);
+        }
+        if (!colorData)
+        {
+            auto color = vsg::vec4Value::create(vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+            pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, color);
+        }
+        else
+        {
+            pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colorData);
+        }
     }
-
     // Textures...
     const auto& assignTexCoord = [&](const std::string& texPrefix, int baseLocation)
     {
