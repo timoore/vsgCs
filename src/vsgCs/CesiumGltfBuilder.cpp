@@ -171,8 +171,13 @@ vsg::ref_ptr<vsg::StateCommand> makeTileStateCommand(const vsg::ref_ptr<Graphics
 vsg::ref_ptr<vsg::Group>
 CesiumGltfBuilder::load(CesiumGltf::Model* model, const CreateModelOptions& options)
 {
-    static ExtensionList tilesExtensions{Cs3DTilesExtension::create()};
-
+    static auto csExtension = Cs3DTilesExtension::create();
+    static auto stylingExtension = StylingExtension::create();
+    ExtensionList tilesExtensions{csExtension};
+    if (options.styling.valid())
+    {
+        tilesExtensions.push_back(stylingExtension);
+    }
     ModelBuilder builder(_genv, model, options, tilesExtensions);
     return builder();
 }

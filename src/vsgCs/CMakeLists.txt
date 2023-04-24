@@ -16,6 +16,7 @@ set(LIB_PUBLIC_HEADERS
   ModelBuilder.h
   RuntimeEnvironment.h
   ShaderFactory.h
+  Styling.h
   TilesetNode.h
   vsgResourcePreparer.h
   runtimeSupport.h
@@ -37,6 +38,7 @@ set(SOURCES
   OpThreadTaskProcessor.cpp
   RuntimeEnvironment.cpp
   ShaderFactory.cpp
+  Styling.cpp
   TilesetNode.cpp
   UrlAssetAccessor.cpp
   runtimeSupport.cpp

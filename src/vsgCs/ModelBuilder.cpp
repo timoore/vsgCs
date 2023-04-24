@@ -42,6 +42,13 @@ const std::string &Cs3DTilesExtension::getExtensionName() const
     return name;
 };
 
+const std::string &StylingExtension::getExtensionName() const
+{
+    static std::string name("CS_3DTiles_styling");
+    return name;
+};
+
+
 namespace
 {
     bool isGltfIdentity(const std::vector<double>& matrix)
@@ -772,15 +779,27 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
 
     const Accessor* colorAccessor = getAccessor(_model, primitive, "COLOR_0");
     vsg::ref_ptr<vsg::Data> colorData;
-    if (colorAccessor
-        && (colorData = doColors(_model, colorAccessor, expansionIndices)).valid())
+    if (colorAccessor)
     {
-        pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colorData);
+        colorData = doColors(_model, colorAccessor, expansionIndices);
+    }
+    if ((_options.styling.valid() && _options.styling->color) || !colorData)
+    {
+        vsg::ref_ptr<vsg::vec4Value> color;
+        if (_options.styling.valid() && _options.styling->color)
+        {
+            color = vsg::vec4Value::create(*_options.styling->color);
+        }
+        else
+        {
+            color = vsg::vec4Value::create(vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f));
+        }
+        pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, color);
+
     }
     else
     {
-        auto color = vsg::vec4Value::create(vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-        pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, color);
+        pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colorData);
     }
 
     // Textures...

@@ -28,6 +28,7 @@ SOFTWARE.
 #include "Export.h"
 #include "GraphicsEnvironment.h"
 #include "runtimeSupport.h"
+#include "Styling.h"
 
 
 #include <vsg/core/Inherit.h>
@@ -71,6 +72,12 @@ namespace vsgCs
         const std::string& getExtensionName() const override;
     };
 
+    class StylingExtension : public vsg::Inherit<Extension, StylingExtension>
+    {
+    public:
+        const std::string& getExtensionName() const override;
+    };
+
     using ExtensionList = std::vector<vsg::ref_ptr<Extension>>;
     /**
      * @brief High-level options for the 3D Tile Builder (called CesiumGltfBuilder at the moment)
@@ -78,6 +85,7 @@ namespace vsgCs
     struct CreateModelOptions
     {
         bool renderOverlays = false;
+        vsg::ref_ptr<Styling> styling;
     };
 
     // This class should load a standard glTF model, without having builtin support for extensions

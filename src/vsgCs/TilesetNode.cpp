@@ -98,6 +98,7 @@ TilesetNode::TilesetNode(const DeviceFeatures& deviceFeatures, const TilesetSour
         };
     auto externals = RuntimeEnvironment::get()->getTilesetExternals();
     options.contentOptions.ktx2TranscodeTargets = deviceFeatures.ktx2TranscodeTargets;
+
     if (source.url)
     {
         _tileset = std::make_unique<Cesium3DTilesSelection::Tileset>(*externals, source.url.value(), options);
@@ -411,6 +412,12 @@ namespace
         Cesium3DTilesSelection::TilesetOptions tileOptions;
         tileOptions.enableOcclusionCulling = false;
         tileOptions.forbidHoles = true;
+        const auto stylingItr = json.FindMember("styling");
+        if (stylingItr != json.MemberEnd() && stylingItr->value.IsObject())
+        {
+            auto styling = ref_ptr_cast<Styling>(factory->build(stylingItr->value, "Styling"));
+            tileOptions.rendererOptions = styling;
+        }
         auto tilesetNode = vsgCs::TilesetNode::create(env->features, source, tileOptions, env->options);
         const auto itr = json.FindMember("overlays");
         if (itr != json.MemberEnd() && itr->value.IsArray())

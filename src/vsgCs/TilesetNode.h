@@ -21,6 +21,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include "Cesium3DTilesSelection/ViewUpdateResult.h"
 #include "Export.h"
 #include "RuntimeEnvironment.h"
+#include "Styling.h"
 #include "runtimeSupport.h"
 #include "vsgResourcePreparer.h"
 
@@ -89,6 +90,7 @@ namespace vsgCs
         // probably don't want to call these; use CsOverlay::addTotileset instead.
         void addOverlay(vsg::ref_ptr<CsOverlay> overlay);
         void removeOverlay(vsg::ref_ptr<CsOverlay> overlay);
+        vsg::ref_ptr<Styling> styling;
     protected:
         const Cesium3DTilesSelection::ViewUpdateResult* _viewUpdateResult;
         std::unique_ptr<Cesium3DTilesSelection::Tileset> _tileset;
