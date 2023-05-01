@@ -176,4 +176,8 @@ namespace vsgCs
         ExtensionList _activeExtensions;
         vsg::ref_ptr<Stylist> _stylist;
     };
+    // Helper function for getting an attribute accessor by name.
+    const CesiumGltf::Accessor* getAccessor(const CesiumGltf::Model* model,
+                                            const CesiumGltf::MeshPrimitive* primitive,
+                                            const std::string& name);
 }

@@ -35,6 +35,7 @@ namespace vsgCs
 
     template<typename T> struct AccessorViewTraits;
 
+    // Define some useful traits for VSG types like vec2, vec3, vec4
     template<template<typename> typename  t_vsg, typename TValue>
     struct VSGTraits
     {
@@ -45,7 +46,7 @@ namespace vsgCs
         template<typename TOther>
         using with_element_type = t_vsg<TOther>;
     };
-
+    // The same traits for AccessorTypes::SCALAR
     template<typename T>
     struct AccessorViewTraits<CesiumGltf::AccessorTypes::SCALAR<T>>
     {

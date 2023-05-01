@@ -303,4 +303,6 @@ namespace vsgCs
 
     // For debugging
     std::string getTileUrl(const vsg::Object* obj);
+
+    inline constexpr vsg::vec4 colorWhite(1.0f, 1.0f, 1.0f, 1.0f);
 }

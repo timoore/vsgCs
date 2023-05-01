@@ -68,7 +68,9 @@ namespace vsgCs
             vsg::ref_ptr<vsg::Data> colors;
             VkVertexInputRate vertexRate = VK_VERTEX_INPUT_RATE_VERTEX;
         };
-        PrimitiveStyling getStyling(const CesiumGltf::MeshPrimitive* primitive,
-                                    const CesiumGltf::Accessor* expansionIndices);
+        PrimitiveStyling getStyling(const CesiumGltf::MeshPrimitive* primitive);
+
+        ModelBuilder* modelBuilder;
+        std::vector<std::optional<vsg::vec4>> featureColors;
     };
 }

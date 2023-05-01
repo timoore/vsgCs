@@ -3,6 +3,7 @@ find_package(CURL REQUIRED)
 set(LIB_NAME vsgCs)
 
 set(LIB_PUBLIC_HEADERS
+  accessorUtils.h
   accessor_traits.h
   ${GENERATED_HEADERS_DIR}/vsgCs/Config.h
   CsDebugColorizeTilesOverlay.h

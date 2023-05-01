@@ -418,6 +418,10 @@ namespace
             auto styling = ref_ptr_cast<Styling>(factory->build(stylingItr->value, "Styling"));
             tileOptions.rendererOptions = styling;
         }
+        else
+        {
+            tileOptions.rendererOptions = Styling::create();
+        }
         auto tilesetNode = vsgCs::TilesetNode::create(env->features, source, tileOptions, env->options);
         const auto itr = json.FindMember("overlays");
         if (itr != json.MemberEnd() && itr->value.IsArray())

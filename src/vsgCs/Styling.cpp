@@ -24,13 +24,20 @@ SOFTWARE.
 
 #include "Styling.h"
 
+#include "accessorUtils.h"
 #include "jsonUtils.h"
+#include "runtimeSupport.h"
 
 #include <vsg/maths/vec4.h>
 
 #include <CesiumUtility/JsonHelpers.h>
+#include <CesiumGltf/ExtensionMeshPrimitiveExtFeatureMetadata.h>
+#include <CesiumGltf/ExtensionModelExtFeatureMetadata.h>
+#include <CesiumGltf/MetadataFeatureTableView.h>
+#include <CesiumGltf/MetadataPropertyView.h>
 
 #include <algorithm>
+#include <charconv>
 #include <stdexcept>
 #include <strings.h>
 #include <map>
@@ -221,11 +228,16 @@ void colorError(const std::string& colorSpec)
     throw std::runtime_error("can't parse color " + colorSpec);
 }
 
-vsg::vec4 hexColor(const std::string &color)
+void colorError(const std::string_view &colorSpec)
+{
+    colorError(std::string(colorSpec));
+}
+
+std::optional<vsg::vec4> hexColor(const std::string_view &color)
 {
     if (color.size() != 6)
     {
-        colorError(color);
+        return {};
     }
     unsigned long vals[3];
     for (int i = 0; i < 3; ++i)
@@ -238,18 +250,34 @@ vsg::vec4 hexColor(const std::string &color)
     return vsg::vec4(vals[0] / 255.0f, vals[1] / 255.0f, vals[2] / 255.0f, 1.0f);
 }
 
-vsg::vec4 parseColorExpr(const std::string& expr)
+template <typename Titr>
+std::string_view makeStringView(Titr begin, Titr end)
+{
+    return std::string_view(&*begin, end - begin);
+}
+
+std::optional<vsg::vec4> parseColorString(const std::string_view &color)
+{
+    if (color[0] == '#')
+    {
+        return hexColor(makeStringView(color.begin() + 1, color.end()));
+    }
+    auto w3cColor = colors.find(std::string(color));
+    if (w3cColor == colors.end())
+    {
+        return {};
+    }
+    return w3cColor->second;
+}
+
+std::optional<vsg::vec4> parseColorSpec(const std::string &expr)
 {
     const vsg::vec4 white(1.0f, 1.0f, 1.0f, 1.0f);
     const std::string colorFunc("color(");
-    if (colorFunc.size() > expr.size())
-    {
-        colorError(expr);
-    }
     auto match = std::mismatch(colorFunc.begin(), colorFunc.end(), expr.begin());
     if (match.first != colorFunc.end())
     {
-        colorError(expr);
+        return {};
     }
     if (*match.second == ')')
     {
@@ -260,23 +288,71 @@ vsg::vec4 parseColorExpr(const std::string& expr)
         auto closing = std::find(match.second + 1, expr.end(), *match.second);
         if (closing == expr.end())
         {
-            colorError(expr);
+            return {};
         }
-        std::string color(match.second + 1, closing);
-        if (color[0] == '#')
+        std::optional<vsg::vec4> colorResult = parseColorString(makeStringView(match.second + 1, closing));
+        if (colorResult)
         {
-            return hexColor(std::string(color.begin() + 1, color.end()));
+            return *colorResult;
         }
-        auto w3cColor = colors.find(color);
-        if (w3cColor == colors.end())
-        {
-            colorError(color);
-        }
-        return w3cColor->second;
     }
-    colorError(expr);
-    // Shouldn't get here
-    return vsg::vec4(0.0, 0.0, 0.0, 1.0);
+    return {};
+}
+
+std::optional<vsg::vec4> parseRGBSpec(const std::string_view expr)
+{
+    const std::string rgbaFunc("rgba");
+    auto match = std::mismatch(rgbaFunc.begin(), rgbaFunc.end(), expr.begin());
+    bool hasAlpha = false;
+    if (match.first == rgbaFunc.end())
+    {
+        hasAlpha = true;
+    }
+    // rgb?
+    else if (match.first != rgbaFunc.end() - 1)
+    {
+        return {};
+    }
+    if (*match.second != '(')
+    {
+        return {};
+    }
+    unsigned long vals[4] = {0, 0, 0, 255};
+
+    if (match.second + 1 >= expr.end())
+    {
+        return {};
+    }
+    const char* valStart = &*(match.second + 1);
+    const int numVals = (hasAlpha ? 4 : 3);
+    for (int i = 0; i < numVals; ++i)
+    {
+        char* numEnd = nullptr;
+        vals[i] = std::strtoul(valStart, &numEnd, 10);
+        valStart = numEnd + 1;
+        while (std::isspace(*valStart))
+        {
+            valStart++;
+        }
+    }
+    const float recip255 = 1.0f / 255.0f;
+    return vsg::vec4(vals[0] * recip255, vals[1] * recip255, vals[2] * recip255, vals[3] * recip255);
+}
+
+// Parse color expression from styling language
+std::optional<vsg::vec4> parseColorExpr(const std::string& expr)
+{
+    auto colorFuncResult = parseColorSpec(expr);
+    if (colorFuncResult)
+    {
+        return colorFuncResult;
+    }
+    auto rgbaResult = parseRGBSpec(expr);
+    if (rgbaResult)
+    {
+        return rgbaResult;
+    }
+    return {};
 }
 
 vsg::ref_ptr<Stylist> Styling::getStylist(ModelBuilder* in_modelBuilder)
@@ -296,19 +372,77 @@ namespace vsgCs
         if (colorItr != json.MemberEnd() && colorItr->value.IsString())
         {
             auto colorVal = parseColorExpr(colorItr->value.GetString());
-            return Styling::create(show, colorVal);
+            if (colorVal)
+            {
+                return Styling::create(show, *colorVal);
+            }
+            vsg::info("Couldn't parse color ", colorItr->value.IsString());
         }
         return Styling::create(show);
     }
 }
 
-Stylist::Stylist(Styling* in_styling, ModelBuilder*)
-    : styling(in_styling)
+Stylist::Stylist(Styling* in_styling, ModelBuilder* builder)
+    : styling(in_styling), modelBuilder(builder)
 {
+    using namespace CesiumGltf;
+    ExtensionModelExtFeatureMetadata* metadata =
+        builder->_model->getExtension<ExtensionModelExtFeatureMetadata>();
+    if (!metadata)
+    {
+        return;
+    }
+    std::optional<Schema> schema = metadata->schema;
+    if (!schema)
+    {
+        return;
+    }
+    const std::unordered_map<std::string, Class>& classes = schema->classes;
+    auto classItr = classes.find("default");
+    if (classItr == classes.end())
+    {
+        return;
+    }
+    const Class& defaultClass = classItr->second;
+    const std::unordered_map<std::string, ClassProperty>& properties = defaultClass.properties;
+    const FeatureTable& featureTable = metadata->featureTables["default"];
+    auto classPropertyItr = properties.find("cesium#color");
+    if (classPropertyItr == properties.end())
+    {
+        return;
+    }
+    const ClassProperty& property = classPropertyItr->second;
+    if (property.type != "STRING")
+    {
+        return;
+    }
+    MetadataFeatureTableView view(builder->_model, &featureTable);
+    std::optional<MetadataPropertyView<std::string_view>> propertyView =
+        view.getPropertyView<std::string_view>("cesium#color");
+    if (!propertyView)
+    {
+        vsg::debug("empty cesium#color property view");
+        return;
+    }
+    for (int64_t i = 0; i < propertyView->size(); ++i)
+    {
+        auto val = propertyView->get(i);
+        if (val != "null")
+        {
+            if (featureColors.empty())
+            {
+                featureColors.resize(propertyView->size());
+            }
+            featureColors[i] = parseColorExpr(std::string(val));
+            if (!featureColors[i])
+            {
+                vsg::warn("invalid color string ", std::string(val));
+            }
+        }
+    }
 }
 
-Stylist::PrimitiveStyling Stylist::getStyling(const CesiumGltf::MeshPrimitive *,
-                                              const CesiumGltf::Accessor *)
+Stylist::PrimitiveStyling Stylist::getStyling(const CesiumGltf::MeshPrimitive *prim)
 {
     PrimitiveStyling result;
     result.show = styling->show;
@@ -316,6 +450,53 @@ Stylist::PrimitiveStyling Stylist::getStyling(const CesiumGltf::MeshPrimitive *,
     {
         result.colors = vsg::vec4Value::create(*styling->color);
         result.vertexRate = VK_VERTEX_INPUT_RATE_INSTANCE;
+        return result;
     }
+    auto* primExtFeatureMetadata = prim->getExtension<CesiumGltf::ExtensionMeshPrimitiveExtFeatureMetadata>();
+    if (!primExtFeatureMetadata
+        || featureColors.empty()
+        || primExtFeatureMetadata->featureIdAttributes.empty())
+    {
+        return result;
+    }
+    const auto& idAttributes = primExtFeatureMetadata->featureIdAttributes[0];
+    if (idAttributes.featureTable != "default")
+    {
+        return result;
+    }
+    const auto& ids = idAttributes.featureIds;
+    if (!ids.attribute)
+    {
+        vsg::info("Can't handle constant / divisor features.");
+        return result;
+    }
+    const CesiumGltf::Accessor* featureAccessor = getAccessor(modelBuilder->_model, prim, *ids.attribute);
+    if (!featureAccessor)
+    {
+        vsg::info("No feature accessor: ", *ids.attribute);
+    }
+#if 0
+    const Accessor* colorAccessor = getAccessor(modelBuilder->_model, prim, "COLOR_0");
+#endif
+    auto colorResult = CesiumGltf::createAccessorView(
+        *modelBuilder->_model,
+        *featureAccessor,
+        [&featureColors = featureColors](auto&& featureView)
+        {
+            auto result = vsg::vec4Array::create(featureView.size());
+            for (int i = 0; i < featureView.size(); ++i)
+            {
+                if (featureColors.at(static_cast<size_t>(featureView[i].value[0])))
+                {
+                    (*result)[i] = *featureColors.at(static_cast<size_t>(featureView[i].value[0]));
+                }
+                else
+                {
+                    (*result)[i] = colorWhite;
+                }
+            }
+            return result;
+        });
+    result.colors = colorResult;
     return result;
 }
