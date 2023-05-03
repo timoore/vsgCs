@@ -26,6 +26,7 @@ SOFTWARE.
 
 #include "CompilableImage.h"
 #include "RuntimeEnvironment.h"
+#include "Styling.h"
 #include "Tracing.h"
 
 #include <Cesium3DTilesSelection/GltfUtilities.h>
@@ -129,7 +130,7 @@ CesiumAsync::Future<Cesium3DTilesSelection::TileLoadResultAndRenderResources>
 vsgResourcePreparer::prepareInLoadThread(const CesiumAsync::AsyncSystem& asyncSystem,
                                          Cesium3DTilesSelection::TileLoadResult&& tileLoadResult,
                                          const glm::dmat4& transform,
-                                         const std::any&)
+                                         const std::any& rendererOptions)
 {
     VSGCS_ZONESCOPED;
     CesiumGltf::Model* pModel = std::get_if<CesiumGltf::Model>(&tileLoadResult.contentKind);
@@ -145,6 +146,10 @@ vsgResourcePreparer::prepareInLoadThread(const CesiumAsync::AsyncSystem& asyncSy
     options.renderOverlays
         = (tileLoadResult.rasterOverlayDetails
            && !tileLoadResult.rasterOverlayDetails.value().rasterOverlayProjections.empty());
+    if (rendererOptions.has_value())
+    {
+        options.styling = std::any_cast<vsg::ref_ptr<Styling>>(rendererOptions);
+    }
     LoadModelResult* result = readAndCompile(std::move(tileLoadResult), transform, options);
     return asyncSystem.createResolvedFuture(
         Cesium3DTilesSelection::TileLoadResultAndRenderResources{

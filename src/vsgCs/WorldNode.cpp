@@ -3,6 +3,7 @@
 #include "CsOverlay.h"
 #include "jsonUtils.h"
 #include "RuntimeEnvironment.h"
+#include "Styling.h"
 #include "TilesetNode.h"
 
 

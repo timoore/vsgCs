@@ -3,6 +3,7 @@ find_package(CURL REQUIRED)
 set(LIB_NAME vsgCs)
 
 set(LIB_PUBLIC_HEADERS
+  accessorUtils.h
   accessor_traits.h
   ${GENERATED_HEADERS_DIR}/vsgCs/Config.h
   CsDebugColorizeTilesOverlay.h
@@ -16,6 +17,7 @@ set(LIB_PUBLIC_HEADERS
   ModelBuilder.h
   RuntimeEnvironment.h
   ShaderFactory.h
+  Styling.h
   TilesetNode.h
   vsgResourcePreparer.h
   runtimeSupport.h
@@ -37,6 +39,7 @@ set(SOURCES
   OpThreadTaskProcessor.cpp
   RuntimeEnvironment.cpp
   ShaderFactory.cpp
+  Styling.cpp
   TilesetNode.cpp
   UrlAssetAccessor.cpp
   runtimeSupport.cpp

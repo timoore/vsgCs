@@ -218,12 +218,12 @@ vec3 BRDF_Diffuse_Burley(PBRInfo pbrInputs)
 
 vec3 BRDF_Diffuse_Disney(PBRInfo pbrInputs)
 {
-	float Fd90 = 0.5 + 2.0 * pbrInputs.perceptualRoughness * pbrInputs.VdotH * pbrInputs.VdotH;
+    float Fd90 = 0.5 + 2.0 * pbrInputs.perceptualRoughness * pbrInputs.LdotH * pbrInputs.LdotH;
     vec3 f0 = vec3(0.1);
-	vec3 invF0 = vec3(1.0, 1.0, 1.0) - f0;
-	float dim = min(invF0.r, min(invF0.g, invF0.b));
-	float result = ((1.0 + (Fd90 - 1.0) * pow(1.0 - pbrInputs.NdotL, 5.0 )) * (1.0 + (Fd90 - 1.0) * pow(1.0 - pbrInputs.NdotV, 5.0 ))) * dim;
-	return pbrInputs.diffuseColor * result;
+    vec3 invF0 = vec3(1.0, 1.0, 1.0) - f0;
+    float dim = min(invF0.r, min(invF0.g, invF0.b));
+    float result = ((1.0 + (Fd90 - 1.0) * pow(1.0 - pbrInputs.NdotL, 5.0 )) * (1.0 + (Fd90 - 1.0) * pow(1.0 - pbrInputs.NdotV, 5.0 ))) * dim;
+    return pbrInputs.diffuseColor * result;
 }
 
 // The following equation models the Fresnel reflectance term of the spec equation (aka F())
@@ -256,7 +256,8 @@ float microfacetDistribution(PBRInfo pbrInputs)
 {
     float roughnessSq = pbrInputs.alphaRoughness * pbrInputs.alphaRoughness;
     float f = (pbrInputs.NdotH * roughnessSq - pbrInputs.NdotH) * pbrInputs.NdotH + 1.0;
-    return roughnessSq / (PI * f * f);
+    // If light intensity isn't scaled by PI, then I don't think it should be a divisor here.
+    return roughnessSq / (f * f);
 }
 
 vec3 BRDF(vec3 u_LightColor, vec3 v, vec3 n, vec3 l, vec3 h, float perceptualRoughness, float metallic, vec3 specularEnvironmentR0, vec3 specularEnvironmentR90, float alphaRoughness, vec3 diffuseColor, vec3 specularColor, float ao)
@@ -410,7 +411,6 @@ void main()
 
     diffuseColor = baseColor.rgb * (vec3(1.0) - f0);
     diffuseColor *= 1.0 - metallic;
-
     float alphaRoughness = perceptualRoughness * perceptualRoughness;
 
     vec3 specularColor = mix(f0, baseColor.rgb, metallic);

@@ -25,10 +25,12 @@ SOFTWARE.
 #include "ModelBuilder.h"
 
 #include "accessor_traits.h"
+#include "accessorUtils.h"
 #include "DescriptorSetConfigurator.h"
 #include "MultisetPipelineConfigurator.h"
 #include "LoadGltfResult.h"
 #include "pbr.h"
+#include "Styling.h"
 
 #include <CesiumGltf/ExtensionKhrTextureBasisu.h>
 #include <CesiumGltf/ExtensionTextureWebp.h>
@@ -41,6 +43,13 @@ const std::string &Cs3DTilesExtension::getExtensionName() const
     static std::string name("CS_3DTiles");
     return name;
 };
+
+const std::string &StylingExtension::getExtensionName() const
+{
+    static std::string name("CS_3DTiles_styling");
+    return name;
+};
+
 
 namespace
 {
@@ -160,6 +169,15 @@ inline VkDescriptorSetLayoutBinding getVk(const vsg::UniformBinding& binding)
                                         binding.stageFlags, nullptr};
 }
 
+CreateModelOptions::CreateModelOptions(bool in_renderOverlays, vsg::ref_ptr<Styling> in_styling)
+    : renderOverlays(in_renderOverlays), styling(in_styling)
+{
+}
+
+CreateModelOptions::~CreateModelOptions()
+{
+}
+
 ModelBuilder::ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, CesiumGltf::Model* model,
                            const CreateModelOptions& options,
                            const ExtensionList& enabledExtensions
@@ -176,6 +194,14 @@ ModelBuilder::ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, Cesium
         _name = urlIt->second.getStringOrDefault("glTF");
         _name = constrainLength(_name, 256); // NOLINT
     }
+    if (isEnabled<StylingExtension>() && options.styling.valid())
+    {
+        _stylist = options.styling->getStylist(this);
+    }
+}
+
+ModelBuilder::~ModelBuilder()
+{
 }
 
 vsg::ref_ptr<vsg::Group>
@@ -255,161 +281,6 @@ ModelBuilder::loadMesh(const CesiumGltf::Mesh* mesh)
 
 namespace
 {
-    // Convenience functions for accessing the elements of values in a vsg::Array, whether they are
-    // scalar of vector
-
-    template<typename T>
-    typename T::value_type& atVSG(T& val, std::size_t i, std::enable_if_t<std::is_class_v<T>, bool> = true)
-    {
-        return val.data()[i];
-    }
-
-    template<typename T>
-    T& atVSG(T& val, std::size_t, std::enable_if_t<!std::is_class_v<T>, bool> = true)
-    {
-        return val;
-    }
-
-    template<typename TA, typename TVSG = typename AccessorViewTraits<TA>::value_type, typename TArray = vsg::Array<TVSG>>
-    vsg::ref_ptr<TArray> createArray(const AccessorView<TA>& accessorView)
-    {
-        static_assert(sizeof(TVSG) == sizeof(TA), "element sizes don't match");
-        if (accessorView.status() != AccessorViewStatus::Valid)
-        {
-            throw std::runtime_error("invalid accessor view");
-        }
-        auto result = TArray::create(accessorView.size());
-        for (int i = 0; i < accessorView.size(); ++i)
-        {
-            for (size_t j = 0; j < AccessorViewTraits<TA>::size; j++)
-            {
-                atVSG((*result)[i], j) = accessorView[i].value[j];
-            }
-        }
-        return result;
-    }
-
-    template<typename TA, typename TI, typename TVSG = typename AccessorViewTraits<TA>::value_type,
-             typename TArray = vsg::Array<TVSG>>
-    vsg::ref_ptr<TArray> createArray(const AccessorView<TA>& accessorView,
-                                     const AccessorView<TI>& indicesView)
-    {
-        static_assert(sizeof(TVSG) == sizeof(TA), "element sizes don't match");
-        if (accessorView.status() != AccessorViewStatus::Valid)
-        {
-            throw std::runtime_error("invalid accessor view");
-        }
-        auto result = TArray::create(indicesView.size());
-        for (int64_t i = 0; i < indicesView.size(); ++i)
-        {
-            for (size_t j = 0; j < AccessorViewTraits<TA>::size; ++j)
-            {
-                atVSG((*result)[i], j) = accessorView[indicesView[i].value[0]].value[j];
-            }
-        }
-        return result;
-    }
-
-    // Doesn't support arrays of scalars
-    template<typename F, typename TA,
-             typename TDest = std::invoke_result_t<F, typename AccessorViewTraits<TA>::element_type>,
-             typename TVSG = typename AccessorViewTraits<TA>::template with_element_type<TDest>,
-             typename TArray = vsg::Array<TVSG>>
-    vsg::ref_ptr<TArray> createArrayAndTransform(const AccessorView<TA>& accessorView, F&& f)
-    {
-        if (accessorView.status() != AccessorViewStatus::Valid)
-        {
-            throw std::runtime_error("invalid accessor view");
-        }
-        auto result = TArray::create(accessorView.size());
-        for (int i = 0; i < accessorView.size(); ++i)
-        {
-            for (size_t j = 0; j < AccessorViewTraits<TA>::size; j++)
-            {
-                atVSG((*result)[i], j) = f(accessorView[i].value[j]);
-            }
-        }
-        return result;
-    }
-
-    template<typename F, typename TA, typename TI,
-             typename TDest = std::invoke_result_t<F, typename AccessorViewTraits<TA>::element_type>,
-             typename TVSG = typename AccessorViewTraits<TA>::template with_element_type<TDest>,
-             typename TArray = vsg::Array<TVSG>>
-    vsg::ref_ptr<TArray> createArrayAndTransform(const AccessorView<TA>& accessorView, const AccessorView<TI>& indicesView,
-                                                 const F& f)
-    {
-        // static_assert(sizeof(TVSG) == sizeof(TA), "element sizes don't match");
-        if (accessorView.status() != AccessorViewStatus::Valid)
-        {
-            throw std::runtime_error("invalid accessor view");
-        }
-        auto result = TArray::create(accessorView.size());
-        for (int i = 0; i < accessorView.size(); ++i)
-        {
-            for (size_t j = 0; j < AccessorViewTraits<TA>::size; j++)
-            {
-                atVSG((*result)[i], j) = f(accessorView[indicesView[i].value[0]].value[j]);
-            }
-        }
-        return result;
-    }
-
-    template<typename S, typename D>
-    D normalize(S val)
-    {
-        return static_cast<D>(val * (1.0 / std::numeric_limits<S>::max()));
-    }
-
-    template<typename TV, typename TA>
-    vsg::ref_ptr<vsg::Data> createNormalized(const AccessorView<TA>& accessorView)
-    {
-        return createArrayAndTransform(accessorView,
-                                       normalize<typename AccessorViewTraits<TA>::element_type, TV>);
-
-    }
-
-    template<typename TV, typename TA, typename TI>
-    vsg::ref_ptr<vsg::Data> createNormalized(const AccessorView<TA>& accessorView, const AccessorView<TI>& indicesView)
-    {
-        return createArrayAndTransform(accessorView, indicesView,
-                                       normalize<typename AccessorViewTraits<TA>::element_type, TV>);
-
-    }
-
-    template<typename T, typename TA>
-        vsg::ref_ptr<vsg::Array<T>> createArrayExplicit(const AccessorView<TA>& accessorView)
-    {
-        return createArray<TA, T>(accessorView);
-    }
-
-    // XXX Should probably write explicit functions for the valid index array types
-    struct IndexVisitor
-    {
-        vsg::ref_ptr<vsg::Data> operator()(AccessorView<std::nullptr_t>&&) { return {}; }
-        vsg::ref_ptr<vsg::Data> operator()(AccessorView<AccessorTypes::SCALAR<uint8_t>>&& view)
-        {
-            return createArrayAndTransform(view,
-                                           [](uint8_t arg)
-                                           {
-                                               return static_cast<uint16_t>(arg);
-                                           });
-        }
-
-        template<typename T>
-        vsg::ref_ptr<vsg::Data> operator()(AccessorView<AccessorTypes::SCALAR<T>>&& view)
-        {
-            return createArrayExplicit<T>(view);
-        }
-
-        template<typename T>
-        vsg::ref_ptr<vsg::Data> operator()(AccessorView<T>&&)
-        {
-            vsg::warn("Invalid array index type: ");
-            return {};
-        }
-    };
-
     bool gltfToVk(int32_t mode, VkPrimitiveTopology& topology)
     {
         bool valid = true;
@@ -460,37 +331,6 @@ namespace
             {
                 result[texCoords.value()] = itr->second;
             }
-        }
-        return result;
-    }
-
-    template <typename R, typename F>
-    R invokeWithAccessorViews(const Model* model, F&& f, const Accessor* accessor1, const Accessor* accessor2 = nullptr)
-    {
-        R result;
-        if (accessor2)
-        {
-            createAccessorView(*model, *accessor1,
-                               [model, &f, &result, accessor2](auto&& accessorView1)
-                               {
-                                   createAccessorView(*model, *accessor2,
-                                                      [&f, &accessorView1, &result](auto&& accessorView2)
-                                                      {
-                                                          if constexpr(
-                                                              is_index_view<decltype(accessorView2)>::value)
-                                                          {
-                                                              result = f(accessorView1, accessorView2);
-                                                          }
-                                                      });
-                               });
-        }
-        else
-        {
-            createAccessorView(*model, *accessor1,
-                               [&f, &result](auto&& accessorView1)
-                               {
-                                   result = f(accessorView1, AccessorView<AccessorTypes::SCALAR<uint16_t>>());
-                               });
         }
         return result;
     }
@@ -664,7 +504,7 @@ vsg::ref_ptr<vsg::Data> createData(Model* model, const A* dataAccessor, const I*
 // is in template functions, but there is a kind of conservation of hair going
 // on here.
 
-namespace
+namespace vsgCs
 {
     // Helper function for getting an attribute accessor by name.
     const Accessor* getAccessor(const Model* model, const MeshPrimitive* primitive, const std::string& name)
@@ -696,6 +536,36 @@ std::string ModelBuilder::makeName(const CesiumGltf::Mesh *mesh,
         name += " primitive " + std::to_string(primNum);
     }
     return name;
+}
+
+namespace
+{
+    vsg::ref_ptr<vsg::vec4Array> expandArray(const Model *model,
+                                             const vsg::ref_ptr<vsg::Data>& srcData,
+                                             const Accessor* indexAccessor)
+    {
+        auto src = ref_ptr_cast<vsg::vec4Array>(srcData);
+        if (!indexAccessor || !src)
+        {
+            return src;
+        }
+        return createAccessorView(
+            *model,
+            *indexAccessor,
+            [src](auto&& indexView)
+             {
+                 if constexpr(is_index_view<decltype(indexView)>::value)
+                 {
+                     auto result = vsg::vec4Array::create(indexView.size());
+                     for (int i = 0; i < indexView.size(); ++i)
+                     {
+                         (*result)[i] = (*src)[indexView[i].value[0]];
+                     }
+                     return result;
+                 }
+                 return vsg::vec4Array::create();
+             });
+    }
 }
 
 vsg::ref_ptr<vsg::Node>
@@ -733,6 +603,15 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     // The indices will be used to expand the attribute arrays.
     const Accessor* expansionIndices = ((!hasNormals || generateTangents) && indicesAccessor
                                         ? &_model->accessors[primitive->indices] : nullptr);
+    Stylist::PrimitiveStyling primStyling;
+    if (_stylist)
+    {
+        primStyling = _stylist->getStyling(primitive);
+    }
+    if (!primStyling.show)
+    {
+        return {};
+    }
     vsg::DataList vertexArrays;
     auto positions = createData(_model, pPositionAccessor, expansionIndices);
     pipelineConf->assignArray(vertexArrays, "vsg_Vertex", VK_VERTEX_INPUT_RATE_VERTEX, positions);
@@ -770,19 +649,33 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     // Bounding volumes aren't stored in most nodes in VSG and are computed when needed. Should we
     // store the the position min / max, or just not bother?
 
-    const Accessor* colorAccessor = getAccessor(_model, primitive, "COLOR_0");
-    vsg::ref_ptr<vsg::Data> colorData;
-    if (colorAccessor
-        && (colorData = doColors(_model, colorAccessor, expansionIndices)).valid())
+    if (primStyling.colors.valid())
     {
-        pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colorData);
+        auto styledColors = primStyling.colors;
+        if (expansionIndices)
+        {
+            styledColors = expandArray(_model, primStyling.colors, expansionIndices);
+        }
+        pipelineConf->assignArray(vertexArrays, "vsg_Color", primStyling.vertexRate, styledColors);
     }
     else
     {
-        auto color = vsg::vec4Value::create(vsg::vec4(1.0f, 1.0f, 1.0f, 1.0f));
-        pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, color);
+        const Accessor* colorAccessor = getAccessor(_model, primitive, "COLOR_0");
+        vsg::ref_ptr<vsg::Data> colorData;
+        if (colorAccessor)
+        {
+            colorData = doColors(_model, colorAccessor, expansionIndices);
+        }
+        if (!colorData)
+        {
+            auto color = vsg::vec4Value::create(colorWhite);
+            pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, color);
+        }
+        else
+        {
+            pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colorData);
+        }
     }
-
     // Textures...
     const auto& assignTexCoord = [&](const std::string& texPrefix, int baseLocation)
     {
