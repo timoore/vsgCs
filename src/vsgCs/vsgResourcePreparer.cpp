@@ -41,7 +41,7 @@ using namespace CesiumGltf;
 // they might still be in use. The problem is that VSG recycles descriptors...
 
 DeletionQueue::DeletionQueue()
-    : lastFrameRun(std::numeric_limits<uint64_t>::max())
+    : lastFrameRun(std::numeric_limits<uint64_t>::max()), frameDelay(3)
 {
 }
 
@@ -57,9 +57,12 @@ void DeletionQueue::run()
     lastFrameRun = std::numeric_limits<uint64_t>::max();
 }
 
+int runningDeletion = 0;
+
 void DeletionQueue::run(vsg::ref_ptr<vsg::Viewer> viewer)
 {
     VSGCS_ZONESCOPED;
+    runningDeletion = 1;
     const auto frameStamp = viewer->getFrameStamp();
     if (lastFrameRun == std::numeric_limits<uint64_t>::max())
     {
@@ -72,7 +75,7 @@ void DeletionQueue::run(vsg::ref_ptr<vsg::Viewer> viewer)
         auto itr = queue.begin();
         while (itr != queue.end())
         {
-            if (itr->frameRemoved + 2 <= frameStamp->frameCount)
+            if (itr->frameRemoved + frameDelay <= frameStamp->frameCount)
             {
                 itr = queue.erase(itr);
             }
@@ -83,6 +86,7 @@ void DeletionQueue::run(vsg::ref_ptr<vsg::Viewer> viewer)
         }
     }
     lastFrameRun = frameStamp->frameCount;
+    runningDeletion = 0;
 }
 
 vsgResourcePreparer::vsgResourcePreparer(const vsg::ref_ptr<GraphicsEnvironment>& genv,

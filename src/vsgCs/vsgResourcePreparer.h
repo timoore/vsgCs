@@ -64,6 +64,9 @@ namespace vsgCs
         void run(vsg::ref_ptr<vsg::Viewer> frameStamp);
         uint64_t lastFrameRun;
         std::deque<Deletion> queue;
+        // A safe value for this seems to depend on the swapchain minImageCount in obscure
+        // ways. Hardwired to 3 for now.
+        uint64_t frameDelay;
     };
 
     struct DeviceFeatures;
