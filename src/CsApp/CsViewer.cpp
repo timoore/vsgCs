@@ -25,6 +25,7 @@ SOFTWARE.
 #include "CsViewer.h"
 
 #include "vsgCs/runtimeSupport.h"
+#include "vsgCs/Tracing.h"
 
 using namespace CsApp;
 
@@ -49,4 +50,10 @@ void CsViewer::handleEvents()
             vsg_event->accept(*handler);
         }
     }
+}
+
+bool CsViewer::advanceToNextFrame()
+{
+    VSGCS_ZONESCOPED;
+    return Inherit::advanceToNextFrame();
 }

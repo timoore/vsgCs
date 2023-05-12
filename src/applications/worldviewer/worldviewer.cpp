@@ -55,10 +55,6 @@ SOFTWARE.
 #include "UI.h"
 #include "CsApp/CsViewer.h"
 
-#ifdef TRACY_ENABLE
-#include "tracy/Tracy.hpp"
-#endif
-
 void usage(const char* name)
 {
     std::cout

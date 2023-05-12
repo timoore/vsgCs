@@ -40,5 +40,6 @@ namespace CsApp
         CsViewer& operator=(const Viewer& rhs) = delete;
         // compress pointer motion events
         void handleEvents() override;
+        bool advanceToNextFrame() override;
     };
 }
