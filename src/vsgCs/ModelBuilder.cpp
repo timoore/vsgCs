@@ -209,41 +209,35 @@ ModelBuilder::loadNode(const CesiumGltf::Node* node)
 {
     const std::vector<double>& matrix = node->matrix;
     vsg::ref_ptr<vsg::Group> result;
-    if (isGltfIdentity(matrix))
+    vsg::dmat4 transformMatrix;
+    if (matrix.size() == 16 && !isGltfIdentity(matrix))
     {
-        result = vsg::Group::create();
+        std::copy(matrix.begin(), matrix.end(), transformMatrix.data());
     }
     else
     {
-        vsg::dmat4 transformMatrix;
-        if (matrix.size() == 16)
+        vsg::dmat4 translation;
+        if (node->translation.size() == 3)
         {
-            std::copy(matrix.begin(), matrix.end(), transformMatrix.data());
+            translation = vsg::translate(node->translation[0], node->translation[1], node->translation[2]);
         }
-        else
+        vsg::dquat rotation(0.0, 0.0, 0.0, 1.0);
+        if (node->rotation.size() == 4)
         {
-            vsg::dmat4 translation;
-            if (node->translation.size() == 3)
-            {
-                translation = vsg::translate(node->translation[0], node->translation[1], node->translation[2]);
-            }
-            vsg::dquat rotation(0.0, 0.0, 0.0, 1.0);
-            if (node->rotation.size() == 4)
-            {
-                rotation.x = node->rotation[1];
-                rotation.y = node->rotation[2];
-                rotation.z = node->rotation[3];
-                rotation.w = node->rotation[0];
-            }
-            vsg::dmat4 scale;
-            if (node->scale.size() == 3)
-            {
-                scale = vsg::scale(node->scale[0], node->scale[1], node->scale[2]);
-            }
-            transformMatrix = translation * rotate(rotation) * scale;
+            rotation.x = node->rotation[0];
+            rotation.y = node->rotation[1];
+            rotation.z = node->rotation[2];
+            rotation.w = node->rotation[3];
         }
-        result = vsg::MatrixTransform::create(transformMatrix);
+        vsg::dmat4 scale;
+        if (node->scale.size() == 3)
+        {
+            scale = vsg::scale(node->scale[0], node->scale[1], node->scale[2]);
+        }
+        transformMatrix = translation * rotate(rotation) * scale;
     }
+    result = vsg::MatrixTransform::create(transformMatrix);
+
     int meshId = node->mesh;
     if (meshId >= 0 && static_cast<unsigned>(meshId) < _model->meshes.size())
     {
