@@ -1235,11 +1235,10 @@ MapManipulator::getMapNode() const
     return safe;
 }
 
-bool
+std::optional<vsg::dvec3>
 MapManipulator::intersect(
     const vsg::dvec3& start,
-    const vsg::dvec3& end,
-    vsg::dvec3& out_intersection) const
+    const vsg::dvec3& end) const
 {
     VSGCS_ZONESCOPED;
     vsg::ref_ptr<WorldNode> mapNode = _mapNode;
@@ -1262,16 +1261,15 @@ MapManipulator::intersect(
                     });
             }
 
-            out_intersection = lsi.intersections.front()->worldIntersection;
+            return lsi.intersections.front()->worldIntersection;
             //std::cout << out_intersection.x << ", " << out_intersection.y << ", " << out_intersection.z << std::endl;
-            return true;
         }
     }
-    return false;
+    return {};
 }
 
-bool
-MapManipulator::intersectAlongLookVector(vsg::dvec3& out_world) const
+std::optional<vsg::dvec3>
+MapManipulator::intersectAlongLookVector() const
 {
     auto mapNode = getMapNode();
     if (mapNode)
@@ -1281,11 +1279,9 @@ MapManipulator::intersectAlongLookVector(vsg::dvec3& out_world) const
 
         return intersect(
             lookat.eye,
-            (lookat.center - lookat.eye) * _state.distance * 1.5,
-            out_world);
+            (lookat.center - lookat.eye) * _state.distance * 1.5);
     }
-
-    return false;
+    return {};
 }
 
 void
@@ -1574,56 +1570,47 @@ MapManipulator::recalculateCenterFromLookVector()
     lookat.set(_camera->viewMatrix->inverse());
     auto look = vsg::normalize(lookat.center - lookat.eye);
 
-    bool ok = false;
-    vsg::dvec3 intersection;
-
-    if (intersect(lookat.eye, look * _state.distance * 1.5, intersection))
-    {
-        ok = true;
-    }
+    std::optional<vsg::dvec3> intersection = intersect(lookat.eye, look * _state.distance * 1.5);
 
     // backup plan, intersect the ellipsoid or the ground plane
-    else if (_geoServices->isGeocentric())
+    if (!intersection)
     {
-        auto target = lookat.eye + look * 1e10;
-        auto i = _geoServices->intersectGeocentricLine(lookat.eye, target);
-        if (i)
+        if (_geoServices->isGeocentric())
         {
-            intersection = *i;
-            ok = true;
+            auto target = lookat.eye + look * 1e10;
+            intersection = _geoServices->intersectGeocentricLine(lookat.eye, target);
+        }
+        else
+        {
+            // simple line/plane intersection
+            vsg::dvec3 P0(0, 0, 0); // point on the plane
+            vsg::dvec3 N(0, 0, 1); // normal to the plane
+            vsg::dvec3 L = look; // unit direction of the line
+            vsg::dvec3 L0 = lookat.eye; // point on the line
+            auto LdotN = vsg::dot(L, N);
+            if (equiv(LdotN, 0)) return false; // parallel
+            auto D = vsg::dot((P0 - L0), N) / LdotN;
+            if (D < 0) return false; // behind the camera
+            intersection = L0 + L * D;
         }
     }
-
-    else
-    {
-        // simple line/plane intersection
-        vsg::dvec3 P0(0, 0, 0); // point on the plane
-        vsg::dvec3 N(0, 0, 1); // normal to the plane
-        vsg::dvec3 L = look; // unit direction of the line
-        vsg::dvec3 L0 = lookat.eye; // point on the line
-        auto LdotN = vsg::dot(L, N);
-        if (equiv(LdotN, 0)) return false; // parallel
-        auto D = vsg::dot((P0 - L0), N) / LdotN;
-        if (D < 0) return false; // behind the camera
-        intersection = L0 + L * D;
-        ok = true;
-    }
-
-    if (ok)
+    if (intersection)
     {
         if (_geoServices->isGeocentric())
         {
             // keep the existing center, but change its length
-            double len = vsg::length(intersection);
-            _state.center = vsg::normalize(_state.center) * len;
+            // XXX to keep center at the same "radius" as the intersection?
+            double len = vsg::length(*intersection);
+            auto newCenter = vsg::normalize(_state.center) * len;
+            setCenter(newCenter);
         }
         else
         {
-            setCenter(intersection);
+            setCenter(*intersection);
         }
+        return true;
     }
-
-    return ok;
+    return false;
 }
 
 void
