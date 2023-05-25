@@ -578,9 +578,9 @@ namespace vsgCs
 
     protected:
 
-        bool intersect(const vsg::dvec3& start, const vsg::dvec3& end, vsg::dvec3& intersection) const;
+        std::optional<vsg::dvec3> intersect(const vsg::dvec3& start, const vsg::dvec3& end) const;
 
-        bool intersectAlongLookVector(vsg::dvec3& out_world) const;
+         std::optional<vsg::dvec3> intersectAlongLookVector() const;
 
         // returns the absolute Euler angles composited from the composite rotation matrix.
         void getCompositeEulerAngles(double* out_azim, double* out_pitch = 0L) const;
