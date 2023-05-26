@@ -54,8 +54,8 @@ namespace vsgCs
         bool isGeocentric() override;
         double semiMajorAxis() override;
         vsg::dbox bounds() override;
-        std::optional<vsg::dvec3> intersectGeocentricLine(const vsg::dvec3& pnt1,
-                                                          const vsg::dvec3& pnt2) override;
+        std::optional<vsg::dvec3> intersectGeocentricLine(const vsg::dvec3& p0_world,
+                                                          const vsg::dvec3& p1_world) override;
         vsg::ref_ptr<vsg::Node> getWorldNode() override;
     protected:
         vsg::ref_ptr<vsg::Node> _worldNode;
