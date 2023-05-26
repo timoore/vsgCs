@@ -376,7 +376,7 @@ namespace
 {
     vsg::ref_ptr<vsg::Object> buildTilesetNode(const rapidjson::Value& json,
                                                JSONObjectFactory* factory,
-                                               vsg::ref_ptr<vsg::Object>)
+                                               const vsg::ref_ptr<vsg::Object>&)
     {
         auto env = RuntimeEnvironment::get();
         // Current implementation of TilesetNode constructs Cesium tileset in the constructor, using

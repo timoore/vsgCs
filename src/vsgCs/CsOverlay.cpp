@@ -87,7 +87,7 @@ namespace
 {
     vsg::ref_ptr<vsg::Object> buildCsOverlay(const rapidjson::Value& json,
                                              JSONObjectFactory*,
-                                             vsg::ref_ptr<vsg::Object> object)
+                                             const vsg::ref_ptr<vsg::Object>& object)
     {
         if (!object)
         {
@@ -102,7 +102,7 @@ namespace
 
     vsg::ref_ptr<vsg::Object> buildCSIonRasterOverlay(const rapidjson::Value& json,
                                                       JSONObjectFactory* factory,
-                                                      vsg::ref_ptr<vsg::Object> object)
+                                                      const vsg::ref_ptr<vsg::Object>& object)
     {
         auto env = RuntimeEnvironment::get();
         auto overlay = create_or<CsIonRasterOverlay>(object);

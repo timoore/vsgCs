@@ -100,14 +100,10 @@ const Cesium3DTilesSelection::Tile* WorldNode::getRootTile(size_t tileset)
 namespace
 {
     vsg::ref_ptr<vsg::Object> buildWorldNode(const rapidjson::Value& json,
-                                               JSONObjectFactory* factory,
-                                               vsg::ref_ptr<vsg::Object> object)
+                                             JSONObjectFactory* factory,
+                                             const vsg::ref_ptr<vsg::Object>& object)
     {
-        if (!object)
-        {
-            object = WorldNode::create();
-        }
-        auto world = ref_ptr_cast<WorldNode>(object);
+        auto world = create_or<WorldNode>(object);
         world->init(json, factory);
         return world;
     }

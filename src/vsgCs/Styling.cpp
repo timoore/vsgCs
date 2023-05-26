@@ -364,7 +364,7 @@ namespace vsgCs
 {
     vsg::ref_ptr<vsg::Object> buildStyling(const rapidjson::Value& json,
                                            JSONObjectFactory*,
-                                           vsg::ref_ptr<vsg::Object>)
+                                           const vsg::ref_ptr<vsg::Object>&)
     {
         auto showStr = CesiumUtility::JsonHelpers::getStringOrDefault(json, "show", "true");
         bool show = showStr == "true";

@@ -31,7 +31,7 @@ using namespace vsgCs;
 
 vsg::ref_ptr<vsg::Object> JSONObjectFactory::build(const rapidjson::Value& value,
                                                    const std::string& typeOverride,
-                                                   vsg::ref_ptr<vsg::Object> object)
+                                                   const vsg::ref_ptr<vsg::Object>& object)
 {
     std::string jsonType;
     if (!typeOverride.empty())
@@ -71,10 +71,10 @@ namespace vsgCs
 {
     vsg::ref_ptr<vsg::Object> buildCsDebugColorizeTilesOverlay(const rapidjson::Value&,
                                                                JSONObjectFactory*,
-                                                               vsg::ref_ptr<vsg::Object> object);
+                                                               const vsg::ref_ptr<vsg::Object>& object);
     JSONObjectFactory::Registrar r("DebugColorizeTilesRasterOverlay", buildCsDebugColorizeTilesOverlay);
-        vsg::ref_ptr<vsg::Object> buildStyling(const rapidjson::Value& json,
-                                               JSONObjectFactory*,
-                                               vsg::ref_ptr<vsg::Object>);
+    vsg::ref_ptr<vsg::Object> buildStyling(const rapidjson::Value& json,
+                                           JSONObjectFactory*,
+                                           const vsg::ref_ptr<vsg::Object>&);
     JSONObjectFactory::Registrar rStyling("Styling", buildStyling);
 }

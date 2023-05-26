@@ -259,7 +259,7 @@ namespace vsgCs
     }
 
     template<typename T, typename TSource, typename... Args>
-    vsg::ref_ptr<T> create_or(vsg::ref_ptr<TSource> source, Args&&... args)
+    vsg::ref_ptr<T> create_or(const vsg::ref_ptr<TSource>& source, Args&&... args)
     {
         auto downcast = ref_ptr_cast<T>(source);
         if (downcast.valid())

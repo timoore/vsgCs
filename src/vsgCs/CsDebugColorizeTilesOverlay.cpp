@@ -39,8 +39,8 @@ Cesium3DTilesSelection::RasterOverlay* CsDebugColorizeTilesOverlay::createOverla
 namespace vsgCs
 {
     vsg::ref_ptr<vsg::Object> buildCsDebugColorizeTilesOverlay(const rapidjson::Value& json,
-                                                              JSONObjectFactory* factory,
-                                                              vsg::ref_ptr<vsg::Object> object)
+                                                               JSONObjectFactory* factory,
+                                                               const vsg::ref_ptr<vsg::Object>& object)
     {
         auto overlay = create_or<CsDebugColorizeTilesOverlay>(object);
         factory->build(json, "CsOverlay", overlay);
