@@ -65,7 +65,7 @@ struct BoundingSphereOperation
 
     vsg::dsphere operator()(const CesiumGeometry::BoundingSphere& sphere) const
     {
-        return vsg::dsphere(glm2vsg(sphere.getCenter()), sphere.getRadius());
+        return {glm2vsg(sphere.getCenter()), sphere.getRadius()};
     }
 
     vsg::dsphere operator()(const CesiumGeometry::OrientedBoundingBox& box) const
@@ -77,7 +77,7 @@ struct BoundingSphereOperation
         glm::dvec3 corner3 = halfAxes[1] + halfAxes[2];
         double sphereRadius = glm::max(glm::length(corner1), glm::length(corner2));
         sphereRadius = glm::max(sphereRadius, glm::length(corner3));
-        return vsg::dsphere(center, sphereRadius);
+        return {center, sphereRadius};
     }
 
   vsg::dsphere operator()(const CesiumGeospatial::BoundingRegion& region) const
@@ -319,7 +319,7 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
     {
         return {};
     }
-    RasterResources *resource = static_cast<RasterResources*>(pMainThreadRendererResources);
+    auto *resource = static_cast<RasterResources*>(pMainThreadRendererResources);
     auto raster = resource->raster;
     auto& rasterData = rasters->overlayRasters.at(resource->overlayOptions.layerNumber);
     rasterData.rasterImage = raster;
@@ -339,7 +339,7 @@ ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection
         stateCommands.erase(stateCommands.begin() + 1, stateCommands.end());
     }
     stateCommands.push_back(command);
-    result.compileObjects.push_back(command);
+    result.compileObjects.emplace_back(command);
     return result;
 }
 
@@ -356,7 +356,7 @@ CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile& tile,
     {
         return {};
     }
-    RasterResources *resource = static_cast<RasterResources*>(rasterTile.getRendererResources());
+    auto *resource = static_cast<RasterResources*>(rasterTile.getRendererResources());
     auto& rasterData = rasters->overlayRasters.at(resource->overlayOptions.layerNumber);
     {
         rasterData.rasterImage = {}; // ref to rasterImage is still held by the old StateCommand
@@ -372,8 +372,8 @@ CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile& tile,
             stateCommands.erase(stateCommands.begin() + 1);
         }
         stateCommands.push_back(newCommand);
-        result.compileObjects.push_back(newCommand);
-        result.deleteObjects.push_back(oldCommand);
+        result.compileObjects.emplace_back(newCommand);
+        result.deleteObjects.emplace_back(oldCommand);
     }
     return result;
 }

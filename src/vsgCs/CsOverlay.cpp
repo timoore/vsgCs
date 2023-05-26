@@ -65,7 +65,7 @@ void CsOverlay::removeFromTileset(const vsg::ref_ptr<TilesetNode>& tilesetNode)
     _rasterOverlay->getAsyncDestructionCompleteEvent(getAsyncSystem())
       .thenInMainThread([this]() { --this->_overlaysBeingDestroyed; });
     tilesetNode->removeOverlay(vsg::ref_ptr<CsOverlay>(this));
-    _rasterOverlay = 0;
+    _rasterOverlay = nullptr;
 }
 
 Cesium3DTilesSelection::RasterOverlay* CsIonRasterOverlay::createOverlay(
