@@ -52,10 +52,10 @@ void WorldNode::init(const rapidjson::Value& worldJson, JSONObjectFactory* facto
     }
 }
 
-bool WorldNode::initialize(vsg::ref_ptr<vsg::Viewer> viewer)
+bool WorldNode::initialize(const vsg::ref_ptr<vsg::Viewer>& viewer)
 {
     bool result = true;
-    for (auto node : worldNodes())
+    for (const auto& node : worldNodes())
     {
         auto tilesetNode = ref_ptr_cast<TilesetNode>(node);
         if (!tilesetNode)
