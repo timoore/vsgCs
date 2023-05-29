@@ -41,21 +41,22 @@ namespace vsgCs
     class VSGCS_EXPORT RuntimeEnvironment : public vsg::Inherit<vsg::Object, RuntimeEnvironment>
     {
     public:
-        vsg::ref_ptr<vsg::Options> initializeOptions(vsg::CommandLine& arguments, vsg::ref_ptr<vsg::Options> options= {});
+        vsg::ref_ptr<vsg::Options> initializeOptions(vsg::CommandLine& arguments,
+                                                     const vsg::ref_ptr<vsg::Options>& options= {});
         vsg::ref_ptr<vsg::WindowTraits> initializeTraits(vsg::CommandLine& arguments,
-                                                         vsg::ref_ptr< vsg::WindowTraits> traits = {});
+                                                         const vsg::ref_ptr< vsg::WindowTraits>& traits = {});
         void initializeCs(vsg::CommandLine& arguments);
         // Parse all command line arguments and initalize everything
         void initialize(vsg::CommandLine& arguments,
-                        vsg::ref_ptr<vsg::WindowTraits> traits = {},
-                        vsg::ref_ptr<vsg::Options> options = {});
+                        const vsg::ref_ptr<vsg::WindowTraits>& traits = {},
+                        const vsg::ref_ptr<vsg::Options>& options = {});
         // Open window without creating a Vulkan logical device
         vsg::ref_ptr<vsg::Window> openSystemWindow(const std::string& name,
-                                                   vsg::ref_ptr<vsg::WindowTraits> traits = {},
-                                                   vsg::ref_ptr<vsg::Options> options = {});
+                                                   const vsg::ref_ptr<vsg::WindowTraits>& traits = {},
+                                                   const vsg::ref_ptr<vsg::Options>& options = {});
         vsg::ref_ptr<vsg::Window> openSystemWindow(vsg::CommandLine& arguments, const std::string& name,
-                                                   vsg::ref_ptr<vsg::WindowTraits> traits = {},
-                                                   vsg::ref_ptr<vsg::Options> options = {});
+                                                   const vsg::ref_ptr<vsg::WindowTraits>& traits = {},
+                                                   const vsg::ref_ptr<vsg::Options>& options = {});
         /**
          * @brief Set up the window traits to create the Vulkan Device with the desired features,
          * etc.
@@ -66,7 +67,7 @@ namespace vsgCs
          * @returns features that are actually available for Cesium and vsgCs.
          */
 
-        DeviceFeatures prepareFeaturesAndExtensions(vsg::ref_ptr<vsg::Window> window);
+        DeviceFeatures prepareFeaturesAndExtensions(const vsg::ref_ptr<vsg::Window>& window);
 
         /**
          * @brief Initialize the graphics environment object. Not called by client code unless
@@ -76,18 +77,18 @@ namespace vsgCs
         
         // Open window and prepare features and extensions for vsgCs.
         vsg::ref_ptr<vsg::Window> openWindow(const std::string& name,
-                                             vsg::ref_ptr<vsg::WindowTraits> traits = {},
-                                             vsg::ref_ptr<vsg::Options> options = {});
+                                             const vsg::ref_ptr<vsg::WindowTraits>& traits = {},
+                                             const vsg::ref_ptr<vsg::Options>& options = {});
         vsg::ref_ptr<vsg::Window> openWindow(vsg::CommandLine& arguments, const std::string& name,
-                                             vsg::ref_ptr<vsg::WindowTraits> traits = {},
-                                             vsg::ref_ptr<vsg::Options> options = {});
+                                             const vsg::ref_ptr<vsg::WindowTraits>& traits = {},
+                                             const vsg::ref_ptr<vsg::Options>& options = {});
         /**
          * @brief Set the viewer object.
          *
          * TilesetNode and WorldNode objects can be created before the VSG viewer, but
          * RuntimeEnvironment needs the viewer before code can start running.
          */
-        void setViewer(vsg::ref_ptr<vsg::Viewer> viewer);
+        void setViewer(const vsg::ref_ptr<vsg::Viewer>& viewer);
         
         /**
          * Get the tileset externals that should be used by every tileset.

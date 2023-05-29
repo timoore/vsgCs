@@ -39,7 +39,7 @@ SOFTWARE.
 using namespace vsgCs;
 
 vsg::ref_ptr<vsg::Options> RuntimeEnvironment::initializeOptions(vsg::CommandLine &arguments,
-                                                                 vsg::ref_ptr<vsg::Options> in_options)
+                                                                 const vsg::ref_ptr<vsg::Options>& in_options)
 {
     options = in_options;
     if (!options)
@@ -62,7 +62,7 @@ vsg::ref_ptr<vsg::Options> RuntimeEnvironment::initializeOptions(vsg::CommandLin
 }
 
 vsg::ref_ptr<vsg::WindowTraits> RuntimeEnvironment::initializeTraits(vsg::CommandLine& arguments,
-                                                                     vsg::ref_ptr< vsg::WindowTraits> in_traits)
+                                                                     const vsg::ref_ptr< vsg::WindowTraits>& in_traits)
 {
     traits = in_traits;
     if (!traits)
@@ -71,9 +71,18 @@ vsg::ref_ptr<vsg::WindowTraits> RuntimeEnvironment::initializeTraits(vsg::Comman
     }
     traits->debugLayer = arguments.read({"--debug", "-d"});
     traits->apiDumpLayer = arguments.read({"--api", "-a"});
-    if (arguments.read("--IMMEDIATE")) traits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
-    if (arguments.read({"--fullscreen", "--fs"})) traits->fullscreen = true;
-    if (arguments.read({"--window", "-w"}, traits->width, traits->height)) { traits->fullscreen = false; }
+    if (arguments.read("--IMMEDIATE"))
+    {
+        traits->swapchainPreferences.presentMode = VK_PRESENT_MODE_IMMEDIATE_KHR;
+    }
+    if (arguments.read({"--fullscreen", "--fs"}))
+    {
+        traits->fullscreen = true;
+    }
+    if (arguments.read({"--window", "-w"}, traits->width, traits->height))
+    {
+        traits->fullscreen = false;
+    }
     arguments.read("--screen", traits->screenNum);
     arguments.read("--display", traits->display);
     arguments.read("--samples", traits->samples);
@@ -107,8 +116,8 @@ void RuntimeEnvironment::initializeCs(vsg::CommandLine& arguments)
 }
 
 void RuntimeEnvironment::initialize(vsg::CommandLine &arguments,
-                                    vsg::ref_ptr<vsg::WindowTraits> in_traits,
-                                    vsg::ref_ptr<vsg::Options> in_options)
+                                    const vsg::ref_ptr<vsg::WindowTraits>& in_traits,
+                                    const vsg::ref_ptr<vsg::Options>& in_options)
 {
     initializeOptions(arguments, in_options);
     initializeTraits(arguments, in_traits);
@@ -116,8 +125,8 @@ void RuntimeEnvironment::initialize(vsg::CommandLine &arguments,
 }
 
 vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openSystemWindow(const std::string& name,
-                                                               vsg::ref_ptr<vsg::WindowTraits> in_traits,
-                                                               vsg::ref_ptr<vsg::Options> in_options)
+                                                               const vsg::ref_ptr<vsg::WindowTraits>& in_traits,
+                                                               const vsg::ref_ptr<vsg::Options>& in_options)
 {
     if (in_traits)
     {
@@ -132,14 +141,14 @@ vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openSystemWindow(const std::string
 }
 
 vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openSystemWindow(vsg::CommandLine& arguments, const std::string& name,
-                                                               vsg::ref_ptr<vsg::WindowTraits> in_traits,
-                                                               vsg::ref_ptr<vsg::Options> in_options)
+                                                               const vsg::ref_ptr<vsg::WindowTraits>& in_traits,
+                                                               const vsg::ref_ptr<vsg::Options>& in_options)
 {
     initialize(arguments, in_traits, in_options);
     return openSystemWindow(name);
 }
 
-DeviceFeatures RuntimeEnvironment::prepareFeaturesAndExtensions(vsg::ref_ptr<vsg::Window> window)
+DeviceFeatures RuntimeEnvironment::prepareFeaturesAndExtensions(const vsg::ref_ptr<vsg::Window>& window)
 {
     if (window->getDevice())
     {
@@ -240,8 +249,8 @@ void RuntimeEnvironment::initGraphicsEnvironment(const vsg::ref_ptr<vsg::Device>
 }
 
 vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openWindow(const std::string& name,
-                                                         vsg::ref_ptr<vsg::WindowTraits> in_traits,
-                                                         vsg::ref_ptr<vsg::Options> in_options)
+                                                         const vsg::ref_ptr<vsg::WindowTraits>& in_traits,
+                                                         const vsg::ref_ptr<vsg::Options>& in_options)
 {
     auto result = openSystemWindow(name, in_traits, in_options);
     prepareFeaturesAndExtensions(result);
@@ -250,8 +259,8 @@ vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openWindow(const std::string& name
 }
 
 vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openWindow(vsg::CommandLine& arguments, const std::string& name,
-                                                         vsg::ref_ptr<vsg::WindowTraits> in_traits,
-                                                         vsg::ref_ptr<vsg::Options> in_options)
+                                                         const vsg::ref_ptr<vsg::WindowTraits>& in_traits,
+                                                         const vsg::ref_ptr<vsg::Options>& in_options)
 {
     auto result = openSystemWindow(arguments, name, in_traits, in_options);
     prepareFeaturesAndExtensions(result);
@@ -260,7 +269,7 @@ vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openWindow(vsg::CommandLine& argum
     
 }
 
-void RuntimeEnvironment::setViewer(vsg::ref_ptr<vsg::Viewer> viewer)
+void RuntimeEnvironment::setViewer(const vsg::ref_ptr<vsg::Viewer>& viewer)
 {
     auto externals = getTilesetExternals();
     auto resourcePrep = std::dynamic_pointer_cast<vsgResourcePreparer>(externals->pPrepareRendererResources);
@@ -305,7 +314,7 @@ std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> RuntimeEnvironment::ge
     using TE = Cesium3DTilesSelection::TilesetExternals;
     return _externals
         = std::shared_ptr<TE>(new TE{assetAccessor, resourcePreparer, asyncSystem, creditSystem,
-                                     logger, nullptr});
+                                     logger, nullptr}); // NOLINT make_shared doesn't take intializer list
 }
 
 void RuntimeEnvironment::update()
@@ -321,14 +330,14 @@ vsg::ref_ptr<RuntimeEnvironment> RuntimeEnvironment::get()
 
 std::string RuntimeEnvironment::optionsUsage()
 {
-    return std::string(
-        "--file-cache path\t VSG file cache\n"
-        "--ot numThreads\t\t number of operation threads\n");
+    return { "--file-cache path\t VSG file cache\n"
+             "--ot numThreads\t\t number of operation threads\n"
+    };
 }
 
 std::string RuntimeEnvironment::traitsUsage()
 {
-    return std::string(
+    return {
         "--debug|-d\t\t load Vulkan debug layer\n"
         "--api|-a\t\t load Vulkan dump layer\n"
         "--IMMEDIATE\t\t set swapchain present mode to VK_PRESENT_MODE_IMMEDIATE_KHR\n"
@@ -336,16 +345,17 @@ std::string RuntimeEnvironment::traitsUsage()
         "--window|-w width height set window dimensions\n"
         "--screen number\n"
         "--display number\n"
-        "--samples n\t\t enable multisamples with n samples\n");
+        "--samples n\t\t enable multisamples with n samples\n"
+    };
 }
 
 std::string RuntimeEnvironment::csUsage()
 {
-    return std::string(
+    return {
         "--ion-token token_string user's Cesium ion token\n"
         "--ion-token-file filename file containing user's ion token\n"
         "--cesium-cache filename\t cache file for 3D Tiles remote requests\n"
-        "--shader-debug-info\t generate symbols for shader source debugging\n");
+        "--shader-debug-info\t generate symbols for shader source debugging\n"};
 }
 
 std::string RuntimeEnvironment::usage()
