@@ -56,7 +56,9 @@ namespace
     bool isGltfIdentity(const std::vector<double>& matrix)
     {
         if (matrix.size() != 16)
+        {
             return false;
+        }
         for (int i = 0; i < 16; ++i)
         {
             if (i % 5 == 0)
@@ -169,7 +171,7 @@ inline VkDescriptorSetLayoutBinding getVk(const vsg::UniformBinding& binding)
                                         binding.stageFlags, nullptr};
 }
 
-CreateModelOptions::CreateModelOptions(bool in_renderOverlays, vsg::ref_ptr<Styling> in_styling)
+CreateModelOptions::CreateModelOptions(bool in_renderOverlays, const vsg::ref_ptr<Styling>& in_styling)
     : renderOverlays(in_renderOverlays), styling(in_styling)
 {
 }
@@ -180,12 +182,12 @@ CreateModelOptions::~CreateModelOptions()
 
 ModelBuilder::ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, CesiumGltf::Model* model,
                            const CreateModelOptions& options,
-                           const ExtensionList& enabledExtensions
+                           ExtensionList enabledExtensions
     )
     : _genv(genv), _model(model), _options(options),
       _csMaterials(model->materials.size()),
       _loadedImages(model->images.size()),
-      _activeExtensions(enabledExtensions)
+      _activeExtensions(std::move(enabledExtensions))
 {
     _name = "glTF";
     auto urlIt = _model->extras.find("Cesium3DTiles_TileUrl");
@@ -317,13 +319,13 @@ namespace
                               const std::unordered_map<std::string, int32_t>& attributes)
     {
         std::map<int32_t, int32_t> result;
-        for (auto itr = attributes.begin(); itr != attributes.end(); ++itr)
+        for (const auto& attribute : attributes)
         {
-            const auto& name = itr->first;
+            const auto& name = attribute.first;
             auto texCoords = getUintSuffix(prefix, name);
             if (texCoords)
             {
-                result[texCoords.value()] = itr->second;
+                result[*texCoords] = attribute.second;
             }
         }
         return result;
@@ -928,11 +930,8 @@ vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRG
     {
         return imageData.imageWithMipmap = data;
     }
-    else
-    {
-        return imageData.image = data;
-    }
-}
+    return imageData.image = data;
+ }
 
 // helper to simplify index validation logic
 namespace
@@ -951,10 +950,8 @@ namespace
 vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture& texture,
                                       bool sRGB)
 {
-    const CesiumGltf::ExtensionKhrTextureBasisu* pKtxExtension =
-        texture.getExtension<CesiumGltf::ExtensionKhrTextureBasisu>();
-    const CesiumGltf::ExtensionTextureWebp* pWebpExtension =
-        texture.getExtension<CesiumGltf::ExtensionTextureWebp>();
+    const auto* pKtxExtension = texture.getExtension<CesiumGltf::ExtensionKhrTextureBasisu>();
+    const auto* pWebpExtension = texture.getExtension<CesiumGltf::ExtensionTextureWebp>();
 
     std::optional<int32_t> source;
     if (pKtxExtension)

@@ -85,7 +85,7 @@ namespace vsgCs
      */
     struct CreateModelOptions
     {
-        CreateModelOptions(bool in_renderOverlays = false, vsg::ref_ptr<Styling> styling = {});
+        CreateModelOptions(bool in_renderOverlays = false, const vsg::ref_ptr<Styling>& styling = {});
         ~CreateModelOptions();
         bool renderOverlays;
         vsg::ref_ptr<Styling> styling;
@@ -98,7 +98,7 @@ namespace vsgCs
     public:
         ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, CesiumGltf::Model* model,
                      const CreateModelOptions& options,
-                     const ExtensionList& enabledExtensions = {});
+                     ExtensionList enabledExtensions = {});
         ~ModelBuilder();
         vsg::ref_ptr<vsg::Group> operator()();
         vsg::ref_ptr<vsg::Group> loadNode(const CesiumGltf::Node* node);
