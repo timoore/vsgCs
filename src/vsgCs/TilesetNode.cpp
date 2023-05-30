@@ -345,8 +345,12 @@ void TilesetNode::UpdateTileset::run()
 bool TilesetNode::initialize(const vsg::ref_ptr<vsg::Viewer>& viewer)
 {
     updateViews(viewer);
-    viewer->addUpdateOperation(UpdateTileset::create(vsg::ref_ptr<TilesetNode>(this), viewer),
-                               vsg::UpdateOperations::ALL_FRAMES);
+    // Making a ref_ptr from this is gross. If the caller doesn't hold a ref, then this will be
+    // deleted at the end of the function! We could do unref_nodelete, but UpdateTileset holds
+    // observer_ptrs... Anyway, keeping this "alive" for the whole function avoids a compiler /
+    // clang-tidy error.
+    vsg::ref_ptr<TilesetNode> ref(this);
+    viewer->addUpdateOperation(UpdateTileset::create(ref, viewer), vsg::UpdateOperations::ALL_FRAMES);
     return true;
 }
 
