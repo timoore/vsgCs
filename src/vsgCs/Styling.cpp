@@ -70,7 +70,7 @@ using CaseInsensitiveMap = std::map<std::string, T, CaseInsensitiveComparator>;
 
 vsg::vec4 color(uint32_t r, uint32_t g, uint32_t b)
 {
-    return vsg::vec4(r / 255.0f, g / 255.0f, b / 255.0f, 1.0f);
+    return {r / 255.0f, g / 255.0f, b / 255.0f, 1.0f};
 }
 
 const CaseInsensitiveMap<vsg::vec4> colors = {
@@ -364,7 +364,7 @@ namespace vsgCs
 {
     vsg::ref_ptr<vsg::Object> buildStyling(const rapidjson::Value& json,
                                            JSONObjectFactory*,
-                                           vsg::ref_ptr<vsg::Object>)
+                                           const vsg::ref_ptr<vsg::Object>&)
     {
         auto showStr = CesiumUtility::JsonHelpers::getStringOrDefault(json, "show", "true");
         bool show = showStr == "true";
@@ -386,7 +386,7 @@ Stylist::Stylist(Styling* in_styling, ModelBuilder* builder)
     : styling(in_styling), modelBuilder(builder)
 {
     using namespace CesiumGltf;
-    ExtensionModelExtFeatureMetadata* metadata =
+    auto* metadata =
         builder->_model->getExtension<ExtensionModelExtFeatureMetadata>();
     if (!metadata)
     {
@@ -452,7 +452,8 @@ Stylist::PrimitiveStyling Stylist::getStyling(const CesiumGltf::MeshPrimitive *p
         result.vertexRate = VK_VERTEX_INPUT_RATE_INSTANCE;
         return result;
     }
-    auto* primExtFeatureMetadata = prim->getExtension<CesiumGltf::ExtensionMeshPrimitiveExtFeatureMetadata>();
+    const auto* primExtFeatureMetadata
+        = prim->getExtension<CesiumGltf::ExtensionMeshPrimitiveExtFeatureMetadata>();
     if (!primExtFeatureMetadata
         || featureColors.empty()
         || primExtFeatureMetadata->featureIdAttributes.empty())

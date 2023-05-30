@@ -50,8 +50,8 @@ void AsyncSystemWrapper::shutdown()
 class TaskOperation : public vsg::Inherit<vsg::Operation, TaskOperation>
 {
 public:
-    TaskOperation(std::function<void()> f)
-        : _f(f)
+    explicit TaskOperation(std::function<void()> f)
+        : _f(std::move(f))
     {
     }
 

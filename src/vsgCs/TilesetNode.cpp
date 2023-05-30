@@ -45,28 +45,20 @@ using namespace vsgCs;
 using namespace CesiumGltf;
 
 template<typename F>
-void for_each_view(vsg::ref_ptr<vsg::Viewer> viewer, const F& f)
+void for_each_view(const vsg::ref_ptr<vsg::Viewer>& viewer, const F& f)
 {
-    for (auto rsTasksItr = viewer->recordAndSubmitTasks.begin();
-         rsTasksItr != viewer->recordAndSubmitTasks.end();
-         ++rsTasksItr)
+    for (auto& recordAndSubmitTask : viewer->recordAndSubmitTasks)
     {
-        for (auto cgItr = (*rsTasksItr)->commandGraphs.begin();
-             cgItr != (*rsTasksItr)->commandGraphs.end();
-             ++cgItr)
+        for (auto& commandGraph : recordAndSubmitTask->commandGraphs)
         {
-            for (auto childItr = (*cgItr)->children.begin();
-                 childItr != (*cgItr)->children.end();
-                ++childItr)
+            for (auto& child : commandGraph->children)
             {
-                vsg::ref_ptr<vsg::RenderGraph> rg(dynamic_cast<vsg::RenderGraph*>(childItr->get()));
+                auto rg = ref_ptr_cast<vsg::RenderGraph>(child);
                 if (rg)
                 {
-                    for (auto rgChildItr = rg->children.begin();
-                         rgChildItr != rg->children.end();
-                         ++rgChildItr)
+                    for (auto& rgChild : rg->children)
                     {
-                        vsg::ref_ptr<vsg::View> view(dynamic_cast<vsg::View*>(rgChildItr->get()));
+                        auto view = ref_ptr_cast<vsg::View>(rgChild);
                         if (view)
                         {
                             f(view, rg);
@@ -79,11 +71,11 @@ void for_each_view(vsg::ref_ptr<vsg::Viewer> viewer, const F& f)
 }
 
 TilesetNode::TilesetNode(const DeviceFeatures& deviceFeatures, const TilesetSource& source,
-                         const Cesium3DTilesSelection::TilesetOptions& in_options,
-                         vsg::ref_ptr<vsg::Options>)
+                         const Cesium3DTilesSelection::TilesetOptions& tilesetOptions,
+                         const vsg::ref_ptr<vsg::Options>&)
     : _viewUpdateResult(nullptr), _tilesetsBeingDestroyed(0)
 {
-    Cesium3DTilesSelection::TilesetOptions options(in_options);
+    Cesium3DTilesSelection::TilesetOptions options(tilesetOptions);
     // turn off all the unsupported stuff
     options.enableOcclusionCulling = false;
     // Generous per-frame time limits for loading / unloading on main thread.
@@ -93,6 +85,7 @@ TilesetNode::TilesetNode(const DeviceFeatures& deviceFeatures, const TilesetSour
     options.loadErrorCallback =
         [this](const Cesium3DTilesSelection::TilesetLoadFailureDetails& details)
         {
+            (void)this;
             assert(this->_tileset.get() == details.pTileset);
             vsg::warn(details.message);
         };
@@ -162,14 +155,12 @@ void TilesetNode::t_traverse(V& visitor) const
 {
     if (_viewUpdateResult)
     {
-        for (auto itr = _viewUpdateResult->tilesToRenderThisFrame.begin();
-             itr != _viewUpdateResult->tilesToRenderThisFrame.end();
-             ++itr)
+        for (auto* tile : _viewUpdateResult->tilesToRenderThisFrame)
         {
-            const auto& tileContent = (*itr)->getContent();
+            const auto& tileContent = tile->getContent();
             if (tileContent.isRenderContent())
             {
-                const RenderResources *renderResources
+                const auto* renderResources
                     = reinterpret_cast<const RenderResources*>(tileContent.getRenderContent()
                                                                ->getRenderResources());
                 renderResources->model->accept(visitor);
@@ -216,10 +207,10 @@ vsg::dmat4 TilesetNode::yUp2zUp(1.0, 0.0, 0.0, 0.0,
 class FindNodeVisitor : public vsg::Inherit<vsg::Visitor, FindNodeVisitor>
 {
 public:
-    FindNodeVisitor(vsg::ref_ptr<vsg::Node> node)
+    explicit FindNodeVisitor(const vsg::ref_ptr<vsg::Node>& node)
         : _node(node)
     {}
-    FindNodeVisitor(vsg::Node* node)
+    explicit FindNodeVisitor(vsg::Node* node)
         : _node(vsg::ref_ptr<vsg::Node>(node))
     {}
     void apply(vsg::Node& node) override
@@ -248,7 +239,7 @@ private:
 
 struct ViewData : public vsg::Inherit<vsg::Object, ViewData>
 {
-    ViewData(vsg::RefObjectPath& in_tilesetPath)
+    explicit ViewData(vsg::RefObjectPath& in_tilesetPath)
         : tilesetPath(in_tilesetPath)
     {}
     vsg::RefObjectPath tilesetPath;
@@ -257,9 +248,9 @@ struct ViewData : public vsg::Inherit<vsg::Object, ViewData>
 namespace
 {
     std::optional<Cesium3DTilesSelection::ViewState>
-    createViewState(vsg::ref_ptr<vsg::View> view, vsg::ref_ptr<vsg::RenderGraph> renderGraph)
+    createViewState(const vsg::ref_ptr<vsg::View>& view, const vsg::ref_ptr<vsg::RenderGraph>& renderGraph)
     {
-        ViewData* viewData = dynamic_cast<ViewData*>(view->getObject("vsgCsViewData"));
+        auto* viewData = dynamic_cast<ViewData*>(view->getObject("vsgCsViewData"));
         if (!viewData)
         {
             return {};
@@ -274,7 +265,7 @@ namespace
         double fovy = 0.0;
         double fovx = 0.0;
         vsg::ref_ptr<vsg::ProjectionMatrix> projMat = view->camera->projectionMatrix;
-        vsg::Perspective* persp = dynamic_cast<vsg::Perspective*>(projMat.get());
+        auto* persp = dynamic_cast<vsg::Perspective*>(projMat.get());
         if (persp)
         {
             fovy = vsg::radians(persp->fieldOfViewY);
@@ -301,16 +292,16 @@ namespace
         Cesium3DTilesSelection::ViewState result =
             Cesium3DTilesSelection::ViewState::create(position, direction, up, viewportSize,
                                                       fovx, fovy);
-        return std::optional<Cesium3DTilesSelection::ViewState>(result);
+        return {result};
     }
 }
 
 
     
-void TilesetNode::updateViews(vsg::ref_ptr<vsg::Viewer> viewer)
+void TilesetNode::updateViews(const vsg::ref_ptr<vsg::Viewer>& viewer)
 {
     for_each_view(viewer,
-                  [this](vsg::ref_ptr<vsg::View> view, vsg::ref_ptr<vsg::RenderGraph>)
+                  [this](const vsg::ref_ptr<vsg::View>& view, const vsg::ref_ptr<vsg::RenderGraph>&)
                   {
                       FindNodeVisitor visitor(this);
                       view->accept(visitor);
@@ -341,7 +332,7 @@ void TilesetNode::UpdateTileset::run()
     VSGCS_ZONESCOPEDN("update view");
     std::vector<Cesium3DTilesSelection::ViewState> viewStates;
     for_each_view(viewer,
-                  [&viewStates](vsg::ref_ptr<vsg::View> view, vsg::ref_ptr<vsg::RenderGraph> rg)
+                  [&viewStates](const vsg::ref_ptr<vsg::View>& view, const vsg::ref_ptr<vsg::RenderGraph>& rg)
                   {
                       auto viewState = createViewState(view, rg);
                       if (viewState)
@@ -352,21 +343,25 @@ void TilesetNode::UpdateTileset::run()
     ref_tileset->_viewUpdateResult = &ref_tileset->_tileset->updateView(viewStates);
 }
 
-bool TilesetNode::initialize(vsg::ref_ptr<vsg::Viewer> viewer)
+bool TilesetNode::initialize(const vsg::ref_ptr<vsg::Viewer>& viewer)
 {
     updateViews(viewer);
-    viewer->addUpdateOperation(UpdateTileset::create(vsg::ref_ptr<TilesetNode>(this), viewer),
-                               vsg::UpdateOperations::ALL_FRAMES);
+    // Making a ref_ptr from this is gross. If the caller doesn't hold a ref, then this will be
+    // deleted at the end of the function! We could do unref_nodelete, but UpdateTileset holds
+    // observer_ptrs... Anyway, keeping this "alive" for the whole function avoids a compiler /
+    // clang-tidy error.
+    vsg::ref_ptr<TilesetNode> ref(this);
+    viewer->addUpdateOperation(UpdateTileset::create(ref, viewer), vsg::UpdateOperations::ALL_FRAMES);
     return true;
 }
 
-void TilesetNode::addOverlay(vsg::ref_ptr<CsOverlay> overlay)
+void TilesetNode::addOverlay(const vsg::ref_ptr<CsOverlay>& overlay)
 {
     _overlays.push_back(overlay);
     _tileset->getOverlays().add(overlay->getOverlay());
 }
 
-void TilesetNode::removeOverlay(vsg::ref_ptr<CsOverlay> overlay)
+void TilesetNode::removeOverlay(const vsg::ref_ptr<CsOverlay>& overlay)
 {
     _tileset->getOverlays().remove(overlay->getOverlay());
     _overlays.erase(std::remove(_overlays.begin(), _overlays.end(), overlay), _overlays.end());
@@ -376,7 +371,7 @@ namespace
 {
     vsg::ref_ptr<vsg::Object> buildTilesetNode(const rapidjson::Value& json,
                                                JSONObjectFactory* factory,
-                                               vsg::ref_ptr<vsg::Object>)
+                                               const vsg::ref_ptr<vsg::Object>&)
     {
         auto env = RuntimeEnvironment::get();
         // Current implementation of TilesetNode constructs Cesium tileset in the constructor, using

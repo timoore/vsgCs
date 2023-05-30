@@ -52,10 +52,10 @@ void WorldNode::init(const rapidjson::Value& worldJson, JSONObjectFactory* facto
     }
 }
 
-bool WorldNode::initialize(vsg::ref_ptr<vsg::Viewer> viewer)
+bool WorldNode::initialize(const vsg::ref_ptr<vsg::Viewer>& viewer)
 {
     bool result = true;
-    for (auto node : worldNodes())
+    for (const auto& node : worldNodes())
     {
         auto tilesetNode = ref_ptr_cast<TilesetNode>(node);
         if (!tilesetNode)
@@ -73,7 +73,7 @@ bool WorldNode::initialize(vsg::ref_ptr<vsg::Viewer> viewer)
 
 void WorldNode::shutdown()
 {
-    for (auto node : worldNodes())
+    for (const auto& node : worldNodes())
     {
         auto tilesetNode = ref_ptr_cast<TilesetNode>(node);
         if (!tilesetNode)
@@ -100,14 +100,10 @@ const Cesium3DTilesSelection::Tile* WorldNode::getRootTile(size_t tileset)
 namespace
 {
     vsg::ref_ptr<vsg::Object> buildWorldNode(const rapidjson::Value& json,
-                                               JSONObjectFactory* factory,
-                                               vsg::ref_ptr<vsg::Object> object)
+                                             JSONObjectFactory* factory,
+                                             const vsg::ref_ptr<vsg::Object>& object)
     {
-        if (!object)
-        {
-            object = WorldNode::create();
-        }
-        auto world = ref_ptr_cast<WorldNode>(object);
+        auto world = create_or<WorldNode>(object);
         world->init(json, factory);
         return world;
     }

@@ -52,7 +52,7 @@ namespace vsgCs
 
         TilesetNode(const DeviceFeatures& deviceFeatures, const TilesetSource& source,
                     const Cesium3DTilesSelection::TilesetOptions& tilesetOptions,
-                    vsg::ref_ptr<vsg::Options> options);
+                    const vsg::ref_ptr<vsg::Options>& options);
         ~TilesetNode() override;
 
         /**
@@ -62,11 +62,11 @@ namespace vsgCs
          * Call this after the initial command graphs have been assigned to the viewer, but before
          * the main loop starts.
          */
-        bool initialize(vsg::ref_ptr<vsg::Viewer> viewer);
+        bool initialize(const vsg::ref_ptr<vsg::Viewer>& viewer);
         /**
          * @brief Call when cameras and views are added to the viewer
          */
-        void updateViews(vsg::ref_ptr<vsg::Viewer> viewer);
+        void updateViews(const vsg::ref_ptr<vsg::Viewer>& viewer);
         // void attachToViewer(vsg::ref_ptr<vsg::Viewer> viewer, vsg::ref_ptr<vsg::Group> attachment);
         void traverse(vsg::Visitor& visitor) override;
         void traverse(vsg::ConstVisitor& visitor) const override;
@@ -88,8 +88,8 @@ namespace vsgCs
         }
         // Add and delete overlays for which the Cesium overlay object has already been created. You
         // probably don't want to call these; use CsOverlay::addTotileset instead.
-        void addOverlay(vsg::ref_ptr<CsOverlay> overlay);
-        void removeOverlay(vsg::ref_ptr<CsOverlay> overlay);
+        void addOverlay(const vsg::ref_ptr<CsOverlay>& overlay);
+        void removeOverlay(const vsg::ref_ptr<CsOverlay>& overlay);
         vsg::ref_ptr<Styling> styling;
     protected:
         const Cesium3DTilesSelection::ViewUpdateResult* _viewUpdateResult;

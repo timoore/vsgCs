@@ -48,7 +48,7 @@ namespace vsgCs
             uint64_t frameRemoved;
             vsg::ref_ptr<vsg::Object> object;
         };
-        void add(vsg::ref_ptr<vsg::Viewer>, vsg::ref_ptr<vsg::Object> object);
+        void add(const vsg::ref_ptr<vsg::Viewer>& viewer, const vsg::ref_ptr<vsg::Object>& object);
         // Add A "list" of objects for deletion
         template<typename TSpan>
         void addObjects(vsg::ref_ptr<vsg::Viewer> viewer, TSpan&& span)
@@ -61,7 +61,7 @@ namespace vsgCs
         // Remove everything from queue.
         void run();
         // Run at this frame
-        void run(vsg::ref_ptr<vsg::Viewer> frameStamp);
+        void run(const vsg::ref_ptr<vsg::Viewer>& viewer);
         uint64_t lastFrameRun;
         std::deque<Deletion> queue;
         // A safe value for this seems to depend on the swapchain minImageCount in obscure
@@ -75,7 +75,7 @@ namespace vsgCs
     {
     public:
         vsgResourcePreparer(const vsg::ref_ptr<GraphicsEnvironment>& genv,
-                            vsg::ref_ptr<vsg::Viewer> viewer = {});
+                            const vsg::ref_ptr<vsg::Viewer>& viewer = {});
     
         CesiumAsync::Future<Cesium3DTilesSelection::TileLoadResultAndRenderResources>
             prepareInLoadThread(const CesiumAsync::AsyncSystem& asyncSystem,
@@ -93,7 +93,7 @@ namespace vsgCs
                                         const std::any& rendererOptions) override;
 
         void* prepareRasterInMainThread(Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
-                                        void* pLoadThreadResult) override;
+                                        void* rawLoadResult) override;
 
         void freeRaster(const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
                         void* pLoadThreadResult,

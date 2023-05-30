@@ -36,24 +36,24 @@ using namespace vsgCs;
 class UrlAssetResponse : public CesiumAsync::IAssetResponse
 {
 public:
-    virtual uint16_t statusCode() const override
+    uint16_t statusCode() const override
     {
         return _statusCode;
     }
     
-    virtual std::string contentType() const override
+    std::string contentType() const override
     {
         return _contentType;
     }
 
-    virtual const CesiumAsync::HttpHeaders& headers() const override
+    const CesiumAsync::HttpHeaders& headers() const override
     {
         return _headers;
     }
     
-    virtual gsl::span<const std::byte> data() const override
+    gsl::span<const std::byte> data() const override
     {
-        return gsl::span(const_cast<const std::byte*>(&_result[0]), _result.size());
+        return {const_cast<const std::byte*>(_result.data()), _result.size()};
     }
 
     static size_t headerCallback(char* buffer, size_t size, size_t nitems, void *userData);
@@ -68,37 +68,37 @@ public:
 class UrlAssetRequest : public CesiumAsync::IAssetRequest
 {
 public:
-    UrlAssetRequest(const std::string& method, const std::string& url,
-                    const CesiumAsync::HttpHeaders& headers)
-        : _method(method), _url(url), _headers(headers)
+    UrlAssetRequest(std::string method, std::string url,
+                    CesiumAsync::HttpHeaders headers)
+        : _method(std::move(method)), _url(std::move(url)), _headers(std::move(headers))
     {
         
     }
 
-    UrlAssetRequest(const std::string& method, const std::string& url,
+    UrlAssetRequest(std::string method, std::string url,
                     const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers)
-        : _method(method), _url(url)
+        : _method(std::move(method)), _url(std::move(url))
     {
         _headers.insert(headers.begin(), headers.end());
     }
 
     
-    virtual const std::string& method() const override
+    const std::string& method() const override
     {
         return this->_method;
     }
 
-    virtual const std::string& url() const override
+    const std::string& url() const override
     {
         return this->_url;
     }
 
-    virtual const CesiumAsync::HttpHeaders& headers() const override
+    const CesiumAsync::HttpHeaders& headers() const override
     {
         return _headers;
     }
 
-    virtual const CesiumAsync::IAssetResponse* response() const override
+    const CesiumAsync::IAssetResponse* response() const override
     {
         return this->_response.get();
     }
@@ -118,16 +118,20 @@ size_t UrlAssetResponse::headerCallback(char* buffer, size_t size, size_t nitems
 {
     // size is supposed to always be 1, but who knows
     const size_t cnt = size * nitems;
-    UrlAssetResponse* response = static_cast<UrlAssetResponse*>(userData);
+    auto* response = static_cast<UrlAssetResponse*>(userData);
     if (!response)
+    {
         return cnt;
-    char* colon = static_cast<char*>(std::memchr(buffer, ':', nitems));
+    }
+    auto* colon = static_cast<char*>(std::memchr(buffer, ':', nitems));
     if (colon)
     {
         char* value = colon + 1;
         char* end = buffer + cnt;
         while (value < end && *value == ' ')
+        {
             ++value;
+        }
         response->_headers.insert({std::string(buffer, colon), std::string(value, end)});
         auto contentTypeItr = response->_headers.find("content-type");
         if (contentTypeItr != response->_headers.end())
@@ -146,9 +150,11 @@ extern "C" size_t headerCallback(char* buffer, size_t size, size_t nitems, void 
 size_t UrlAssetResponse::dataCallback(char* buffer, size_t size, size_t nitems, void *userData)
 {
     const size_t cnt = size * nitems;
-    UrlAssetResponse* response = static_cast<UrlAssetResponse*>(userData);
+    auto* response = static_cast<UrlAssetResponse*>(userData);
     if (!response)
+    {
         return cnt;
+    }
     std::transform(buffer, buffer + cnt, std::back_inserter(response->_result),
                    [](char c)
                    {
@@ -185,7 +191,7 @@ UrlAssetAccessor::~UrlAssetAccessor()
 class CurlHandle
 {
 public:
-    CurlHandle(UrlAssetAccessor* in_accessor)
+    explicit CurlHandle(UrlAssetAccessor* in_accessor)
         : _accessor(in_accessor)
 
     {
@@ -239,7 +245,7 @@ UrlAssetAccessor::get(const CesiumAsync::AsyncSystem& asyncSystem,
       {
           std::shared_ptr<UrlAssetRequest> request
               = std::make_shared<UrlAssetRequest>("GET", url, headers);
-          auto accessor = this;
+          auto* accessor = this;
           asyncSystem.runInWorkerThread([promise, request, accessor]()
           {
               VSGCS_ZONESCOPEDN("UrlAssetAccessor::get inner");
@@ -287,7 +293,7 @@ UrlAssetAccessor::request(const CesiumAsync::AsyncSystem& asyncSystem,
         {
             std::shared_ptr<UrlAssetRequest> request
                 = std::make_shared<UrlAssetRequest>(verb, url, headers);
-            auto accessor = this;
+            auto* accessor = this;
             auto payloadCopy
                 = std::make_shared<std::vector<std::byte>>(contentPayload.begin(), contentPayload.end());
             auto verbCopy = std::make_shared<std::string>(verb);

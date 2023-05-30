@@ -51,6 +51,6 @@ namespace CsApp
             vsg::ref_ptr<vsgImGui::Texture> texture;
         };
         mutable std::map<std::string, RemoteImage> imageCache;
-        vsg::ref_ptr<vsgImGui::Texture> getTexture(std::string url) const;
+        vsg::ref_ptr<vsgImGui::Texture> getTexture(const std::string& url) const;
     };
 }

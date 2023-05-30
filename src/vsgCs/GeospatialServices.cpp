@@ -64,7 +64,7 @@ double CsGeospatialServices::semiMajorAxis()
 vsg::dbox CsGeospatialServices::bounds()
 {
     auto radii = glm2vsg(CesiumGeospatial::Ellipsoid::WGS84.getRadii());
-    return vsg::dbox(radii * -1.0, radii);
+    return {radii * -1.0, radii};
 }
 
 // Thank you rocky
@@ -100,9 +100,13 @@ std::optional<vsg::dvec3> CsGeospatialServices::intersectGeocentricLine(const vs
 
         //seg; pick closest:
         if (fabs(t0) < fabs(t1))
+        {
             v = d * t0;
+        }
         else
+        {
             v = d * t1;
+        }
     }
     else if (D == 0.0)
     {
@@ -117,11 +121,8 @@ std::optional<vsg::dvec3> CsGeospatialServices::intersectGeocentricLine(const vs
     {
         return (p0 + v) * _unitSphereToEllipsoid;
     }
-    else
-    {
-        // either no intersection, or the distance was not the max.
-        return {};
-    }
+    // either no intersection, or the distance was not the max.
+    return {};
 }
 
 vsg::ref_ptr<vsg::Node> CsGeospatialServices::getWorldNode()

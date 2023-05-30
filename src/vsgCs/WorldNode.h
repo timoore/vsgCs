@@ -51,7 +51,7 @@ namespace vsgCs
          * Call this after the initial command graphs have been assigned to the viewer, but before
          * the main loop starts.
          */
-        bool initialize(vsg::ref_ptr<vsg::Viewer> viewer);
+        bool initialize(const vsg::ref_ptr<vsg::Viewer>& viewer);
         void shutdown();
         // hack for supporting zoom after load
         const Cesium3DTilesSelection::Tile* getRootTile(size_t tileset = 0);

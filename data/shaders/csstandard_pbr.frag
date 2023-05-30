@@ -163,57 +163,11 @@ vec3 getNormal()
 // Basic Lambertian diffuse
 // Implementation from Lambert's Photometria https://archive.org/details/lambertsphotome00lambgoog
 // See also [1], Equation 1
+// Keeping this because we might use it instead of BRDF_Diffuse_Disney. If we do, the RECIPROCAL_PI
+// will have to go.
 vec3 BRDF_Diffuse_Lambert(PBRInfo pbrInputs)
 {
     return pbrInputs.diffuseColor * RECIPROCAL_PI;
-}
-
-vec3 BRDF_Diffuse_Custom_Lambert(PBRInfo pbrInputs)
-{
-    return pbrInputs.diffuseColor * RECIPROCAL_PI * pow(pbrInputs.NdotV, 0.5 + 0.3 * pbrInputs.perceptualRoughness);
-}
-
-// [Gotanda 2012, "Beyond a Simple Physically Based Blinn-Phong Model in Real-Time"]
-vec3 BRDF_Diffuse_OrenNayar(PBRInfo pbrInputs)
-{
-    float a = pbrInputs.alphaRoughness;
-    float s = a;// / ( 1.29 + 0.5 * a );
-    float s2 = s * s;
-    float VoL = 2 * pbrInputs.VdotH * pbrInputs.VdotH - 1;		// double angle identity
-    float Cosri = pbrInputs.VdotL - pbrInputs.NdotV * pbrInputs.NdotL;
-    float C1 = 1 - 0.5 * s2 / (s2 + 0.33);
-    float C2 = 0.45 * s2 / (s2 + 0.09) * Cosri * ( Cosri >= 0 ? 1.0 / max(pbrInputs.NdotL, pbrInputs.NdotV) : 1 );
-    return pbrInputs.diffuseColor / PI * ( C1 + C2 ) * ( 1 + pbrInputs.perceptualRoughness * 0.5 );
-}
-
-// [Gotanda 2014, "Designing Reflectance Models for New Consoles"]
-vec3 BRDF_Diffuse_Gotanda(PBRInfo pbrInputs)
-{
-    float a = pbrInputs.alphaRoughness;
-    float a2 = a * a;
-    float F0 = 0.04;
-    float VoL = 2 * pbrInputs.VdotH * pbrInputs.VdotH - 1;		// double angle identity
-    float Cosri = VoL - pbrInputs.NdotV * pbrInputs.NdotL;
-    float a2_13 = a2 + 1.36053;
-    float Fr = ( 1 - ( 0.542026*a2 + 0.303573*a ) / a2_13 ) * ( 1 - pow( 1 - pbrInputs.NdotV, 5 - 4*a2 ) / a2_13 ) * ( ( -0.733996*a2*a + 1.50912*a2 - 1.16402*a ) * pow( 1 - pbrInputs.NdotV, 1 + rcp(39*a2*a2+1) ) + 1 );
-    //float Fr = ( 1 - 0.36 * a ) * ( 1 - pow( 1 - NoV, 5 - 4*a2 ) / a2_13 ) * ( -2.5 * Roughness * ( 1 - NoV ) + 1 );
-    float Lm = ( max( 1 - 2*a, 0 ) * ( 1 - pow5( 1 - pbrInputs.NdotL ) ) + min( 2*a, 1 ) ) * ( 1 - 0.5*a * (pbrInputs.NdotL - 1) ) * pbrInputs.NdotL;
-    float Vd = ( a2 / ( (a2 + 0.09) * (1.31072 + 0.995584 * pbrInputs.NdotV) ) ) * ( 1 - pow( 1 - pbrInputs.NdotL, ( 1 - 0.3726732 * pbrInputs.NdotV * pbrInputs.NdotV ) / ( 0.188566 + 0.38841 * pbrInputs.NdotV ) ) );
-    float Bp = Cosri < 0 ? 1.4 * pbrInputs.NdotV * pbrInputs.NdotL * Cosri : Cosri;
-    float Lr = (21.0 / 20.0) * (1 - F0) * ( Fr * Lm + Vd + Bp );
-    return pbrInputs.diffuseColor * RECIPROCAL_PI * Lr;
-}
-
-vec3 BRDF_Diffuse_Burley(PBRInfo pbrInputs)
-{
-    float energyBias = mix(pbrInputs.perceptualRoughness, 0.0, 0.5);
-    float energyFactor = mix(pbrInputs.perceptualRoughness, 1.0, 1.0 / 1.51);
-    float fd90 = energyBias + 2.0 * pbrInputs.VdotH * pbrInputs.VdotH * pbrInputs.perceptualRoughness;
-    float f0 = 1.0;
-    float lightScatter = f0 + (fd90 - f0) * pow(1.0 - pbrInputs.NdotL, 5.0);
-    float viewScatter = f0 + (fd90 - f0) * pow(1.0 - pbrInputs.NdotV, 5.0);
-
-    return pbrInputs.diffuseColor * lightScatter * viewScatter * energyFactor;
 }
 
 vec3 BRDF_Diffuse_Disney(PBRInfo pbrInputs)

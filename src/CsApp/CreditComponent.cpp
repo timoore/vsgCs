@@ -68,7 +68,6 @@ namespace
                 searchStartItr = closeItr;
             }
         }
-        return;
     }
 }
 
@@ -76,7 +75,7 @@ namespace
 // make a future for it. When the future is resolved, then we can keep the image
 // in the map and return it.
 
-vsg::ref_ptr<vsgImGui::Texture> CreditComponent::getTexture(std::string url) const
+vsg::ref_ptr<vsgImGui::Texture> CreditComponent::getTexture(const std::string& url) const
 {
     auto env = vsgCs::RuntimeEnvironment::get();
     auto insertResult = imageCache.insert(std::pair(url, RemoteImage()));
@@ -90,7 +89,7 @@ vsg::ref_ptr<vsgImGui::Texture> CreditComponent::getTexture(std::string url) con
     {
         return remoteImage.texture;
     }
-    else if (remoteImage.imageResult)
+    if (remoteImage.imageResult)
     {
         vsg::ref_ptr<vsgImGui::Texture> retval;
         if (remoteImage.imageResult->isReady())
@@ -112,11 +111,8 @@ vsg::ref_ptr<vsgImGui::Texture> CreditComponent::getTexture(std::string url) con
         }
         return retval;
     }
-    else
-    {
-        // The Future was resolved, but with an error.
-        return {};
-    }
+    // The Future was resolved, but with an error.
+    return {};
 }
 
 // This is the lamest renderer ever: render a small line of HTML using ImGui.
@@ -130,7 +126,8 @@ void CreditComponent::record(vsg::CommandBuffer& cb) const
     const ImGuiViewport* viewport = ImGui::GetMainViewport();
     ImVec2 work_pos = viewport->WorkPos; // Use work area to avoid menu-bar/task-bar, if any!
     ImVec2 work_size = viewport->WorkSize;
-    ImVec2 window_pos, window_pos_pivot;
+    ImVec2 window_pos;
+    ImVec2 window_pos_pivot;
     window_pos.x = work_pos.x + PAD;
     window_pos.y = work_pos.y + work_size.y - PAD;
     window_pos_pivot.x =  0.0f;
@@ -157,10 +154,10 @@ void CreditComponent::record(vsg::CommandBuffer& cb) const
             tinyxml2::XMLError xerr = doc.Parse(html.c_str());
             if (xerr != 0)
             {
-                vsg::error("tinyxml2 error ", std::to_string(int32_t(xerr)), " ", html);
+                vsg::error("tinyxml2 error ", std::to_string(static_cast<int32_t>(xerr)), " ", html);
                 break;
             }
-            auto node = doc.FirstChildElement();
+            auto* node = doc.FirstChildElement();
             if (std::strcmp(node->Name(), "span") == 0)
             {
                 node = node->FirstChildElement();
@@ -168,8 +165,8 @@ void CreditComponent::record(vsg::CommandBuffer& cb) const
             if (std::strcmp(node->Name(), "a") == 0)
             {
                 std::string href(node->Attribute("href"));
-                auto aContents = node->FirstChild();
-                if (auto asText = aContents->ToText(); asText)
+                auto* aContents = node->FirstChild();
+                if (auto* asText = aContents->ToText(); asText)
                 {
                     ImGui::Text("%s", asText->Value());
                     ImGui::SameLine();
@@ -177,11 +174,11 @@ void CreditComponent::record(vsg::CommandBuffer& cb) const
                 }
                 else
                 {
-                    auto element = aContents->ToElement();
+                    auto* element = aContents->ToElement();
                     if (element && strcmp(element->Name(), "img") == 0)
                     {
-                        auto src = element->Attribute("src");
-                        auto alt = element->Attribute("alt");
+                        const auto* src = element->Attribute("src");
+                        const auto* alt = element->Attribute("alt");
                         auto component = getTexture(src);
                         if (component)
                         {

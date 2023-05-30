@@ -41,13 +41,9 @@ bool DescriptorSetConfigurator::assignTexture(const std::string& name, vsg::ref_
         {
             return Inherit::assignTexture(name, textureData, sampler);
         }
-        else
-        {
-            vsg::warn("Attempted binding texture ", name, " with set number ", textureBinding.set, " in set ",
-                      setNumber.value());
-            return false;
-        }
-
+        vsg::warn("Attempted binding texture ", name, " with set number ", textureBinding.set, " in set ",
+                  setNumber.value());
+        return false;
     }
     return false;
 }
@@ -64,12 +60,11 @@ bool DescriptorSetConfigurator::assignUniform(const std::string& name, vsg::ref_
         {
             return Inherit::assignUniform(name, data);
         }
-        else
-        {
-            vsg::warn("Attempted binding uniform ", name, " with set number ", uniformBinding.set, " in set ",
-                      setNumber.value());
-            return false;
-        }
+
+        vsg::warn("Attempted binding uniform ", name, " with set number ", uniformBinding.set, " in set ",
+                  setNumber.value());
+        return false;
+
     }
     return false;
 }

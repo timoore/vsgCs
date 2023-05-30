@@ -46,8 +46,8 @@ DeletionQueue::DeletionQueue()
 {
 }
 
-void DeletionQueue::add(vsg::ref_ptr<vsg::Viewer> viewer,
-                        vsg::ref_ptr<vsg::Object> object)
+void DeletionQueue::add(const vsg::ref_ptr<vsg::Viewer>& viewer,
+                        const vsg::ref_ptr<vsg::Object>& object)
 {
     queue.push_back(Deletion{viewer->getFrameStamp()->frameCount, object});
 }
@@ -60,11 +60,11 @@ void DeletionQueue::run()
 
 int runningDeletion = 0;
 
-void DeletionQueue::run(vsg::ref_ptr<vsg::Viewer> viewer)
+void DeletionQueue::run(const vsg::ref_ptr<vsg::Viewer>& viewer)
 {
     VSGCS_ZONESCOPED;
     runningDeletion = 1;
-    const auto frameStamp = viewer->getFrameStamp();
+    const auto* frameStamp = viewer->getFrameStamp();
     if (lastFrameRun == std::numeric_limits<uint64_t>::max())
     {
         queue.clear();
@@ -72,7 +72,9 @@ void DeletionQueue::run(vsg::ref_ptr<vsg::Viewer> viewer)
     else
     {
         if (frameStamp->frameCount <= lastFrameRun)
+        {
             return;
+        }
         auto itr = queue.begin();
         while (itr != queue.end())
         {
@@ -91,7 +93,7 @@ void DeletionQueue::run(vsg::ref_ptr<vsg::Viewer> viewer)
 }
 
 vsgResourcePreparer::vsgResourcePreparer(const vsg::ref_ptr<GraphicsEnvironment>& genv,
-                                         vsg::ref_ptr<vsg::Viewer> viewer)
+                                         const vsg::ref_ptr<vsg::Viewer>& viewer)
     : viewer(viewer),  genv(genv), _builder(CesiumGltfBuilder::create(genv))
 {
 }
@@ -103,9 +105,11 @@ vsgResourcePreparer::readAndCompile(Cesium3DTilesSelection::TileLoadResult &&til
 {
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     if (!ref_viewer)
+    {
         return nullptr;
+    }
     auto resultNode = _builder->loadTile(std::move(tileLoadResult), transform, options);
-    LoadModelResult* result = new LoadModelResult;
+    auto* result = new LoadModelResult;
     result->modelResult = resultNode;
     VSGCS_ZONESCOPEDN("model compile");
     result->compileResult = ref_viewer->compileManager->compile(resultNode);
@@ -167,7 +171,7 @@ vsgResourcePreparer::prepareInMainThread(Cesium3DTilesSelection::Tile& tile,
     const Cesium3DTilesSelection::TileContent& content = tile.getContent();
     if (content.isRenderContent())
     {
-        LoadModelResult* loadModelResult = reinterpret_cast<LoadModelResult*>(pLoadThreadResult);
+        auto* loadModelResult = reinterpret_cast<LoadModelResult*>(pLoadThreadResult);
         auto attachResult = _builder->attachTileData(tile, loadModelResult->modelResult);
         return merge(this, *loadModelResult, attachResult);
     }
@@ -180,8 +184,8 @@ void vsgResourcePreparer::free(Cesium3DTilesSelection::Tile&,
 {
     VSGCS_ZONESCOPED;
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
-    LoadModelResult* loadModelResult = reinterpret_cast<LoadModelResult*>(pLoadThreadResult);
-    RenderResources* renderResources = reinterpret_cast<RenderResources*>(pMainThreadResult);
+    auto* loadModelResult = reinterpret_cast<LoadModelResult*>(pLoadThreadResult);
+    auto* renderResources = reinterpret_cast<RenderResources*>(pMainThreadResult);
 
     if (ref_viewer)
     {
@@ -190,8 +194,7 @@ void vsgResourcePreparer::free(Cesium3DTilesSelection::Tile&,
         {
             _deletionQueue.add(ref_viewer, loadModelResult->modelResult);
         }
-            if (pMainThreadResult)
-        if (ref_viewer)
+        if (pMainThreadResult)
         {
             _deletionQueue.add(ref_viewer, renderResources->model);
         }
@@ -208,7 +211,9 @@ vsgResourcePreparer::prepareRasterInLoadThread(CesiumGltf::ImageCesium& image,
     VSGCS_ZONESCOPED;
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     if (!ref_viewer)
+    {
         return nullptr;
+    }
     auto result = _builder->loadTexture(image,
                                         VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
                                         VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
@@ -229,7 +234,7 @@ vsgResourcePreparer::prepareRasterInMainThread(Cesium3DTilesSelection::RasterOve
                                                void* rawLoadResult)
 {
     VSGCS_ZONESCOPED;
-    LoadRasterResult* loadRasterResult = static_cast<LoadRasterResult*>(rawLoadResult);
+    auto* loadRasterResult = static_cast<LoadRasterResult*>(rawLoadResult);
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     if (ref_viewer)
     {
@@ -246,8 +251,8 @@ vsgResourcePreparer::freeRaster(const Cesium3DTilesSelection::RasterOverlayTile&
 {
     VSGCS_ZONESCOPED;
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
-    LoadRasterResult* loadRasterResult = static_cast<LoadRasterResult*>(loadThreadResult);
-    RasterResources* rasterResources = static_cast<RasterResources*>(mainThreadResult);
+    auto* loadRasterResult = static_cast<LoadRasterResult*>(loadThreadResult);
+    auto* rasterResources = static_cast<RasterResources*>(mainThreadResult);
     if (ref_viewer)
     {
         _deletionQueue.run(ref_viewer);
@@ -255,8 +260,7 @@ vsgResourcePreparer::freeRaster(const Cesium3DTilesSelection::RasterOverlayTile&
         {
             _deletionQueue.add(ref_viewer, loadRasterResult->rasterResult);
         }
-            if (mainThreadResult)
-        if (ref_viewer)
+        if (mainThreadResult)
         {
             _deletionQueue.add(ref_viewer, rasterResources->raster);
         }
@@ -270,8 +274,10 @@ void vsgResourcePreparer::compileAndDelete(ModifyRastersResult& result)
 {
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     if (!ref_viewer)
+    {
         return;
-    for (auto object : result.compileObjects)
+    }
+    for (const auto& object : result.compileObjects)
     {
 
         genv->miniCompile(object);
@@ -294,12 +300,14 @@ vsgResourcePreparer::attachRasterInMainThread(const Cesium3DTilesSelection::Tile
     VSGCS_ZONESCOPED;
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     if (!ref_viewer)
+    {
         return;
+    }
     const Cesium3DTilesSelection::TileContent& content = tile.getContent();
     const Cesium3DTilesSelection::TileRenderContent* renderContent = content.getRenderContent();
     if (renderContent)
     {
-        RenderResources* resources = static_cast<RenderResources*>(renderContent->getRenderResources());
+        auto* resources = static_cast<RenderResources*>(renderContent->getRenderResources());
 
         auto results = _builder->attachRaster(tile, resources->model,
                                              overlayTextureCoordinateID, rasterTile,
@@ -317,13 +325,15 @@ vsgResourcePreparer::detachRasterInMainThread(const Cesium3DTilesSelection::Tile
     VSGCS_ZONESCOPED;
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     if (!ref_viewer)
+    {
         return;
+    }
 
     const Cesium3DTilesSelection::TileContent& content = tile.getContent();
     const Cesium3DTilesSelection::TileRenderContent* renderContent = content.getRenderContent();
     if (renderContent)
     {
-        RenderResources* resources = static_cast<RenderResources*>(renderContent->getRenderResources());
+        auto* resources = static_cast<RenderResources*>(renderContent->getRenderResources());
         auto results = _builder->detachRaster(tile, resources->model, overlayTextureCoordinateID, rasterTile);
         compileAndDelete(results);
     }

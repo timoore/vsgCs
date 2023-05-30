@@ -51,7 +51,7 @@ namespace vsgCs
                                                  double distance)
     {
         auto boundingVolume = tile->getBoundingVolume();
-        auto boundingRegion = getBoundingRegionFromBoundingVolume(boundingVolume);
+        const auto* boundingRegion = getBoundingRegionFromBoundingVolume(boundingVolume);
         if (boundingRegion)
         {
             auto cartoCenter = boundingRegion->getRectangle().computeCenter();
@@ -73,10 +73,7 @@ namespace vsgCs
             vsg::dvec3 up = vsg::cross(direction, side);
             return vsg::LookAt::create(eye, vPosition, up);
         }
-        else
-        {
-            return vsg::LookAt::create();
-        }
+        return vsg::LookAt::create();
     }
 
     std::string readFile(const vsg::Path& filename, vsg::ref_ptr<const vsg::Options> options)
@@ -115,33 +112,9 @@ namespace vsgCs
                        std::back_inserter(result),
                        [](char c)
                        {
-                           return std::byte(c);
+                           return static_cast<std::byte>(c);
                        });
         return result;
-    }
-
-    vsg::ref_ptr<vsg::Data> readImageFile(const vsg::Path& filename,
-                                          vsg::ref_ptr<const vsg::Options> options)
-    {
-        std::vector<std::byte> raw = readBinaryFile(filename, options);
-        if (raw.empty())
-        {
-            return {};
-        }
-        auto env = RuntimeEnvironment::get();
-        CesiumGltfReader::ImageReaderResult result
-            = CesiumGltfReader::GltfReader::readImage(raw,env->features.ktx2TranscodeTargets);
-        if (!result.image.has_value())
-        {
-            vsg::warn("Could not read image file ", filename, ": ");
-            for (auto& msg : result.errors)
-            {
-                vsg::warn("readImage: ", msg);
-            }
-            return {};
-        }
-        // XXX Should use file extension to choose sRGB argument.
-        return loadImage(result.image.value(), false, true);
     }
 
     int samplerLOD(const vsg::ref_ptr<vsg::Data>& data, bool generateMipMaps)
@@ -394,9 +367,9 @@ namespace
         case VK_FORMAT_EAC_R11_UNORM_BLOCK:
 
         case VK_FORMAT_EAC_R11G11_UNORM_BLOCK:
-            return BlockSize(4, 4);
+            return {4, 4};
         default:
-            return BlockSize(1, 1);
+            return {1, 1};
         }
     }
 
@@ -510,7 +483,7 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMap
     }
     else
     {
-        uint8_t* destData
+        auto* destData
             = new (vsg::allocate(sizeof(uint8_t) * image.pixelData.size(), vsg::ALLOCATOR_AFFINITY_DATA))
             uint8_t[image.pixelData.size()];
         std::transform(image.pixelData.begin(), image.pixelData.end(), destData,
@@ -525,7 +498,7 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMap
 }
     std::string getTileUrl(const vsg::Object* obj)
     {
-        std::string result("");
+        std::string result;
         obj->getValue("tileUrl", result);
         return result;
     }

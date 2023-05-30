@@ -67,7 +67,7 @@ namespace vsgCs
          */
         using Builder = vsg::ref_ptr<vsg::Object> (*)(const rapidjson::Value& json,
                                                       JSONObjectFactory* factory,
-                                                      vsg::ref_ptr<vsg::Object> object);
+                                                      const vsg::ref_ptr<vsg::Object>& object);
         void addBuilder(const std::string& name, Builder builder)
         {
             builders[name] = builder;
@@ -91,7 +91,7 @@ namespace vsgCs
          */
         vsg::ref_ptr<vsg::Object> build(const rapidjson::Value& value,
                                         const std::string& typeOverride = std::string(),
-                                        vsg::ref_ptr<vsg::Object> object = {});
+                                        const vsg::ref_ptr<vsg::Object>& object = {});
         /**
          * @brief Build or initialize an object from a JSON source (e.g. std::string).
          */
