@@ -118,12 +118,12 @@ size_t UrlAssetResponse::headerCallback(char* buffer, size_t size, size_t nitems
 {
     // size is supposed to always be 1, but who knows
     const size_t cnt = size * nitems;
-    auto response = static_cast<UrlAssetResponse*>(userData);
+    auto* response = static_cast<UrlAssetResponse*>(userData);
     if (!response)
     {
         return cnt;
     }
-    auto colon = static_cast<char*>(std::memchr(buffer, ':', nitems));
+    auto* colon = static_cast<char*>(std::memchr(buffer, ':', nitems));
     if (colon)
     {
         char* value = colon + 1;
@@ -150,7 +150,7 @@ extern "C" size_t headerCallback(char* buffer, size_t size, size_t nitems, void 
 size_t UrlAssetResponse::dataCallback(char* buffer, size_t size, size_t nitems, void *userData)
 {
     const size_t cnt = size * nitems;
-    auto response = static_cast<UrlAssetResponse*>(userData);
+    auto* response = static_cast<UrlAssetResponse*>(userData);
     if (!response)
     {
         return cnt;

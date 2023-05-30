@@ -85,6 +85,7 @@ TilesetNode::TilesetNode(const DeviceFeatures& deviceFeatures, const TilesetSour
     options.loadErrorCallback =
         [this](const Cesium3DTilesSelection::TilesetLoadFailureDetails& details)
         {
+            (void)this;
             assert(this->_tileset.get() == details.pTileset);
             vsg::warn(details.message);
         };
@@ -154,7 +155,7 @@ void TilesetNode::t_traverse(V& visitor) const
 {
     if (_viewUpdateResult)
     {
-        for (auto tile : _viewUpdateResult->tilesToRenderThisFrame)
+        for (auto* tile : _viewUpdateResult->tilesToRenderThisFrame)
         {
             const auto& tileContent = tile->getContent();
             if (tileContent.isRenderContent())
@@ -249,7 +250,7 @@ namespace
     std::optional<Cesium3DTilesSelection::ViewState>
     createViewState(const vsg::ref_ptr<vsg::View>& view, const vsg::ref_ptr<vsg::RenderGraph>& renderGraph)
     {
-        auto viewData = dynamic_cast<ViewData*>(view->getObject("vsgCsViewData"));
+        auto* viewData = dynamic_cast<ViewData*>(view->getObject("vsgCsViewData"));
         if (!viewData)
         {
             return {};
@@ -264,7 +265,7 @@ namespace
         double fovy = 0.0;
         double fovx = 0.0;
         vsg::ref_ptr<vsg::ProjectionMatrix> projMat = view->camera->projectionMatrix;
-        auto persp = dynamic_cast<vsg::Perspective*>(projMat.get());
+        auto* persp = dynamic_cast<vsg::Perspective*>(projMat.get());
         if (persp)
         {
             fovy = vsg::radians(persp->fieldOfViewY);

@@ -112,7 +112,7 @@ namespace vsgCs
                        std::back_inserter(result),
                        [](char c)
                        {
-                           return std::byte(c);
+                           return static_cast<std::byte>(c);
                        });
         return result;
     }

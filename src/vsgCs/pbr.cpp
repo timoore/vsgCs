@@ -39,7 +39,7 @@ namespace vsgCs::pbr
         tileScratch[0] = geometricError;
         tileScratch[1] = maxPointSize;
         auto result = vsg::ubyteArray::create(sizeof(vsg::vec4) + overlayUniformMem.size_bytes());
-        memcpy(&(*result)[0], &tileScratch, sizeof(tileScratch));
+        memcpy(&(*result)[0], &tileScratch, sizeof(tileScratch)); // NOLINT
         memcpy(&(*result)[sizeof(tileScratch)], overlayUniformMem.data(), overlayUniformMem.size_bytes());
         return result;
     }

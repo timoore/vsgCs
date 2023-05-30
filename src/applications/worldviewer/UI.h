@@ -47,7 +47,7 @@ namespace vsgCs
         }
         void setViewpoint(const vsg::ref_ptr<vsg::LookAt>& lookAt, float duration);
         protected:
-        vsg::ref_ptr<vsgImGui::RenderImGui> createImGui(vsg::ref_ptr<vsg::Window> window);
+        vsg::ref_ptr<vsgImGui::RenderImGui> createImGui(const vsg::ref_ptr<vsg::Window>& window);
 
         vsg::ref_ptr<vsgImGui::RenderImGui> _renderImGui;
         vsg::ref_ptr<CsApp::CreditComponent> _ionIconComponent;

@@ -176,7 +176,8 @@ CreateModelOptions::CreateModelOptions(bool in_renderOverlays, const vsg::ref_pt
 {
 }
 
-CreateModelOptions::~CreateModelOptions()
+// The default constructor is defined in order to avoid circular dependencies in the header file
+CreateModelOptions::~CreateModelOptions() // NOLINT
 {
 }
 
@@ -202,7 +203,8 @@ ModelBuilder::ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, Cesium
     }
 }
 
-ModelBuilder::~ModelBuilder()
+// The default constructor is defined in order to avoid circular dependencies in the header file
+ModelBuilder::~ModelBuilder()   // NOLINT
 {
 }
 

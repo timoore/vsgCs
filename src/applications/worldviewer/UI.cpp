@@ -54,7 +54,7 @@ bool UI::createUI(const vsg::ref_ptr<vsg::Window>& window,
     return true;
 }
 
-vsg::ref_ptr<vsgImGui::RenderImGui> UI::createImGui(vsg::ref_ptr<vsg::Window> window)
+vsg::ref_ptr<vsgImGui::RenderImGui> UI::createImGui(const vsg::ref_ptr<vsg::Window>& window)
 {
     _ionIconComponent = CsApp::CreditComponent::create();
     _renderImGui = vsgImGui::RenderImGui::create(window, _ionIconComponent);
