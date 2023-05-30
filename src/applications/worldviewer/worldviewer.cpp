@@ -115,7 +115,7 @@ int main(int argc, char** argv)
         while (arguments.read("--distance", poi_distance)) {};
         if (int log_level = 0; arguments.read("--log-level", log_level))
         {
-            vsg::Logger::instance()->level = vsg::Logger::Level(log_level);
+            vsg::Logger::instance()->level = static_cast<vsg::Logger::Level>(log_level);
         }
         auto timeString = arguments.value(std::string(), "--time");
         // Default is noon GMT
@@ -134,7 +134,10 @@ int main(int argc, char** argv)
             }
         }
         bool useHeadlight = arguments.read({"--headlight"});
-        if (arguments.errors()) return arguments.writeErrorMessages(std::cerr);
+        if (arguments.errors())
+        {
+            return arguments.writeErrorMessages(std::cerr);
+        }
 
         auto vsg_scene = vsg::Group::create();
         auto ambientLight = vsg::AmbientLight::create();
@@ -303,7 +306,10 @@ int main(int argc, char** argv)
     }
     catch (const vsg::Exception& ve)
     {
-        for (int i = 0; i < argc; ++i) std::cerr << argv[i] << " ";
+        for (int i = 0; i < argc; ++i)
+        {
+            std::cerr << argv[i] << " ";
+        }
         std::cerr << "\n[Exception] - " << ve.message << " result = " << ve.result << std::endl;
         return 1;
     }
