@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.24)
+
+include(FetchContent)
 
 project(vsgCs
     VERSION 0.2.0
@@ -31,18 +33,43 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
-set(VSG_MIN_VERSION 1.0.5)
-find_package(vsg ${VSG_MIN_VERSION} REQUIRED)
+set(VSG_MIN_VERSION 1.0.6)
 
-find_package(vsgXchange)
+FetchContent_Declare(vsg
+  GIT_REPOSITORY https://github.com/vsg-dev/VulkanSceneGraph.git
+  GIT_TAG v1.0.6
+  GIT_PROGRESS TRUE
+  FIND_PACKAGE_ARGS ${VSG_MIN_VERSION} REQUIRED
+)
+
+FetchContent_MakeAvailable(vsg)
+# find_package(vsg) includes vsgMacros
+if (vsg_SOURCE_DIR)
+  SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${vsg_SOURCE_DIR}/cmake")
+  include("vsgMacros")
+endif()
+
+#find_package(vsgXchange)
 
 set(VSGIMGUI_MIN_VERSION 0.1.0)
-find_package(vsgImGui ${VSGIMGUI_MIN_VERSION} REQUIRED)
 
-# for generated cmake support files
-set(FIND_DEPENDENCY ${FIND_DEPENDENCY} "find_dependency(vsg ${VSG_MIN_VERSION} REQUIRED)")
+FetchContent_Declare(vsgImGui
+  GIT_REPOSITORY https://github.com/vsg-dev/vsgImGui.git
+  GIT_TAG v0.1.0
+  GIT_PROGRESS TRUE
+  FIND_PACKAGE_ARGS  ${VSGIMGUI_MIN_VERSION} REQUIRED
+)
 
-find_package(Cesium REQUIRED)
+FetchContent_MakeAvailable(vsgImGui)
+
+FetchContent_Declare(Cesium
+  GIT_REPOSITORY https://github.com/CesiumGS/cesium-native.git
+  GIT_TAG v0.24.0
+  GIT_PROGRESS TRUE
+)
+
+FetchContent_MakeAvailable(Cesium)
+include("cesiumAliases")
 
 if (RUN_CLANG_TIDY)
   find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
@@ -63,15 +90,6 @@ set(VSGCS_FULL_DATA_DIR "${CMAKE_INSTALL_FULL_DATADIR}/vsgCs")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/vsgCs/Config.h.in"
   "${GENERATED_HEADERS_DIR}/vsgCs/Config.h")
 
-vsg_add_target_clang_format(
-  FILES
-  ${CMAKE_SOURCE_DIR}/include/*/*.h
-  ${CMAKE_SOURCE_DIR}/src/*/*.h
-  ${CMAKE_SOURCE_DIR}/src/*/*.cpp
-  ${CMAKE_SOURCE_DIR}/applications/*/*.h
-  ${CMAKE_SOURCE_DIR}/applications/*/*.cpp
-  )
-      
 vsg_add_target_clobber()
 vsg_add_target_docs(
     FILES
