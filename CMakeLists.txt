@@ -39,7 +39,7 @@ FetchContent_Declare(vsg
   GIT_REPOSITORY https://github.com/vsg-dev/VulkanSceneGraph.git
   GIT_TAG v1.0.6
   GIT_PROGRESS TRUE
-  FIND_PACKAGE_ARGS ${VSG_MIN_VERSION} REQUIRED
+  FIND_PACKAGE_ARGS ${VSG_MIN_VERSION}
 )
 
 FetchContent_MakeAvailable(vsg)
@@ -57,19 +57,21 @@ FetchContent_Declare(vsgImGui
   GIT_REPOSITORY https://github.com/vsg-dev/vsgImGui.git
   GIT_TAG v0.1.0
   GIT_PROGRESS TRUE
-  FIND_PACKAGE_ARGS  ${VSGIMGUI_MIN_VERSION} REQUIRED
+  FIND_PACKAGE_ARGS ${VSGIMGUI_MIN_VERSION}
 )
 
 FetchContent_MakeAvailable(vsgImGui)
 
+# Wrangle Cesium's dependencies into shape i.e., install them!
+option(GSL_INSTALL "Generate and install GSL target" ON)
 FetchContent_Declare(Cesium
-  GIT_REPOSITORY https://github.com/CesiumGS/cesium-native.git
-  GIT_TAG v0.24.0
+  GIT_REPOSITORY https://github.com/timoore/cesium-native.git
+  GIT_TAG e28631e98d3247c7a744745791b43714ecb15656  # cmake-fixes
   GIT_PROGRESS TRUE
 )
 
+message("Fetching cesium-native. This could take a while...")
 FetchContent_MakeAvailable(Cesium)
-include("cesiumAliases")
 
 if (RUN_CLANG_TIDY)
   find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
@@ -78,7 +80,7 @@ if (RUN_CLANG_TIDY)
   endif()
 endif()
 
-vsgcs_setup_build_vars()
+vsgCs_setup_build_vars()
 # This does include(GNUInstallDirs), which sets up all the correct install directories.
 vsg_setup_dir_vars()
 
@@ -126,3 +128,4 @@ if (BUILD_TRACY)
   option ( TRACY_ON_DEMAND "" ON)
   add_subdirectory(3rdparty/tracy)
 endif()
+
