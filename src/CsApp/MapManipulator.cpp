@@ -17,6 +17,10 @@
 #include <vsg/ui/KeyEvent.h>
 #include <vsg/ui/ScrollWheelEvent.h>
 
+#if !defined(M_PI)
+#define M_PI vsg::PI
+#endif
+
 using namespace vsgCs;
 
 #undef LC
@@ -1385,7 +1389,7 @@ MapManipulator::apply(vsg::MoveEvent& moveEvent)
 {
     //std::cout << "MoveEvent, mask = " << moveEvent.mask << std::endl;
 
-    bool buttonReleased = (moveEvent.mask == 0 && _currentMove->mask != 0);
+    bool buttonReleased = (moveEvent.mask == 0 && _currentMove && _currentMove->mask != 0);
 
     _previousMove = _currentMove;
     _currentMove = moveEvent;
