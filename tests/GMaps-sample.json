@@ -1,0 +1,8 @@
+{ "Type": "World",
+  "tilesets": [
+      { "Type": "Tileset",
+        "tilesetUrl":"https://tile.googleapis.com/v1/3dtiles/root.json?key=YOURKEYHERE"
+      }
+  ]
+}
+

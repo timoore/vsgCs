@@ -11,7 +11,7 @@ and provide much functionality.
 
 In the near term, we plan to implement these features:
 
-- [ ] Credits system based on ImGui
+- [X] Credits system based on ImGui
 - [ ] A GeoReference node to to fix the world in a local coordinate system
 - [ ] Finish glTF primitive support
   - [ ] handle multiple texture coordinate sets
@@ -23,7 +23,7 @@ In the near term, we plan to implement these features:
 - [ ] Overlay features
   - [ ] Support for non Cesium ion overlays. This is probably close to
     working using Cesium Native; we just need to create the right
-    objects.
+    objects. Work has started on this, with a pull request to Cesium Native.
   - [ ] color to alpha
 - [ ] Improved environment
   - [ ] A real time-based lighting model with ephemeris
