@@ -39,7 +39,6 @@ SOFTWARE.
 #include <algorithm>
 #include <charconv>
 #include <stdexcept>
-#include <strings.h>
 #include <map>
 #include <string>
 
@@ -61,7 +60,30 @@ struct CaseInsensitiveComparator
 {
     bool operator()(const std::string& a, const std::string& b) const noexcept
     {
-        return ::strcasecmp(a.c_str(), b.c_str()) < 0;
+        auto pa = a.begin();
+        auto pb = b.begin();
+        for (; pa != a.end() && pb != b.end(); ++pa, ++pb)
+        {
+            auto chara = std::toupper(*pa);
+            auto charb = std::toupper(*pb);
+            if (chara < charb)
+            {
+                return true;
+            }
+            if (chara > charb)
+            {
+                return false;
+            }
+        }
+        if (pa == a.end())
+        {
+            if (pb == b.end())
+            {
+                return false;
+            }
+            return true;
+        }
+        return false;
     }
 };
 
@@ -274,6 +296,10 @@ std::optional<vsg::vec4> parseColorSpec(const std::string &expr)
 {
     const vsg::vec4 white(1.0f, 1.0f, 1.0f, 1.0f);
     const std::string colorFunc("color(");
+    if (expr.size() <= colorFunc.size())
+    {
+        return {};
+    }
     auto match = std::mismatch(colorFunc.begin(), colorFunc.end(), expr.begin());
     if (match.first != colorFunc.end())
     {
@@ -302,6 +328,10 @@ std::optional<vsg::vec4> parseColorSpec(const std::string &expr)
 std::optional<vsg::vec4> parseRGBSpec(const std::string_view expr)
 {
     const std::string rgbaFunc("rgba");
+    if (expr.size() <= rgbaFunc.size())
+    {
+        return {};
+    }
     auto match = std::mismatch(rgbaFunc.begin(), rgbaFunc.end(), expr.begin());
     bool hasAlpha = false;
     if (match.first == rgbaFunc.end())

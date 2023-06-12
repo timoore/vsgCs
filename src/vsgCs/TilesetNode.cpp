@@ -83,11 +83,16 @@ TilesetNode::TilesetNode(const DeviceFeatures& deviceFeatures, const TilesetSour
     options.tileCacheUnloadTimeLimit = 5.0;
     options.contentOptions.enableWaterMask = false;
     options.loadErrorCallback =
-        [this](const Cesium3DTilesSelection::TilesetLoadFailureDetails& details)
+        [](const Cesium3DTilesSelection::TilesetLoadFailureDetails& details)
         {
-            (void)this;
-            assert(this->_tileset.get() == details.pTileset);
-            vsg::warn(details.message);
+            if (details.statusCode != 200)
+            {
+                vsg::warn("status code = ", details.statusCode);
+            }
+            if (!details.message.empty())
+            {
+                vsg::warn(details.message);
+            }
         };
     auto externals = RuntimeEnvironment::get()->getTilesetExternals();
     options.contentOptions.ktx2TranscodeTargets = deviceFeatures.ktx2TranscodeTargets;

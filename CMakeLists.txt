@@ -1,4 +1,6 @@
-cmake_minimum_required(VERSION 3.11)
+cmake_minimum_required(VERSION 3.24)
+
+include(FetchContent)
 
 project(vsgCs
     VERSION 0.2.0
@@ -31,18 +33,45 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
-set(VSG_MIN_VERSION 1.0.5)
-find_package(vsg ${VSG_MIN_VERSION} REQUIRED)
+set(VSG_MIN_VERSION 1.0.6)
 
-find_package(vsgXchange)
+FetchContent_Declare(vsg
+  GIT_REPOSITORY https://github.com/vsg-dev/VulkanSceneGraph.git
+  GIT_TAG v1.0.6
+  GIT_PROGRESS TRUE
+  FIND_PACKAGE_ARGS ${VSG_MIN_VERSION}
+)
+
+FetchContent_MakeAvailable(vsg)
+# find_package(vsg) includes vsgMacros
+if (vsg_SOURCE_DIR)
+  SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${vsg_SOURCE_DIR}/cmake")
+  include("vsgMacros")
+endif()
+
+#find_package(vsgXchange)
 
 set(VSGIMGUI_MIN_VERSION 0.1.0)
-find_package(vsgImGui ${VSGIMGUI_MIN_VERSION} REQUIRED)
 
-# for generated cmake support files
-set(FIND_DEPENDENCY ${FIND_DEPENDENCY} "find_dependency(vsg ${VSG_MIN_VERSION} REQUIRED)")
+FetchContent_Declare(vsgImGui
+  GIT_REPOSITORY https://github.com/vsg-dev/vsgImGui.git
+  GIT_TAG v0.1.0
+  GIT_PROGRESS TRUE
+  FIND_PACKAGE_ARGS ${VSGIMGUI_MIN_VERSION}
+)
 
-find_package(Cesium REQUIRED)
+FetchContent_MakeAvailable(vsgImGui)
+
+# Wrangle Cesium's dependencies into shape i.e., install them!
+option(GSL_INSTALL "Generate and install GSL target" ON)
+FetchContent_Declare(Cesium
+  GIT_REPOSITORY https://github.com/timoore/cesium-native.git
+  GIT_TAG 1c940056443858c8fae9b3b6743b68ccc92985a7  # cmake-fixes
+  GIT_PROGRESS TRUE
+)
+
+message("Fetching cesium-native. This could take a while...")
+FetchContent_MakeAvailable(Cesium)
 
 if (RUN_CLANG_TIDY)
   find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
@@ -51,7 +80,7 @@ if (RUN_CLANG_TIDY)
   endif()
 endif()
 
-vsgcs_setup_build_vars()
+vsgCs_setup_build_vars()
 # This does include(GNUInstallDirs), which sets up all the correct install directories.
 vsg_setup_dir_vars()
 
@@ -63,15 +92,6 @@ set(VSGCS_FULL_DATA_DIR "${CMAKE_INSTALL_FULL_DATADIR}/vsgCs")
 configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/vsgCs/Config.h.in"
   "${GENERATED_HEADERS_DIR}/vsgCs/Config.h")
 
-vsg_add_target_clang_format(
-  FILES
-  ${CMAKE_SOURCE_DIR}/include/*/*.h
-  ${CMAKE_SOURCE_DIR}/src/*/*.h
-  ${CMAKE_SOURCE_DIR}/src/*/*.cpp
-  ${CMAKE_SOURCE_DIR}/applications/*/*.h
-  ${CMAKE_SOURCE_DIR}/applications/*/*.cpp
-  )
-      
 vsg_add_target_clobber()
 vsg_add_target_docs(
     FILES
@@ -108,3 +128,4 @@ if (BUILD_TRACY)
   option ( TRACY_ON_DEMAND "" ON)
   add_subdirectory(3rdparty/tracy)
 endif()
+
