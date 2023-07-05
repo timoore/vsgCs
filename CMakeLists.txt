@@ -66,7 +66,7 @@ FetchContent_MakeAvailable(vsgImGui)
 option(GSL_INSTALL "Generate and install GSL target" ON)
 FetchContent_Declare(Cesium
   GIT_REPOSITORY https://github.com/timoore/cesium-native.git
-  GIT_TAG 1c940056443858c8fae9b3b6743b68ccc92985a7  # cmake-fixes
+  GIT_TAG dfcee62cd39ee4b441ee737a97481c396555f781  # cmake-fixes
   GIT_PROGRESS TRUE
 )
 
