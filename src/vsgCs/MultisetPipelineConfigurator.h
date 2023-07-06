@@ -27,42 +27,5 @@ SOFTWARE.
 #include "vsg/utils/GraphicsPipelineConfigurator.h"
 
 namespace vsgCs {
-    /**
-     * @brief Create a pipeline layout for some sets of a shader set.
-     *
-     * @param shaderSet the shader set
-     * @param defines Set of defines for assembling the bindings in the sets
-     * @param sets Number of sets to use, starting from 0. Defaults to all sets.
-     * @return the vsg::PipelineLayout object.
-     */
-    vsg::ref_ptr<vsg::PipelineLayout> makePipelineLayout(vsg::ref_ptr<vsg::ShaderSet> shaderSet,
-                                                         const std::set<std::string>& defines = {},
-                                                         int sets = -1);
-
-    /**
-     * @brief Subclass of vsg::GraphicsPipelineConfigurator that handles multiple descriptor sets.
-     *
-     * vsg::GraphicsPipelineConfigurator only handles one additional descriptor set. This class
-     * ignores that and builds the pipeline layout using the sets specified by the shader set.
-     */
-    class MultisetPipelineConfigurator : public vsg::Inherit<vsg::GraphicsPipelineConfigurator, MultisetPipelineConfigurator>
-    {
-        public:
-        MultisetPipelineConfigurator(vsg::ref_ptr<vsg::ShaderSet> in_shaderSet);
-        bool enableTexture(const std::string& name) = delete;
-        bool enableUniform(const std::string& name) = delete;
-        bool assignTexture(vsg::Descriptors& descriptors, const std::string& name, vsg::ref_ptr<vsg::Data> textureData = {},
-                           vsg::ref_ptr<vsg::Sampler> sampler = {}) = delete;
-        bool assignUniform(vsg::Descriptors& descriptors, const std::string& name,
-                           vsg::ref_ptr<vsg::Data> data = {}) = delete;
-        void init();
-        std::set<std::string>& defines()
-        {
-            return shaderHints->defines;
-        }
-        const std::set<std::string>& defines() const
-        {
-            return shaderHints->defines;
-        }
-    };
+    using MultisetPipelineConfigurator = vsg::GraphicsPipelineConfigurator;
 }

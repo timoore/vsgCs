@@ -745,11 +745,6 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     {
         pipelineConf->rasterizationState->cullMode = VK_CULL_MODE_NONE;
     }
-    if (descConf->descriptorSet)
-    {
-        pipelineConf->descriptorSetLayout = descConf->descriptorSet->setLayout;
-        pipelineConf->descriptorBindings = descConf->descriptorBindings;
-    }
     pipelineConf->init();
     _genv->sharedObjects->share(pipelineConf->bindGraphicsPipeline);
 
