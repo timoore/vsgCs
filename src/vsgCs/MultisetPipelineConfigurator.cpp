@@ -80,12 +80,6 @@ namespace vsgCs
         auto pipelineLayout = vsg::PipelineLayout::create(descriptorSetLayouts, pushConstantRanges);
         return pipelineLayout;
     }
-
-    vsg::ref_ptr<vsg::PipelineLayout> makePipelineLayout(vsg::ref_ptr<vsg::ShaderSet> shaderSet)
-    {
-        std::set<std::string> emptyDefines;
-        return makePipelineLayout(shaderSet, emptyDefines, -1);
-    }
 }
 
 using namespace vsgCs;

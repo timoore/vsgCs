@@ -28,12 +28,6 @@ SOFTWARE.
 
 namespace vsgCs {
     /**
-     * @brief Create a default pipeline layout (no defines) for a shader set.
-     *
-     * The layout includes all descriptor sets specified by the shader set.
-     */
-    vsg::ref_ptr<vsg::PipelineLayout> makePipelineLayout(vsg::ref_ptr<vsg::ShaderSet> shaderSet);
-    /**
      * @brief Create a pipeline layout for some sets of a shader set.
      *
      * @param shaderSet the shader set
@@ -42,7 +36,8 @@ namespace vsgCs {
      * @return the vsg::PipelineLayout object.
      */
     vsg::ref_ptr<vsg::PipelineLayout> makePipelineLayout(vsg::ref_ptr<vsg::ShaderSet> shaderSet,
-                                                         const std::set<std::string>& defines, int sets = -1);
+                                                         const std::set<std::string>& defines = {},
+                                                         int sets = -1);
 
     /**
      * @brief Subclass of vsg::GraphicsPipelineConfigurator that handles multiple descriptor sets.
