@@ -48,7 +48,7 @@ namespace vsgCs
         std::map<uint32_t, vsg::DescriptorSetLayoutBindings> sets;
         for (auto& binding : uniformBindings)
         {
-            if (max_set < 0 || static_cast<uint32_t>(max_set) >= binding.set)
+            if (umax_set >= binding.set)
             {
                 if (binding.define.empty() || defines.find(binding.define) != defines.end())
                 {
