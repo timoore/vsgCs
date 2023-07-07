@@ -25,8 +25,7 @@ SOFTWARE.
 #include "accessor_traits.h"
 #include "CesiumGltfBuilder.h"
 #include "pbr.h"
-#include "DescriptorSetConfigurator.h"
-#include "MultisetPipelineConfigurator.h"
+
 #include "LoadGltfResult.h"
 #include "runtimeSupport.h"
 #include "Tracing.h"
@@ -46,6 +45,7 @@ SOFTWARE.
 #include <Cesium3DTilesSelection/RasterOverlayTile.h>
 #include <Cesium3DTilesSelection/RasterOverlay.h>
 
+#include <vsg/utils/GraphicsPipelineConfigurator.h>
 #include <vsg/utils/ShaderSet.h>
 
 #include <algorithm>
@@ -144,8 +144,8 @@ vsg::ref_ptr<vsg::StateCommand> makeTileStateCommand(const vsg::ref_ptr<Graphics
 {
     vsg::ImageInfoList rasterImages(rasters.overlayRasters.size());
     // The topology doesn't matter because the pipeline layouts of shader versions are compatible.
-    vsg::ref_ptr<DescriptorSetConfigurator> descriptorBuilder
-        = DescriptorSetConfigurator::create(pbr::TILE_DESCRIPTOR_SET,
+    auto descriptorBuilder
+        = vsg::DescriptorConfigurator::create(pbr::TILE_DESCRIPTOR_SET,
                                             genv->shaderFactory->getShaderSet(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST));
     std::vector<pbr::OverlayParams> overlayParams(rasters.overlayRasters.size());
     for (size_t i = 0; i < rasters.overlayRasters.size(); ++i)

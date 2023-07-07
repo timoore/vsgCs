@@ -23,7 +23,6 @@ SOFTWARE.
 </editor-fold> */
 
 #include "GraphicsEnvironment.h"
-#include "MultisetPipelineConfigurator.h"
 #include "pbr.h"
 #include "runtimeSupport.h"
 

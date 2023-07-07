@@ -34,10 +34,8 @@ SOFTWARE.
 #include <vsg/state/DescriptorSetLayout.h>
 
 #include "Export.h"
-#include "DescriptorSetConfigurator.h"
 #include "GraphicsEnvironment.h"
 #include "ModelBuilder.h"
-#include "MultisetPipelineConfigurator.h"
 #include "RuntimeEnvironment.h"
 #include "runtimeSupport.h"
 

@@ -26,8 +26,6 @@ SOFTWARE.
 
 #include "accessor_traits.h"
 #include "accessorUtils.h"
-#include "DescriptorSetConfigurator.h"
-#include "MultisetPipelineConfigurator.h"
 #include "LoadGltfResult.h"
 #include "pbr.h"
 #include "Styling.h"
@@ -586,7 +584,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     }
     auto csMaterial = loadMaterial(primitive->material, topology);
     auto descConf = csMaterial->descriptorConfig;
-    auto pipelineConf = MultisetPipelineConfigurator::create(descConf->shaderSet);
+    auto pipelineConf = vsg::GraphicsPipelineConfigurator::create(descConf->shaderSet);
     pipelineConf->defines() = descConf->defines;
     pipelineConf->inputAssemblyState->topology = topology;
     if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
@@ -791,7 +789,7 @@ vsg::ref_ptr<ModelBuilder::CsMaterial>
 ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopology topology)
 {
     auto csMat = CsMaterial::create();
-    csMat->descriptorConfig = DescriptorSetConfigurator::create();
+    csMat->descriptorConfig = vsg::DescriptorConfigurator::create();
     // XXX Cesium Unreal always enables two-sided, but it should come from the material...
     csMat->descriptorConfig->two_sided = true;
     csMat->descriptorConfig->defines.insert("VSG_TWO_SIDED_LIGHTING");
@@ -850,7 +848,7 @@ ModelBuilder::loadMaterial(int i, VkPrimitiveTopology topology)
         if (!_baseMaterial[topoIndex])
         {
             _baseMaterial[topoIndex] = CsMaterial::create();
-            _baseMaterial[topoIndex]->descriptorConfig = DescriptorSetConfigurator::create();
+            _baseMaterial[topoIndex]->descriptorConfig = vsg::DescriptorConfigurator::create();
             _baseMaterial[topoIndex]->descriptorConfig->shaderSet = _genv->shaderFactory->getShaderSet(topology);
             vsg::PbrMaterial pbr;
             _baseMaterial[topoIndex]->descriptorConfig->assignUniform("material",
