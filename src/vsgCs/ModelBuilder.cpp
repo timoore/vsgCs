@@ -757,10 +757,6 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         stateGroup->add(bindDescriptorSet);
     }
 
-    auto bindViewDescriptorSets = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineConf->layout, pbr::VIEW_DESCRIPTOR_SET);
-    stateGroup->add(bindViewDescriptorSets);
-
-
     // assign any custom ArrayState that may be required.
     stateGroup->prototypeArrayState = pipelineConf->shaderSet->getSuitableArrayState(pipelineConf->defines());
 

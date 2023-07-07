@@ -55,6 +55,9 @@ GraphicsEnvironment::GraphicsEnvironment(const vsg::ref_ptr<vsg::Options> &vsgOp
     std::set<std::string> shaderDefines;
     shaderDefines.insert("VSG_TWO_SIDED_LIGHTING");
     shaderDefines.insert("VSGCS_OVERLAY_MAPS");
+    // We only care about the layout of the first three descriptor sets. All the model-specific
+    // descriptors are in the fourth set, so we can get the layout for a "generic" shader and use it
+    // for lighting and whole-tile parameters.
     overlayPipelineLayout
         = makePipelineLayout(shaderFactory->getShaderSet(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
                              shaderDefines,
