@@ -31,6 +31,7 @@ SOFTWARE.
 
 #include <vsg/app/CompileManager.h>
 #include <vsg/state/ImageInfo.h>
+#include <vsg/utils/GraphicsPipelineConfigurator.h>
 #include <vsg/utils/SharedObjects.h>
 #include <vsg/vk/Context.h>
 
@@ -78,4 +79,8 @@ namespace vsgCs
     protected:
         vsg::ref_ptr<vsg::CompileTraversal> miniCompileTraversal;
     };
+
+    // Utility
+    vsg::ref_ptr<vsg::DescriptorSet> getDescriptorSet(const vsg::ref_ptr<vsg::DescriptorConfigurator>& config,
+                                                      unsigned set);
 }

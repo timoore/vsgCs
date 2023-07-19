@@ -58,10 +58,9 @@ GraphicsEnvironment::GraphicsEnvironment(const vsg::ref_ptr<vsg::Options> &vsgOp
     // We only care about the layout of the first three descriptor sets. All the model-specific
     // descriptors are in the fourth set, so we can get the layout for a "generic" shader and use it
     // for lighting and whole-tile parameters.
-    overlayPipelineLayout
-        = makePipelineLayout(shaderFactory->getShaderSet(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST),
-                             shaderDefines,
-                             pbr::TILE_DESCRIPTOR_SET);
+    auto defaultShaderSet = shaderFactory->getShaderSet(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+    overlayPipelineLayout = defaultShaderSet->createPipelineLayout(shaderDefines,
+                                                                   {0, pbr::TILE_DESCRIPTOR_SET + 1});
     miniCompileTraversal = vsg::CompileTraversal::create(device);
 }
 
@@ -116,5 +115,18 @@ vsg::CompileResult GraphicsEnvironment::miniCompile(vsg::ref_ptr<vsg::Object> ob
 
     result.result = VK_SUCCESS;
     return result;
-
 }
+
+namespace vsgCs
+{
+    vsg::ref_ptr<vsg::DescriptorSet>
+    getDescriptorSet(const vsg::ref_ptr<vsg::DescriptorConfigurator>& config, unsigned set)
+    {
+        if (config->descriptorSets.size() < set + 1)
+        {
+            return {};
+        }
+        return config->descriptorSets[set];
+    }
+}
+
