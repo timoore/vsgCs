@@ -30,12 +30,10 @@ set(SOURCES
   CsOverlay.cpp
   CesiumGltfBuilder.cpp
   CompilableImage.cpp
-  DescriptorSetConfigurator.cpp
   GeospatialServices.cpp
   GraphicsEnvironment.cpp
   jsonUtils.cpp
   ModelBuilder.cpp
-  MultisetPipelineConfigurator.cpp
   OpThreadTaskProcessor.cpp
   RuntimeEnvironment.cpp
   ShaderFactory.cpp
