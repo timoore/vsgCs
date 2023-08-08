@@ -232,8 +232,6 @@ vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::Tile
     auto transformNode = vsg::MatrixTransform::create(glm2vsg(rootTransform));
     auto modelNode = load(pModel, modelOptions);
     auto tileStateGroup = vsg::StateGroup::create();
-    auto bindViewDescriptorSets = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS,
-                                                                      _genv->overlayPipelineLayout, 0);
     // Make uniforms (tile and raster parameters) and default textures for the tile.
 
     auto rasters = Rasters::create(pbr::maxOverlays);
@@ -244,7 +242,6 @@ vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::Tile
         ? it->second.getStringOrDefault("Unknown Tile URL")
         : "Unknown Tile URL";
     transformNode->setValue("tileUrl", url);
-    tileStateGroup->add(bindViewDescriptorSets);
     tileStateGroup->addChild(modelNode);
     transformNode->addChild(tileStateGroup);
     if (tileLoadResult.updatedBoundingVolume)
