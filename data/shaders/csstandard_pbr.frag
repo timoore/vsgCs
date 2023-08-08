@@ -79,6 +79,20 @@ vec4 overlayTexture(uint overlayNum)
 }
 #endif
 
+// If we think of the BRDF as a kind of shader node à la Blender or MaterialX, then this block holds
+// the node inputs. The other function parameters to the BRDF like light direction, etc. are
+// different for each light or sample.
+struct PBRNodeInputs
+{
+    float perceptualRoughness;
+    float metallic;
+    vec3 specularEnvironmentR0;
+    vec3 specularEnvironmentR90;
+    float alphaRoughness;
+    vec3 diffuseColor;
+    vec3 specularColor;
+};
+
 // Encapsulate the various inputs used by the various functions in the shading equation
 // We store values in this struct to simplify the integration of alternative implementations
 // of the shading terms, outlined in the Readme.MD Appendix.
@@ -208,7 +222,7 @@ float microfacetDistribution(PBRInfo pbrInputs)
     return roughnessSq / (f * f);
 }
 
-vec3 BRDF(vec3 u_LightColor, vec3 v, vec3 n, vec3 l, vec3 h, float perceptualRoughness, float metallic, vec3 specularEnvironmentR0, vec3 specularEnvironmentR90, float alphaRoughness, vec3 diffuseColor, vec3 specularColor, float ao)
+vec3 BRDF(vec3 u_LightColor, vec3 v, vec3 n, vec3 l, vec3 h, PBRNodeInputs nodeInputs, float ao)
 {
     float unclmapped_NdotL = dot(n, l);
     vec3 reflection = -normalize(reflect(v, n));
@@ -227,13 +241,13 @@ vec3 BRDF(vec3 u_LightColor, vec3 v, vec3 n, vec3 l, vec3 h, float perceptualRou
                                 LdotH,
                                 VdotH,
                                 VdotL,
-                                perceptualRoughness,
-                                metallic,
-                                specularEnvironmentR0,
-                                specularEnvironmentR90,
-                                alphaRoughness,
-                                diffuseColor,
-                                specularColor);
+                                nodeInputs.perceptualRoughness,
+                                nodeInputs.metallic,
+                                nodeInputs.specularEnvironmentR0,
+                                nodeInputs.specularEnvironmentR90,
+                                nodeInputs.alphaRoughness,
+                                nodeInputs.diffuseColor,
+                                nodeInputs.specularColor);
 
     // Calculate the shading terms for the microfacet specular shading model
     vec3 F = specularReflection(pbrInputs);
@@ -382,6 +396,8 @@ void main()
     int numPointLights = int(lightNums[2]);
     int numSpotLights = int(lightNums[3]);
     int index = 1;
+    PBRNodeInputs nodeInputs = {perceptualRoughness, metallic, specularEnvironmentR0, specularEnvironmentR90,
+                                alphaRoughness, diffuseColor, specularColor};
     if (numAmbientLights>0)
     {
         // ambient lights
@@ -404,7 +420,8 @@ void main()
             vec3 h = normalize(l+v);    // Half vector between both l and v
             float scale = lightColor.a;
 
-            color.rgb += BRDF(lightColor.rgb * scale, v, n, l, h, perceptualRoughness, metallic, specularEnvironmentR0, specularEnvironmentR90, alphaRoughness, diffuseColor, specularColor, ambientOcclusion);
+            color.rgb += BRDF(lightColor.rgb * scale, v, n, l, h, nodeInputs,
+                              ambientOcclusion);
         }
     }
 
@@ -423,7 +440,9 @@ void main()
             vec3 h = normalize(l+v);    // Half vector between both l and v
             float scale = lightColor.a / distance2;
 
-            color.rgb += BRDF(lightColor.rgb * scale, v, n, l, h, perceptualRoughness, metallic, specularEnvironmentR0, specularEnvironmentR90, alphaRoughness, diffuseColor, specularColor, ambientOcclusion);
+            color.rgb += BRDF(lightColor.rgb * scale, v, n, l, h,
+                              nodeInputs,
+                              ambientOcclusion);
         }
     }
 
@@ -445,7 +464,9 @@ void main()
             vec3 h = normalize(l+v);    // Half vector between both l and v
             float scale = (lightColor.a * smoothstep(lightDirection_cosOuterAngle.w, position_cosInnerAngle.w, dot_lightdirection)) / distance2;
 
-            color.rgb += BRDF(lightColor.rgb * scale, v, n, l, h, perceptualRoughness, metallic, specularEnvironmentR0, specularEnvironmentR90, alphaRoughness, diffuseColor, specularColor, ambientOcclusion);
+            color.rgb += BRDF(lightColor.rgb * scale, v, n, l, h,
+                              nodeInputs,
+                              ambientOcclusion);
         }
     }
 
