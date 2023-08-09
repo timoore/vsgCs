@@ -95,6 +95,64 @@ struct PBRNode
     vec3 specularColor;
 };
 
+PBRNode makePBRNode(float perceptualRoughness, float metallic, vec4 baseColor)
+{
+    vec3 f0 = vec3(0.04);
+    vec3 diffuseColor = baseColor.rgb * (vec3(1.0) - f0);
+    diffuseColor *= 1.0 - metallic;
+    float alphaRoughness = perceptualRoughness * perceptualRoughness;
+    vec3 specularColor = mix(f0, baseColor.rgb, metallic);
+    // Compute reflectance.
+    float reflectance = max(max(specularColor.r, specularColor.g), specularColor.b);
+    // For typical incident reflectance range (between 4% to 100%) set the grazing reflectance to 100% for typical fresnel effect.
+    // For very low reflectance range on highly diffuse objects (below 4%), incrementally reduce grazing reflecance to 0%.
+    float reflectance90 = clamp(reflectance * 25.0, 0.0, 1.0);
+    vec3 specularEnvironmentR0 = specularColor.rgb;
+    vec3 specularEnvironmentR90 = vec3(1.0, 1.0, 1.0) * reflectance90;
+    return PBRNode(perceptualRoughness, metallic, specularEnvironmentR0, specularEnvironmentR90,
+                   alphaRoughness, diffuseColor, specularColor);
+}
+
+float convertMetallic(vec3 diffuse, vec3 specular, float maxSpecular)
+{
+    float perceivedDiffuse = sqrt(0.299 * diffuse.r * diffuse.r + 0.587 * diffuse.g * diffuse.g + 0.114 * diffuse.b * diffuse.b);
+    float perceivedSpecular = sqrt(0.299 * specular.r * specular.r + 0.587 * specular.g * specular.g + 0.114 * specular.b * specular.b);
+
+    if (perceivedSpecular < c_MinRoughness)
+    {
+        return 0.0;
+    }
+
+    float a = c_MinRoughness;
+    float b = perceivedDiffuse * (1.0 - maxSpecular) / (1.0 - c_MinRoughness) + perceivedSpecular - 2.0 * c_MinRoughness;
+    float c = c_MinRoughness - perceivedSpecular;
+    float D = max(b * b - 4.0 * a * c, 0.0);
+    return clamp((-b + sqrt(D)) / (2.0 * a), 0.0, 1.0);
+}
+
+// Construct PBRNode from SPECGLOSS parameters
+PBRNode makePBRNode(vec4 diffuse, vec4 specular)
+{
+    vec3 f0 = vec3(0.04);
+    float perceptualRoughness = 1.0 - specular.a;
+    float reflectance = max(max(specular.r, specular.g), specular.b);
+    float metallic = convertMetallic(diffuse.rgb, specular.rgb, reflectance);
+    const float epsilon = 1e-6;
+    vec3 baseColorDiffusePart = diffuse.rgb * ((1.0 - reflectance) / (1 - c_MinRoughness) / max(1 - metallic, epsilon)) * pbr.diffuseFactor.rgb;
+    vec3 baseColorSpecularPart = specular.rgb - (vec3(c_MinRoughness) * (1 - metallic) * (1 / max(metallic, epsilon))) * pbr.specularFactor.rgb;
+    vec4 baseColor = vec4(mix(baseColorDiffusePart, baseColorSpecularPart, metallic * metallic), diffuse.a);
+    vec3 diffuseColor = baseColor.rgb * (vec3(1.0) - f0);
+    diffuseColor *= 1.0 - metallic;
+    // Should we be using the input specular color instead?
+    vec3 specularColor = mix(f0, baseColor.rgb, metallic);
+    float alphaRoughness = perceptualRoughness * perceptualRoughness;
+    float reflectance90 = clamp(reflectance * 25.0, 0.0, 1.0);
+    vec3 specularEnvironmentR0 = specularColor.rgb;
+    vec3 specularEnvironmentR90 = vec3(1.0, 1.0, 1.0) * reflectance90;
+    return PBRNode(perceptualRoughness, metallic, specularEnvironmentR0, specularEnvironmentR90,
+                   alphaRoughness, diffuseColor, specularColor);
+}
+
 // Encapsulate the various inputs used by the various functions in the shading equation
 // We store values in this struct to simplify the integration of alternative implementations
 // of the shading terms, outlined in the Readme.MD Appendix.
@@ -274,23 +332,6 @@ vec3 BRDF(vec3 u_LightColor, vec3 v, vec3 n, vec3 l, vec3 h, PBRNode pbrNode, fl
     return color;
 }
 
-float convertMetallic(vec3 diffuse, vec3 specular, float maxSpecular)
-{
-    float perceivedDiffuse = sqrt(0.299 * diffuse.r * diffuse.r + 0.587 * diffuse.g * diffuse.g + 0.114 * diffuse.b * diffuse.b);
-    float perceivedSpecular = sqrt(0.299 * specular.r * specular.r + 0.587 * specular.g * specular.g + 0.114 * specular.b * specular.b);
-
-    if (perceivedSpecular < c_MinRoughness)
-    {
-        return 0.0;
-    }
-
-    float a = c_MinRoughness;
-    float b = perceivedDiffuse * (1.0 - maxSpecular) / (1.0 - c_MinRoughness) + perceivedSpecular - 2.0 * c_MinRoughness;
-    float c = c_MinRoughness - perceivedSpecular;
-    float D = max(b * b - 4.0 * a * c, 0.0);
-    return clamp((-b + sqrt(D)) / (2.0 * a), 0.0, 1.0);
-}
-
 void main()
 {
     float perceptualRoughness = 0.0;
@@ -330,31 +371,20 @@ void main()
         if (baseColor.a < pbr.alphaMaskCutoff)
             discard;
     }
-
 #ifdef VSG_WORKFLOW_SPECGLOSS
     #ifdef VSG_DIFFUSE_MAP
+    // XXX probably not correct for vsgCs with overlays
         vec4 diffuse = texture(diffuseMap, texCoord[0]);
     #else
         vec4 diffuse = vec4(1.0);
     #endif
 
     #ifdef VSG_SPECULAR_MAP
-        vec3 specular = texture(specularMap, texCoord[0]).rgb;
-        perceptualRoughness = 1.0 - texture(specularMap, texCoord[0]).a;
+        vec4 specular = texture(specularMap, texCoord[0]).rgb;
     #else
-        vec3 specular = vec3(0.0);
-        perceptualRoughness = 0.0;
+        vec4 specular = vec4(0.0, 0.0, 0.0, 1.0);
     #endif
-
-        float maxSpecular = max(max(specular.r, specular.g), specular.b);
-
-        // Convert metallic value from specular glossiness inputs
-        metallic = convertMetallic(diffuse.rgb, specular, maxSpecular);
-
-        const float epsilon = 1e-6;
-        vec3 baseColorDiffusePart = diffuse.rgb * ((1.0 - maxSpecular) / (1 - c_MinRoughness) / max(1 - metallic, epsilon)) * pbr.diffuseFactor.rgb;
-        vec3 baseColorSpecularPart = specular - (vec3(c_MinRoughness) * (1 - metallic) * (1 / max(metallic, epsilon))) * pbr.specularFactor.rgb;
-        baseColor = vec4(mix(baseColorDiffusePart, baseColorSpecularPart, metallic * metallic), diffuse.a);
+        PBRNode pbrNode = makePBRNode(diffuse, specular);
 #else
         perceptualRoughness = pbr.roughnessFactor;
         metallic = pbr.metallicFactor;
@@ -364,26 +394,12 @@ void main()
         perceptualRoughness = mrSample.g * perceptualRoughness;
         metallic = mrSample.b * metallic;
     #endif
+        PBRNode pbrNode = makePBRNode(perceptualRoughness, metallic, baseColor);
 #endif
 
 #ifdef VSG_LIGHTMAP_MAP
     ambientOcclusion = texture(aoMap, texCoord[0]).r;
 #endif
-
-    diffuseColor = baseColor.rgb * (vec3(1.0) - f0);
-    diffuseColor *= 1.0 - metallic;
-    float alphaRoughness = perceptualRoughness * perceptualRoughness;
-
-    vec3 specularColor = mix(f0, baseColor.rgb, metallic);
-
-    // Compute reflectance.
-    float reflectance = max(max(specularColor.r, specularColor.g), specularColor.b);
-
-    // For typical incident reflectance range (between 4% to 100%) set the grazing reflectance to 100% for typical fresnel effect.
-    // For very low reflectance range on highly diffuse objects (below 4%), incrementally reduce grazing reflecance to 0%.
-    float reflectance90 = clamp(reflectance * 25.0, 0.0, 1.0);
-    vec3 specularEnvironmentR0 = specularColor.rgb;
-    vec3 specularEnvironmentR90 = vec3(1.0, 1.0, 1.0) * reflectance90;
 
     vec3 n = getNormal();
     vec3 v = normalize(viewDir);    // Vector from surface point to camera
@@ -396,8 +412,7 @@ void main()
     int numPointLights = int(lightNums[2]);
     int numSpotLights = int(lightNums[3]);
     int index = 1;
-    PBRNode pbrNode = {perceptualRoughness, metallic, specularEnvironmentR0, specularEnvironmentR90,
-                                alphaRoughness, diffuseColor, specularColor};
+
     if (numAmbientLights>0)
     {
         // ambient lights
