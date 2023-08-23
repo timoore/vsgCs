@@ -31,6 +31,7 @@ SOFTWARE.
 
 #include <vsg/app/CompileManager.h>
 #include <vsg/state/ImageInfo.h>
+#include <vsg/utils/GraphicsPipelineConfigurator.h>
 #include <vsg/utils/SharedObjects.h>
 #include <vsg/vk/Context.h>
 
@@ -69,8 +70,17 @@ namespace vsgCs
          * @brief a white, one pixel texture
          */
         vsg::ref_ptr<vsg::ImageInfo> defaultTexture;
+        /**
+         * @brief A pipeline layout that is common to all vsgCs tiles through the
+         * TILE_DESCRIPTOR_SET set (2). Therefore it can be used to bind descriptor sets 0, 1, and
+         * 2.
+         */
         vsg::ref_ptr<vsg::PipelineLayout> overlayPipelineLayout;
     protected:
         vsg::ref_ptr<vsg::CompileTraversal> miniCompileTraversal;
     };
+
+    // Utility
+    vsg::ref_ptr<vsg::DescriptorSet> getDescriptorSet(const vsg::ref_ptr<vsg::DescriptorConfigurator>& config,
+                                                      unsigned set);
 }

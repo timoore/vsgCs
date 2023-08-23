@@ -2,6 +2,7 @@
 
 #include "CsOverlay.h"
 #include "jsonUtils.h"
+#include "pbr.h"
 #include "RuntimeEnvironment.h"
 #include "Styling.h"
 #include "TilesetNode.h"
@@ -68,6 +69,15 @@ bool WorldNode::initialize(const vsg::ref_ptr<vsg::Viewer>& viewer)
             result &= tilesetNode->initialize(viewer);
         }
     }
+    auto stateGroup = ref_ptr_cast<vsg::StateGroup>(children[0]);
+    // Bind the lighting for the whole world
+    auto bindViewDescriptorSets
+        = vsg::BindViewDescriptorSets::create(VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                              RuntimeEnvironment::get()->genv->overlayPipelineLayout,
+                                              pbr::VIEW_DESCRIPTOR_SET);
+    stateGroup->add(bindViewDescriptorSets);
+    // Overkill; better to just compile the stateGroup
+    viewer->compile();
     return result;
 }
 

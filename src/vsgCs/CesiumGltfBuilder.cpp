@@ -25,8 +25,7 @@ SOFTWARE.
 #include "accessor_traits.h"
 #include "CesiumGltfBuilder.h"
 #include "pbr.h"
-#include "DescriptorSetConfigurator.h"
-#include "MultisetPipelineConfigurator.h"
+
 #include "LoadGltfResult.h"
 #include "runtimeSupport.h"
 #include "Tracing.h"
@@ -46,6 +45,7 @@ SOFTWARE.
 #include <Cesium3DTilesSelection/RasterOverlayTile.h>
 #include <Cesium3DTilesSelection/RasterOverlay.h>
 
+#include <vsg/utils/GraphicsPipelineConfigurator.h>
 #include <vsg/utils/ShaderSet.h>
 
 #include <algorithm>
@@ -144,9 +144,9 @@ vsg::ref_ptr<vsg::StateCommand> makeTileStateCommand(const vsg::ref_ptr<Graphics
 {
     vsg::ImageInfoList rasterImages(rasters.overlayRasters.size());
     // The topology doesn't matter because the pipeline layouts of shader versions are compatible.
-    vsg::ref_ptr<DescriptorSetConfigurator> descriptorBuilder
-        = DescriptorSetConfigurator::create(pbr::TILE_DESCRIPTOR_SET,
-                                            genv->shaderFactory->getShaderSet(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST));
+    auto descriptorBuilder
+        = vsg::DescriptorConfigurator::create(genv->shaderFactory
+                                              ->getShaderSet(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST));
     std::vector<pbr::OverlayParams> overlayParams(rasters.overlayRasters.size());
     for (size_t i = 0; i < rasters.overlayRasters.size(); ++i)
     {
@@ -159,11 +159,23 @@ vsg::ref_ptr<vsg::StateCommand> makeTileStateCommand(const vsg::ref_ptr<Graphics
     auto ubo = pbr::makeTileData(tile.getGeometricError(), std::min(genv->features.pointSizeRange[1], 4.0f),
                                  overlayParams);
     descriptorBuilder->assignUniform("tileParams", ubo);
-    descriptorBuilder->init();
+    if (descriptorBuilder->descriptorSets.size() < pbr::TILE_DESCRIPTOR_SET + 1
+        || !descriptorBuilder->descriptorSets[pbr::TILE_DESCRIPTOR_SET])
+    {
+        vsg::fatal("Tile descriptor set construction failed.");
+    }
+    for (unsigned i = 0; i < descriptorBuilder->descriptorSets.size(); ++i)
+    {
+        if (i != pbr::TILE_DESCRIPTOR_SET && descriptorBuilder->descriptorSets[i]
+            && !descriptorBuilder->descriptorSets[i]->descriptors.empty())
+        {
+            vsg::warn("Unexpected descriptor set ", i, " in tile.");
+        }
+    }
     auto bindDescriptorSet
             = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS,
                                              genv->overlayPipelineLayout, pbr::TILE_DESCRIPTOR_SET,
-                                             descriptorBuilder->descriptorSet);
+                                             descriptorBuilder->descriptorSets[pbr::TILE_DESCRIPTOR_SET]);
     return bindDescriptorSet;
  }
 

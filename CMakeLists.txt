@@ -33,7 +33,7 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
-set(VSG_MIN_VERSION 1.0.6)
+set(VSG_MIN_VERSION 1.0.8)
 
 FetchContent_Declare(vsg
   GIT_REPOSITORY https://github.com/vsg-dev/VulkanSceneGraph.git
