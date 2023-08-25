@@ -37,13 +37,7 @@ layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 5) uniform sampler2D specularMa
 #endif
 
 layout(set = TILE_DESCRIPTOR_SET, binding = 1) uniform sampler2D overlayTextures[maxOverlays];
-
-// Texture coordinates are assumed to have the OpenGL / glTF origin i.e., lower left.
-vec4 cstexture(sampler2D texmap, vec2 coords)
-{
-    return texture(texmap, vec2(coords.s, coords.t));
-}
-
+ 
 layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 10) uniform PbrData
 {
     vec4 baseColorFactor;
@@ -138,7 +132,7 @@ vec3 getNormal()
     vec3 tangentNormal = texture(normalMap, texCoord[0]).xyz * 2.0 - 1.0;
 
     //tangentNormal *= vec3(2,2,1);
-
+ 
     vec3 q1 = dFdx(eyePos);
     vec3 q2 = dFdy(eyePos);
     vec2 st1 = dFdx(texCoord[0]);
@@ -287,10 +281,7 @@ void main()
     float metallic;
     vec3 diffuseColor;
     vec4 baseColor;
-
     float ambientOcclusion = 1.0;
-
-    vec3 f0 = vec3(0.04);
 
 #ifdef VSG_DIFFUSE_MAP
 #ifdef VSG_GREYSACLE_DIFFUSE_MAP
