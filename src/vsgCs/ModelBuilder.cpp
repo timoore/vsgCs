@@ -586,7 +586,22 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     auto descConf = csMaterial->descriptorConfig;
     auto pipelineConf = vsg::GraphicsPipelineConfigurator::create(descConf->shaderSet);
     pipelineConf->descriptorConfigurator = descConf;
-    pipelineConf->inputAssemblyState->topology = topology;
+    // The new way of setting pipeline state (from vsgXchange)
+    // set the GraphicsPipelineStates to the required values.
+    struct SetPipelineStates : public vsg::Visitor
+    {
+        VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        bool blending = false;
+        bool two_sided = false;
+
+        SetPipelineStates(VkPrimitiveTopology in_topology, bool in_blending, bool in_two_sided) : topology(in_topology), blending(in_blending), two_sided(in_two_sided) {}
+
+        void apply(vsg::Object& object) { object.traverse(*this); }
+        void apply(vsg::RasterizationState& rs) { if (two_sided) rs.cullMode = VK_CULL_MODE_NONE; }
+        void apply(vsg::InputAssemblyState& ias) { ias.topology = topology; }
+        void apply(vsg::ColorBlendState& cbs) { cbs.configureAttachments(blending); }
+    } sps(topology, descConf->blending, descConf->two_sided);
+    pipelineConf->accept(sps);
     if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
     {
         pipelineConf->shaderHints->defines.insert("VSGCS_SIZE_TO_ERROR");
@@ -616,9 +631,9 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         pipelineConf->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX,
                             ref_ptr_cast<vsg::vec3Array>(createData(_model, normalAccessor, expansionIndices)));
     }
-    else if (!isTriangleTopology(pipelineConf->inputAssemblyState->topology)) // Can not make normals
+    else if (!isTriangleTopology(topology)) // Can not make normals
     {
-        if (pipelineConf->inputAssemblyState->topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+        if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
         {
             pipelineConf->shaderHints->defines.insert("VSGCS_BILLBOARD_NORMAL");
         }
@@ -629,7 +644,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     {
         auto posArray = ref_ptr_cast<vsg::vec3Array>(positions);
         auto normals = vsg::vec3Array::create(posArray->size());
-        generateNormals(posArray, normals, pipelineConf->inputAssemblyState->topology);
+        generateNormals(posArray, normals, topology);
         pipelineConf->shaderHints->defines.insert("VSGCS_FLAT_SHADING");
         pipelineConf->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX, normals);
     }
@@ -725,24 +740,6 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         drawCommand = vd;
     }
     drawCommand->setValue("name", name);
-    if (descConf->blending)
-    {
-        // figure out what this means someday...
-        // These are parameters for blending into the first color attachment in the render
-        // pass. While this set of parameters implements bog-standard alpha blending, should they be
-        // buried at this low level?
-        //
-        // Note that this will work for any "compatible" render pass too.
-        pipelineConf->colorBlendState->attachments = vsg::ColorBlendState::ColorBlendAttachments{
-            {true, VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_ADD,
-             VK_BLEND_FACTOR_SRC_ALPHA, VK_BLEND_FACTOR_ONE_MINUS_SRC_ALPHA, VK_BLEND_OP_SUBTRACT,
-             VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT | VK_COLOR_COMPONENT_A_BIT}};
-        _genv->sharedObjects->share(pipelineConf->colorBlendState);
-    }
-    if (descConf->two_sided)
-    {
-        pipelineConf->rasterizationState->cullMode = VK_CULL_MODE_NONE;
-    }
     pipelineConf->init();
     _genv->sharedObjects->share(pipelineConf->bindGraphicsPipeline);
 
