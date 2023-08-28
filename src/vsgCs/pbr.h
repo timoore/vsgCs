@@ -16,7 +16,7 @@ namespace vsgCs
         enum DescriptorSetUse : uint32_t
         {
             VIEW_DESCRIPTOR_SET = 0,
-            TILESET_DESCRIPTOR_SET = 1,
+            WORLD_DESCRIPTOR_SET = 1,
             TILE_DESCRIPTOR_SET = 2,
             PRIMITIVE_DESCRIPTOR_SET = 3
         };

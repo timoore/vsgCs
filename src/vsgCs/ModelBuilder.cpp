@@ -164,7 +164,7 @@ namespace
 }
 
 CreateModelOptions::CreateModelOptions(bool in_renderOverlays, const vsg::ref_ptr<Styling>& in_styling)
-    : renderOverlays(in_renderOverlays), styling(in_styling)
+    : renderOverlays(in_renderOverlays), lodFade(true), styling(in_styling)
 {
 }
 
@@ -746,6 +746,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
             = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineConf->layout,
                                              pbr::PRIMITIVE_DESCRIPTOR_SET,
                                              descSet);
+        _genv->sharedObjects->share(bindDescriptorSet);
         stateGroup->add(bindDescriptorSet);
     }
     // assign any custom ArrayState that may be required.
@@ -785,6 +786,10 @@ ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopo
     if (_options.renderOverlays)
     {
         csMat->descriptorConfig->defines.insert("VSGCS_OVERLAY_MAPS");
+    }
+    if (_options.lodFade)
+    {
+        csMat->descriptorConfig->defines.insert("VSGCS_LOD_FADE");
     }
     vsg::PbrMaterial pbr;
     if (material->alphaMode == CesiumGltf::Material::AlphaMode::BLEND)

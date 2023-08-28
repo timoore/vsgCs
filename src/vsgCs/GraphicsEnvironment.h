@@ -76,6 +76,7 @@ namespace vsgCs
          * 2.
          */
         vsg::ref_ptr<vsg::PipelineLayout> overlayPipelineLayout;
+        vsg::ref_ptr<vsg::ImageInfo> blueNoiseTexture;
     protected:
         vsg::ref_ptr<vsg::CompileTraversal> miniCompileTraversal;
     };

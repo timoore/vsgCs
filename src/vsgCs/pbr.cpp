@@ -75,6 +75,10 @@ namespace vsgCs::pbr
                                      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
         shaderSet->addDescriptorBinding("viewData", "", VIEW_DESCRIPTOR_SET, 1,
                                      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 ,VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::ubyteArray::create(sizeof(vsg::vec4)));
+        // XXX Want a VSGCS_LOD_FADE define here, but that to messes up the descriptor defaulting mechanism.
+        shaderSet->addDescriptorBinding("blueNoise", "", WORLD_DESCRIPTOR_SET, 0,
+                                     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+                                     VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
         shaderSet->addDescriptorBinding("tileParams", "", TILE_DESCRIPTOR_SET, 0,
                                      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(1 + sizeof(OverlayParams)));
         shaderSet->addDescriptorBinding("overlayTextures", "", TILE_DESCRIPTOR_SET, 1,

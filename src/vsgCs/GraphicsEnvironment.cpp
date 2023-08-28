@@ -50,11 +50,9 @@ GraphicsEnvironment::GraphicsEnvironment(const vsg::ref_ptr<vsg::Options> &vsgOp
       sharedObjects(create_or<vsg::SharedObjects>(vsgOptions->sharedObjects)),
       device(in_device),
       defaultTexture(makeDefaultTexture())
-
 {
     std::set<std::string> shaderDefines;
-    shaderDefines.insert("VSG_TWO_SIDED_LIGHTING");
-    shaderDefines.insert("VSGCS_OVERLAY_MAPS");
+    shaderDefines.insert({"VSG_TWO_SIDED_LIGHTING", "VSGCS_OVERLAY_MAPS", "VSGCS_LOD_FADE"});
     // We only care about the layout of the first three descriptor sets. All the model-specific
     // descriptors are in the fourth set, so we can get the layout for a "generic" shader and use it
     // for lighting and whole-tile parameters.
@@ -62,6 +60,10 @@ GraphicsEnvironment::GraphicsEnvironment(const vsg::ref_ptr<vsg::Options> &vsgOp
     overlayPipelineLayout = defaultShaderSet->createPipelineLayout(shaderDefines,
                                                                    {0, pbr::TILE_DESCRIPTOR_SET + 1});
     miniCompileTraversal = vsg::CompileTraversal::create(device);
+    auto noiseBytes = readBinaryFile("images/LDR_LLL1_0.png", vsgOptions);
+    blueNoiseTexture = makeImage(noiseBytes, false, true,
+                                 VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT,
+                                 VK_FILTER_NEAREST, VK_FILTER_NEAREST);
 }
 
 // Copied from vsg::CompileManager

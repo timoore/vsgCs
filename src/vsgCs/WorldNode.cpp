@@ -76,6 +76,16 @@ bool WorldNode::initialize(const vsg::ref_ptr<vsg::Viewer>& viewer)
                                               RuntimeEnvironment::get()->genv->overlayPipelineLayout,
                                               pbr::VIEW_DESCRIPTOR_SET);
     stateGroup->add(bindViewDescriptorSets);
+    auto genv = RuntimeEnvironment::get()->genv;
+    auto descriptorBuilder
+        = vsg::DescriptorConfigurator::create(genv->shaderFactory->getShaderSet(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST));
+    vsg::ImageInfoList blueImage{genv->blueNoiseTexture};
+    descriptorBuilder->assignTexture("blueNoise", blueImage);
+    auto bindDescriptorSet
+        = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS,
+                                         genv->overlayPipelineLayout, pbr::WORLD_DESCRIPTOR_SET,
+                                         descriptorBuilder->descriptorSets[pbr::WORLD_DESCRIPTOR_SET]);
+    stateGroup->add(bindDescriptorSet);
     // Overkill; better to just compile the stateGroup
     viewer->compile();
     return result;

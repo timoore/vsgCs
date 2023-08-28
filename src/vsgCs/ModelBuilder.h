@@ -88,6 +88,7 @@ namespace vsgCs
         CreateModelOptions(bool in_renderOverlays = false, const vsg::ref_ptr<Styling>& styling = {});
         ~CreateModelOptions();
         bool renderOverlays;
+        bool lodFade;
         vsg::ref_ptr<Styling> styling;
     };
 
