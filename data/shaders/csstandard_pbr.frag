@@ -36,6 +36,8 @@ layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 4) uniform sampler2D emissiveMa
 layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 5) uniform sampler2D specularMap;
 #endif
 
+layout(set = WORLD_DESCRIPTOR_SET, binding = 0) uniform sampler2D blueNoise;
+
 layout(set = TILE_DESCRIPTOR_SET, binding = 1) uniform sampler2D overlayTextures[maxOverlays];
  
 layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 10) uniform PbrData
@@ -78,6 +80,11 @@ vec4 overlayTexture(uint overlayNum)
     return texture(overlayTextures[overlayNum], coords);
 }
 #endif
+
+vec2 noiseCoords()
+{
+    return vec2(gl_FragCoord.x / 256.0, gl_FragCoord.y / 256.0);
+}
 
 // If we think of the BRDF as a kind of shader node à la Blender or MaterialX, then this block holds
 // the node parameters calculated from inputs. The other function parameters to the BRDF like light
@@ -484,6 +491,24 @@ void main()
                               ambientOcclusion);
         }
     }
-
+    // Blend tiles based on blue noise dithering. At every pixel we choose to render either the fading
+    // in or fading out tile.
+    // fading in: render if fadePercentage >= noise -> discard if fadePercentage < noise
+    // fading out: render if fadePercentage < noise -> discard if fadePercentage >= noise
+    // "fading out" is indicated by a negative fade percentage
+    float fadeCutoff = texture(blueNoise, noiseCoords()).r;
+    if (tileParams.fadeValue < 1.0)
+    {
+        if ((tileParams.fadeValue >= 0.0))
+        {
+            if ( tileParams.fadeValue < fadeCutoff)
+                discard;
+        }
+        else
+        {
+            if (-tileParams.fadeValue >= fadeCutoff)
+                discard;
+        }
+    }
     outColor = vec4(color, baseColor.a);
 }

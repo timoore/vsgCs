@@ -33,11 +33,15 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace vsgCs::pbr
 {
     vsg::ref_ptr<vsg::Data> makeTileData(float geometricError, float maxPointSize,
-                                         const gsl::span<OverlayParams> overlayUniformMem)
+                                         const gsl::span<OverlayParams> overlayUniformMem,
+                                         float fadeValue)
     {
+        // All this hair with memcpy is to avoid using reinterpret_cast with a struct, apparently
+        // undefined behavior in C++.
         vsg::vec4 tileScratch;
         tileScratch[0] = geometricError;
         tileScratch[1] = maxPointSize;
+        tileScratch[2] = fadeValue;
         auto result = vsg::ubyteArray::create(sizeof(vsg::vec4) + overlayUniformMem.size_bytes());
         memcpy(&(*result)[0], &tileScratch, sizeof(tileScratch)); // NOLINT
         memcpy(&(*result)[sizeof(tileScratch)], overlayUniformMem.data(), overlayUniformMem.size_bytes());
