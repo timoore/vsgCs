@@ -43,6 +43,22 @@ namespace
     }
 }
 
+// mini compile resource hints are based on the mini-compile's intended usage: compile the
+// descriptor sets associated with whole tiles and their overlays.
+namespace
+{
+    vsg::ResourceRequirements getMiniCompileRequirements()
+    {
+        auto hints = vsg::ResourceHints::create();
+        hints->numDescriptorSets = 1024; // who knows
+        VkDescriptorPoolSize samplers = {VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, pbr::maxOverlays * 1024};
+        VkDescriptorPoolSize buffers = {VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1024};
+        hints->descriptorPoolSizes.push_back(samplers);
+        hints->descriptorPoolSizes.push_back(buffers);
+        return vsg::ResourceRequirements(hints);
+    }
+}
+
 GraphicsEnvironment::GraphicsEnvironment(const vsg::ref_ptr<vsg::Options> &vsgOptions,
                                          const DeviceFeatures& in_features,
                                          const vsg::ref_ptr<vsg::Device>& in_device)
@@ -59,7 +75,7 @@ GraphicsEnvironment::GraphicsEnvironment(const vsg::ref_ptr<vsg::Options> &vsgOp
     auto defaultShaderSet = shaderFactory->getShaderSet(VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
     overlayPipelineLayout = defaultShaderSet->createPipelineLayout(shaderDefines,
                                                                    {0, pbr::TILE_DESCRIPTOR_SET + 1});
-    miniCompileTraversal = vsg::CompileTraversal::create(device);
+    miniCompileTraversal = vsg::CompileTraversal::create(device, getMiniCompileRequirements());
     auto noiseBytes = readBinaryFile("images/LDR_LLL1_0.png", vsgOptions);
     blueNoiseTexture = makeImage(noiseBytes, false, true,
                                  VK_SAMPLER_ADDRESS_MODE_REPEAT, VK_SAMPLER_ADDRESS_MODE_REPEAT,
