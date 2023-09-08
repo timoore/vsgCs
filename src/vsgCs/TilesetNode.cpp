@@ -27,6 +27,7 @@ SOFTWARE.
 #include "CsOverlay.h"
 #include "jsonUtils.h"
 #include "OpThreadTaskProcessor.h"
+#include "pbr.h"
 #include "RuntimeEnvironment.h"
 #include "Tracing.h"
 #include "UrlAssetAccessor.h"
@@ -346,6 +347,29 @@ void TilesetNode::UpdateTileset::run()
                       }
                   });
     ref_tileset->_viewUpdateResult = &ref_tileset->_tileset->updateView(viewStates);
+    for (auto* tile : ref_tileset->_viewUpdateResult->tilesToRenderThisFrame)
+    {
+        const auto& tileContent = tile->getContent();
+        if (tileContent.isRenderContent())
+        {
+            const auto* renderResources
+                = reinterpret_cast<const RenderResources*>(tileContent.getRenderContent()
+                                                           ->getRenderResources());
+            auto tileSG = CesiumGltfBuilder::getTileStateGroup(renderResources->model);
+            if (tileSG)
+            {
+                auto bindDesc = ref_ptr_cast<vsg::BindDescriptorSet>(tileSG->stateCommands[0]);
+                auto ds = bindDesc->descriptorSet;
+                auto descBuff = ref_ptr_cast<vsg::DescriptorBuffer>(ds->descriptors[1]);
+                auto uboData = descBuff->bufferInfoList[0]->data;
+                if (pbr::getFadeValue(uboData) != 0.4f)
+                {
+                    pbr::setFadeValue(uboData, 0.4f);
+                    uboData->dirty();
+                }
+            }
+        }
+    }
 }
 
 bool TilesetNode::initialize(const vsg::ref_ptr<vsg::Viewer>& viewer)

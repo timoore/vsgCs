@@ -48,6 +48,20 @@ namespace vsgCs::pbr
         return result;
     }
 
+    float getFadeValue(const vsg::ref_ptr<vsg::Data>& tileData)
+    {
+        auto tileBufData = ref_ptr_cast<vsg::ubyteArray>(tileData);
+        float fadeValue;
+        memcpy(&fadeValue, tileBufData->data() + sizeof(float) * 2, sizeof(float));
+        return fadeValue;
+    }
+
+    void setFadeValue(const vsg::ref_ptr<vsg::Data>& tileData, float fadeValue)
+    {
+        auto tileBufData = ref_ptr_cast<vsg::ubyteArray>(tileData);
+        memcpy(tileBufData->data() + sizeof(float) * 2, &fadeValue, sizeof(float));
+    }
+
     vsg::ref_ptr<vsg::ShaderSet> makeShaderSetAux(vsg::ref_ptr<vsg::ShaderSet> shaderSet)
     {
         shaderSet->addAttributeBinding("vsg_Vertex", "", 0, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));

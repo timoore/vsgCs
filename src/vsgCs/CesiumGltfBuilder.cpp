@@ -158,7 +158,8 @@ vsg::ref_ptr<vsg::StateCommand> makeTileStateCommand(const vsg::ref_ptr<Graphics
     descriptorBuilder->assignTexture("overlayTextures", rasterImages);
     auto ubo = pbr::makeTileData(tile.getGeometricError(), std::min(genv->features.pointSizeRange[1], 4.0f),
                                  overlayParams);
-    descriptorBuilder->assignUniform("tileParams", ubo);
+    ubo->properties.dataVariance = vsg::DYNAMIC_DATA;
+    descriptorBuilder->assignDescriptor("tileParams", ubo);
     if (descriptorBuilder->descriptorSets.size() < pbr::TILE_DESCRIPTOR_SET + 1
         || !descriptorBuilder->descriptorSets[pbr::TILE_DESCRIPTOR_SET])
     {
