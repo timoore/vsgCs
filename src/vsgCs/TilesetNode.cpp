@@ -362,6 +362,7 @@ void TilesetNode::UpdateTileset::run()
                 auto ds = bindDesc->descriptorSet;
                 auto descBuff = ref_ptr_cast<vsg::DescriptorBuffer>(ds->descriptors[1]);
                 auto uboData = descBuff->bufferInfoList[0]->data;
+                // Force a fade value for testing.
                 if (pbr::getFadeValue(uboData) != 0.4f)
                 {
                     pbr::setFadeValue(uboData, 0.4f);
