@@ -817,7 +817,7 @@ ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopo
     loadMaterialTexture(csMat, "normalMap", material->normalTexture, false);
     loadMaterialTexture(csMat, "aoMap", material->occlusionTexture, false);
     loadMaterialTexture(csMat, "emissiveMap", material->emissiveTexture, true);
-    csMat->descriptorConfig->assignUniform("material", vsg::PbrMaterialValue::create(pbr));
+    csMat->descriptorConfig->assignDescriptor("material", vsg::PbrMaterialValue::create(pbr));
     return csMat;
 }
 
@@ -834,7 +834,7 @@ ModelBuilder::loadMaterial(int i, VkPrimitiveTopology topology)
             _baseMaterial[topoIndex]->descriptorConfig = vsg::DescriptorConfigurator::create();
             _baseMaterial[topoIndex]->descriptorConfig->shaderSet = _genv->shaderFactory->getShaderSet(topology);
             vsg::PbrMaterial pbr;
-            _baseMaterial[topoIndex]->descriptorConfig->assignUniform("material",
+            _baseMaterial[topoIndex]->descriptorConfig->assignDescriptor("material",
                                                                          vsg::PbrMaterialValue::create(pbr));
         }
         return _baseMaterial[topoIndex];
