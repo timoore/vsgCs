@@ -280,7 +280,8 @@ void vsgResourcePreparer::compileAndDelete(ModifyRastersResult& result)
     for (const auto& object : result.compileObjects)
     {
 
-        genv->miniCompile(object);
+        auto attachCompileResult = genv->miniCompile(object);
+        vsg::updateViewer(*ref_viewer, attachCompileResult);
     }
     if (!result.deleteObjects.empty())
     {
