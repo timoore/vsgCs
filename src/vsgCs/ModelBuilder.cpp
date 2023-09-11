@@ -163,12 +163,6 @@ namespace
     }
 }
 
-inline VkDescriptorSetLayoutBinding getVk(const vsg::UniformBinding& binding)
-{
-    return VkDescriptorSetLayoutBinding{binding.binding, binding.descriptorType, binding.descriptorCount,
-                                        binding.stageFlags, nullptr};
-}
-
 CreateModelOptions::CreateModelOptions(bool in_renderOverlays, const vsg::ref_ptr<Styling>& in_styling)
     : renderOverlays(in_renderOverlays), styling(in_styling)
 {
