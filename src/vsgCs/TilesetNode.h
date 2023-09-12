@@ -31,6 +31,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #include <vector>
 #include <vsg/core/ref_ptr.h>
 #include <vsg/io/Options.h>
+#include <vsg/ui/FrameStamp.h>
 
 namespace vsgCs
 {
@@ -95,6 +96,7 @@ namespace vsgCs
         const Cesium3DTilesSelection::ViewUpdateResult* _viewUpdateResult;
         std::unique_ptr<Cesium3DTilesSelection::Tileset> _tileset;
         std::vector<vsg::ref_ptr<CsOverlay>> _overlays;
+        vsg::ref_ptr<vsg::FrameStamp> _lastFrameStamp;
     private:
         template<class V> void t_traverse(V& visitor) const;
         int32_t _tilesetsBeingDestroyed;

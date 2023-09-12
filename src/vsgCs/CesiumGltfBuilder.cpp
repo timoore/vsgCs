@@ -215,6 +215,29 @@ vsg::ref_ptr<vsg::StateGroup> CesiumGltfBuilder::getTileStateGroup(const vsg::re
     return ref_ptr_cast<vsg::StateGroup>(transformNode->children[0]);
 }
 
+vsg::ref_ptr<vsg::Data> CesiumGltfBuilder::getTileData(const vsg::ref_ptr<vsg::Node>& node)
+{
+    auto tileSG = CesiumGltfBuilder::getTileStateGroup(node);
+    if (tileSG)
+    {
+        // only 1 state command
+        auto bindDesc = ref_ptr_cast<vsg::BindDescriptorSet>(tileSG->stateCommands[0]);
+        auto ds = bindDesc->descriptorSet;
+        auto descBuffItr = std::find_if(ds->descriptors.begin(), ds->descriptors.end(),
+                                        [](auto && descriptor)
+                                        { return !!ref_ptr_cast<vsg::DescriptorBuffer>(descriptor); });
+        if (descBuffItr == ds->descriptors.end())
+        {
+            vsg::warn("could not find tile DescriptorBuffer");
+            return {};
+        }
+        auto descBuff = ref_ptr_cast<vsg::DescriptorBuffer>(*descBuffItr);
+        auto uboData = descBuff->bufferInfoList[0]->data;
+        return uboData;
+    }
+    return {};
+}
+
 vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::TileLoadResult&& tileLoadResult,
                                                     const glm::dmat4 &transform,
                                                     const CreateModelOptions& modelOptions)
