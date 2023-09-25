@@ -25,7 +25,7 @@ layout(set = TILE_DESCRIPTOR_SET, binding = 0) uniform TileParams
   float geometricError;
   float maxPointSize;
   float fadeValue;
-  // 4 bytes padding
+  float fadeOut;                // using a float as a bool
   OverlayParamBlock params[4];
 } tileParams;
 

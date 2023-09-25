@@ -9,6 +9,8 @@
 #include <vsg/maths/vec2.h>
 #include <vsg/utils/ShaderSet.h>
 
+#include <utility>
+
 namespace vsgCs
 {
     namespace pbr
@@ -42,10 +44,10 @@ namespace vsgCs
 
         vsg::ref_ptr<vsg::Data> makeTileData(float geometricError, float maxPointSize,
                                              const gsl::span<OverlayParams> overlayUniformMem,
-                                             float fadeValue = 1.0f);
+                                             float fadeValue = 1.0f, bool fadeOut = false);
         // Flesh out this API  a bit?
-        float getFadeValue(const vsg::ref_ptr<vsg::Data>& tileData);
-        void setFadeValue(const vsg::ref_ptr<vsg::Data>& tileData, float fadeValue);
+        std::pair<float, bool> getFadeValue(const vsg::ref_ptr<vsg::Data>& tileData);
+        void setFadeValue(const vsg::ref_ptr<vsg::Data>& tileData, float fadeValue, bool fadeOut);
         vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(const vsg::ref_ptr<const vsg::Options>& options = {});
         vsg::ref_ptr<vsg::ShaderSet> makePointShaderSet(const vsg::ref_ptr<const vsg::Options>& options = {});
     }

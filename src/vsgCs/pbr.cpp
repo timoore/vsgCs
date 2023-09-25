@@ -34,7 +34,7 @@ namespace vsgCs::pbr
 {
     vsg::ref_ptr<vsg::Data> makeTileData(float geometricError, float maxPointSize,
                                          const gsl::span<OverlayParams> overlayUniformMem,
-                                         float fadeValue)
+                                         float fadeValue, bool fadeOut)
     {
         // All this hair with memcpy is to avoid using reinterpret_cast with a struct, apparently
         // undefined behavior in C++.
@@ -42,24 +42,29 @@ namespace vsgCs::pbr
         tileScratch[0] = geometricError;
         tileScratch[1] = maxPointSize;
         tileScratch[2] = fadeValue;
+        tileScratch[3] = fadeOut ? 1.0f : 0.0f;
         auto result = vsg::ubyteArray::create(sizeof(vsg::vec4) + overlayUniformMem.size_bytes());
         memcpy(&(*result)[0], &tileScratch, sizeof(tileScratch)); // NOLINT
         memcpy(&(*result)[sizeof(tileScratch)], overlayUniformMem.data(), overlayUniformMem.size_bytes());
         return result;
     }
 
-    float getFadeValue(const vsg::ref_ptr<vsg::Data>& tileData)
+    std::pair<float, bool> getFadeValue(const vsg::ref_ptr<vsg::Data>& tileData)
     {
         auto tileBufData = ref_ptr_cast<vsg::ubyteArray>(tileData);
         float fadeValue;
         memcpy(&fadeValue, tileBufData->data() + sizeof(float) * 2, sizeof(float));
-        return fadeValue;
+        float fadeOut;
+        memcpy(&fadeOut, tileBufData->data() + sizeof(float) * 3, sizeof(float));
+        return std::make_pair(fadeValue, fadeOut != 0.0f);
     }
 
-    void setFadeValue(const vsg::ref_ptr<vsg::Data>& tileData, float fadeValue)
+    void setFadeValue(const vsg::ref_ptr<vsg::Data>& tileData, float fadeValue, bool fadeOut)
     {
         auto tileBufData = ref_ptr_cast<vsg::ubyteArray>(tileData);
+        float floatFadeOut = fadeOut ? 1.0f : 0.0f;
         memcpy(tileBufData->data() + sizeof(float) * 2, &fadeValue, sizeof(float));
+        memcpy(tileBufData->data() + sizeof(float) * 3, &floatFadeOut, sizeof(float));
     }
 
     vsg::ref_ptr<vsg::ShaderSet> makeShaderSetAux(vsg::ref_ptr<vsg::ShaderSet> shaderSet)

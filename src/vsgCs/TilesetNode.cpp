@@ -96,7 +96,7 @@ TilesetNode::TilesetNode(const DeviceFeatures& deviceFeatures, const TilesetSour
             }
         };
     options.enableLodTransitionPeriod = true;
-    options.lodTransitionLength = 3.0f;
+    options.lodTransitionLength = 1.0f;
     auto externals = RuntimeEnvironment::get()->getTilesetExternals();
     options.contentOptions.ktx2TranscodeTargets = deviceFeatures.ktx2TranscodeTargets;
 
@@ -382,9 +382,10 @@ void TilesetNode::UpdateTileset::run()
             if (uboData)
             {
                 auto fadePercentage = tileContent.getRenderContent()->getLodTransitionFadePercentage();
-                if (pbr::getFadeValue(uboData) != fadePercentage)
+                auto [fadeValue, fadeOut] = pbr::getFadeValue(uboData);
+                if (fadeValue != fadePercentage || fadeOut)
                 {
-                    pbr::setFadeValue(uboData, fadePercentage);
+                    pbr::setFadeValue(uboData, fadePercentage, false);
                     uboData->dirty();
                 }
             }
@@ -401,10 +402,11 @@ void TilesetNode::UpdateTileset::run()
             auto uboData = CesiumGltfBuilder::getTileData(renderResources->model);
             if (uboData)
             {
-                auto fadeoutPercentage = -tileContent.getRenderContent()->getLodTransitionFadePercentage();
-                if (pbr::getFadeValue(uboData) != fadeoutPercentage)
+                auto fadeoutPercentage = tileContent.getRenderContent()->getLodTransitionFadePercentage();
+                auto [fadeValue, fadeOut] = pbr::getFadeValue(uboData);
+                if (fadeValue != fadeoutPercentage || !fadeOut)
                 {
-                    pbr::setFadeValue(uboData, fadeoutPercentage);
+                    pbr::setFadeValue(uboData, fadeoutPercentage, true);
                     uboData->dirty();
                 }
             }

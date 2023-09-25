@@ -499,18 +499,15 @@ void main()
     //
     // Ack, fade Cesium percentage is 0-1 fade in, 0-1 fade out!
     float fadeCutoff = texture(blueNoise, noiseCoords()).r;
-    if (tileParams.fadeValue < 1.0)
+    if (tileParams.fadeOut == 0.0)
     {
-        if ((tileParams.fadeValue >= 0.0))
-        {
-            if (tileParams.fadeValue < fadeCutoff)
-                discard;
-        }
-        else
-        {
-            if (-tileParams.fadeValue >= fadeCutoff)
-                discard;
-        }
+        if (tileParams.fadeValue == 0.0 || tileParams.fadeValue < fadeCutoff)
+            discard;
+    }
+    else
+    {
+        if (tileParams.fadeValue == 1.0 || tileParams.fadeValue >= fadeCutoff)
+            discard;
     }
     outColor = vec4(color, baseColor.a);
 }
