@@ -1,4 +1,4 @@
-cmake_minimum_required(VERSION 3.24)
+cmake_minimum_required(VERSION 3.22)
 
 include(FetchContent)
 
@@ -37,7 +37,7 @@ set(VSG_MIN_VERSION 1.0.9)
 
 FetchContent_Declare(vsg
   GIT_REPOSITORY https://github.com/vsg-dev/VulkanSceneGraph.git
-  GIT_TAG 132f3bce7abafefc85d5953d3b588a504484b9e
+  GIT_TAG v1.0.9
   GIT_PROGRESS TRUE
   FIND_PACKAGE_ARGS ${VSG_MIN_VERSION}
 )
