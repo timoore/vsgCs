@@ -95,9 +95,10 @@ TilesetNode::TilesetNode(const DeviceFeatures& deviceFeatures, const TilesetSour
                 vsg::warn(details.message);
             }
         };
-    options.enableLodTransitionPeriod = true;
+    auto env = RuntimeEnvironment::get();
+    options.enableLodTransitionPeriod = env->enableLodTransitionPeriod;
     options.lodTransitionLength = 1.0f;
-    auto externals = RuntimeEnvironment::get()->getTilesetExternals();
+    auto externals = env->getTilesetExternals();
     options.contentOptions.ktx2TranscodeTargets = deviceFeatures.ktx2TranscodeTargets;
 
     if (source.url)

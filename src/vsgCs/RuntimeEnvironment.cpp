@@ -113,6 +113,7 @@ void RuntimeEnvironment::initializeCs(vsg::CommandLine& arguments)
         _csCacheFile = csCacheFile;
     }
     generateShaderDebugInfo = arguments.read("--shader-debug-info");
+    enableLodTransitionPeriod = arguments.read("--lod-transition");
 }
 
 void RuntimeEnvironment::initialize(vsg::CommandLine &arguments,
@@ -355,7 +356,8 @@ std::string RuntimeEnvironment::csUsage()
         "--ion-token token_string user's Cesium ion token\n"
         "--ion-token-file filename file containing user's ion token\n"
         "--cesium-cache filename\t cache file for 3D Tiles remote requests\n"
-        "--shader-debug-info\t generate symbols for shader source debugging\n"};
+        "--shader-debug-info\t generate symbols for shader source debugging\n"
+        "--lod-transition\t enable noise-based LOD transition\n"};
 }
 
 std::string RuntimeEnvironment::usage()

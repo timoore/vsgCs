@@ -129,6 +129,7 @@ namespace vsgCs
         DeviceFeatures features;
         std::string ionAccessToken;
         bool generateShaderDebugInfo = false;
+        bool enableLodTransitionPeriod = false;
         vsg::ref_ptr<GraphicsEnvironment> genv;
         static vsg::ref_ptr<RuntimeEnvironment> get();
     protected:
