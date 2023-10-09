@@ -90,7 +90,7 @@ vsg::CompileResult GraphicsEnvironment::miniCompile(vsg::ref_ptr<vsg::Object> ob
     object->accept(collectRequirements);
 
     auto& requirements = collectRequirements.requirements;
-    auto& binStack = requirements.binStack;
+    auto& viewDetailsStack = requirements.viewDetailsStack;
 
     vsg::CompileResult result;
     result.maxSlot = requirements.maxSlot;
@@ -103,11 +103,11 @@ vsg::CompileResult GraphicsEnvironment::miniCompile(vsg::ref_ptr<vsg::Object> ob
         for (auto& context : miniCompileTraversal->contexts)
         {
             vsg::ref_ptr<vsg::View> view = context->view;
-            if (view && !binStack.empty())
+            if (view && !viewDetailsStack.empty())
             {
                 if (auto itr = result.views.find(view.get()); itr == result.views.end())
                 {
-                    result.views[view] = binStack.top();
+                    result.views[view] = viewDetailsStack.top();
                 }
             }
 
