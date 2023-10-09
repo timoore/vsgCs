@@ -163,7 +163,7 @@ namespace
     }
 }
 
-inline VkDescriptorSetLayoutBinding getVk(const vsg::UniformBinding& binding)
+inline VkDescriptorSetLayoutBinding getVk(const vsg::DescriptorBinding& binding)
 {
     return VkDescriptorSetLayoutBinding{binding.binding, binding.descriptorType, binding.descriptorCount,
                                         binding.stageFlags, nullptr};
