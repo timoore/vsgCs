@@ -161,6 +161,13 @@ namespace
             return false;
         }
     }
+
+    // helper to simplify index validation logic
+    template<typename T>
+    bool safeIndex(const std::vector<T>& items, int32_t index)
+    {
+        return index >= 0 && static_cast<uint32_t>(index) < items.size();
+    }
 }
 
 CreateModelOptions::CreateModelOptions(bool in_renderOverlays, const vsg::ref_ptr<Styling>& in_styling)
@@ -234,14 +241,13 @@ ModelBuilder::loadNode(const CesiumGltf::Node* node)
     }
     result = vsg::MatrixTransform::create(transformMatrix);
 
-    int meshId = node->mesh;
-    if (meshId >= 0 && static_cast<unsigned>(meshId) < _model->meshes.size())
+    if (safeIndex(_model->meshes, node->mesh))
     {
-        result->addChild(loadMesh(&_model->meshes[meshId]));
+        result->addChild(loadMesh(&_model->meshes[node->mesh]));
     }
     for (int childNodeId : node->children)
     {
-        if (childNodeId >= 0 && static_cast<unsigned>(childNodeId) < _model->nodes.size())
+        if (safeIndex(_model->nodes, childNodeId))
         {
             result->addChild(loadNode(&_model->nodes[childNodeId]));
         }
@@ -558,6 +564,40 @@ namespace
     }
 }
 
+namespace
+{
+    // The new way of setting pipeline state (from vsgXchange)
+    // set the GraphicsPipelineStates to the required values.
+    struct SetPipelineStates : public vsg::Visitor
+    {
+        VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+        bool blending = false;
+        bool two_sided = false;
+
+        SetPipelineStates(VkPrimitiveTopology in_topology, bool in_blending, bool in_two_sided)
+            : topology(in_topology), blending(in_blending), two_sided(in_two_sided)
+        {
+        }
+        void apply(vsg::Object& object)
+        {
+            object.traverse(*this);
+        }
+        void apply(vsg::RasterizationState& rs)
+        {
+            if (two_sided)
+                rs.cullMode = VK_CULL_MODE_NONE;
+        }
+        void apply(vsg::InputAssemblyState& ias)
+        {
+            ias.topology = topology;
+        }
+        void apply(vsg::ColorBlendState& cbs)
+        {
+            cbs.configureAttachments(blending);
+        }
+    };
+}
+
 vsg::ref_ptr<vsg::Node>
 ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
                             const CesiumGltf::Mesh* mesh)
@@ -580,21 +620,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     auto descConf = csMaterial->descriptorConfig;
     auto pipelineConf = vsg::GraphicsPipelineConfigurator::create(descConf->shaderSet);
     pipelineConf->descriptorConfigurator = descConf;
-    // The new way of setting pipeline state (from vsgXchange)
-    // set the GraphicsPipelineStates to the required values.
-    struct SetPipelineStates : public vsg::Visitor
-    {
-        VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-        bool blending = false;
-        bool two_sided = false;
-
-        SetPipelineStates(VkPrimitiveTopology in_topology, bool in_blending, bool in_two_sided) : topology(in_topology), blending(in_blending), two_sided(in_two_sided) {}
-
-        void apply(vsg::Object& object) { object.traverse(*this); }
-        void apply(vsg::RasterizationState& rs) { if (two_sided) rs.cullMode = VK_CULL_MODE_NONE; }
-        void apply(vsg::InputAssemblyState& ias) { ias.topology = topology; }
-        void apply(vsg::ColorBlendState& cbs) { cbs.configureAttachments(blending); }
-    } sps(topology, descConf->blending, descConf->two_sided);
+    SetPipelineStates  sps(topology, descConf->blending, descConf->two_sided);
     pipelineConf->accept(sps);
     if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
     {
@@ -856,7 +882,7 @@ ModelBuilder::operator()()
 {
     vsg::ref_ptr<vsg::Group> resultNode = vsg::Group::create();
 
-    if (_model->scene >= 0 && static_cast<unsigned>(_model->scene) < _model->scenes.size())
+    if (safeIndex(_model->scenes, _model->scene))
     {
         // Show the default scene
         const Scene& defaultScene = _model->scenes[_model->scene];
@@ -916,30 +942,20 @@ vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRG
     return imageData.image = data;
  }
 
-// helper to simplify index validation logic
-namespace
-{
-    template<typename T>
-    std::optional<int32_t> safeIndex(const std::vector<T>& items, int32_t index)
-    {
-        if (index >= 0 || static_cast<uint32_t>(index) < items.size())
-        {
-            return index;
-        }
-        return {};
-    }
-}
-
 vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture& texture,
                                       bool sRGB)
 {
     const auto* pKtxExtension = texture.getExtension<CesiumGltf::ExtensionKhrTextureBasisu>();
     const auto* pWebpExtension = texture.getExtension<CesiumGltf::ExtensionTextureWebp>();
 
-    std::optional<int32_t> source;
+    int32_t source = -1;
     if (pKtxExtension)
     {
-        if (!(source = safeIndex(_model->images, pKtxExtension->source)))
+        if (safeIndex(_model->images, pKtxExtension->source))
+        {
+            source = pKtxExtension->source;
+        }
+        else
         {
             vsg::warn("KTX texture source index must be non-negative and less than ",
                       _model->images.size(),
@@ -950,7 +966,11 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
     }
     else if (pWebpExtension)
     {
-        if (!(source = safeIndex(_model->images, pWebpExtension->source)))
+        if (safeIndex(_model->images, pWebpExtension->source))
+        {
+            source = pWebpExtension->source;
+        }
+        else
         {
             vsg::warn("WebP texture source index must be non-negative and less than ",
                       _model->images.size(),
@@ -961,7 +981,11 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
     }
     else
     {
-        if (!(source = safeIndex(_model->images, texture.source)))
+        if (safeIndex(_model->images, texture.source))
+        {
+            source = texture.source;
+        }
+        else
         {
             vsg::warn("Texture source index must be non-negative and less than ",
                       _model->images.size(),
@@ -1039,7 +1063,7 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
             break;
         }
     }
-    auto data = loadImage(*source, useMipMaps, sRGB);
+    auto data = loadImage(source, useMipMaps, sRGB);
     auto sampler = makeSampler(addressX, addressY, minFilter, magFilter,
                                samplerLOD(data, useMipMaps));
     _genv->sharedObjects->share(sampler);
