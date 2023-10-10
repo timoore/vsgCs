@@ -576,9 +576,12 @@ namespace
         VkPrimitiveTopology topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
         bool blending = false;
         bool two_sided = false;
+        bool depthClamp = false;
 
-        SetPipelineStates(VkPrimitiveTopology in_topology, bool in_blending, bool in_two_sided)
-            : topology(in_topology), blending(in_blending), two_sided(in_two_sided)
+        SetPipelineStates(VkPrimitiveTopology in_topology, bool in_blending, bool in_two_sided,
+                          bool in_depth_clamp)
+            : topology(in_topology), blending(in_blending), two_sided(in_two_sided),
+              depthClamp(in_depth_clamp)
         {
         }
         void apply(vsg::Object& object)
@@ -588,7 +591,13 @@ namespace
         void apply(vsg::RasterizationState& rs)
         {
             if (two_sided)
+            {
                 rs.cullMode = VK_CULL_MODE_NONE;
+            }
+            if (depthClamp)
+            {
+                rs.depthClampEnable = VK_TRUE;
+            }
         }
         void apply(vsg::InputAssemblyState& ias)
         {
@@ -623,7 +632,8 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     auto descConf = csMaterial->descriptorConfig;
     auto pipelineConf = vsg::GraphicsPipelineConfigurator::create(descConf->shaderSet);
     pipelineConf->descriptorConfigurator = descConf;
-    SetPipelineStates  sps(topology, descConf->blending, descConf->two_sided);
+    SetPipelineStates  sps(topology, descConf->blending, descConf->two_sided,
+                           _genv->features.depthClamp);
     pipelineConf->accept(sps);
     if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
     {

@@ -178,6 +178,16 @@ DeviceFeatures RuntimeEnvironment::prepareFeaturesAndExtensions(const vsg::ref_p
         features.indexTypeUint8 = true;
     }
     const auto& physFeatures = physDevice->getFeatures();
+    // For shadows
+    if (physFeatures.depthClamp)
+    {
+        features.depthClamp = true;
+        traits->deviceFeatures->get().depthClamp = 1;
+        if (physFeatures.samplerAnisotropy)
+        {
+            traits->deviceFeatures->get().samplerAnisotropy = 1;
+        }
+    }
     // Find the supported compressed texture formats for cesium-native
     if (physFeatures.textureCompressionETC2)
     {

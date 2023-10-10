@@ -48,6 +48,7 @@ namespace vsgCs
         bool textureCompressionASTC_LDR = false;
         bool textureCompressionBC = false;
         bool textureCompressionPVRTC = false;
+        bool depthClamp = false;
         CesiumGltf::Ktx2TranscodeTargets ktx2TranscodeTargets;
         float pointSizeRange[2];
     };
