@@ -34,6 +34,9 @@ SOFTWARE.
 #include "Export.h"
 #include "vsgCs/Config.h"
 
+#include <algorithm>
+#include <iterator>
+
 // Various random helper functions
 
 namespace vsgCs
@@ -305,4 +308,13 @@ namespace vsgCs
     std::string getTileUrl(const vsg::Object* obj);
 
     inline constexpr vsg::vec4 colorWhite(1.0f, 1.0f, 1.0f, 1.0f);
+
+    /**
+     * @brief Convenience function for transforming a container and appending the result on another.
+     */
+    template<typename Source, typename Result, typename F>
+    void transform_append(Source& source, Result& result, F&& f)
+    {
+        std::transform(source.begin(), source.end(), std::back_inserter(result), f);
+    }
 }

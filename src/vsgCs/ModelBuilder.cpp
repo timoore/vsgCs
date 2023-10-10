@@ -33,6 +33,9 @@ SOFTWARE.
 #include <CesiumGltf/ExtensionKhrTextureBasisu.h>
 #include <CesiumGltf/ExtensionTextureWebp.h>
 
+#include <algorithm>
+#include <iterator>
+
 using namespace vsgCs;
 using namespace CesiumGltf;
 
@@ -321,11 +324,11 @@ namespace
         std::map<int32_t, int32_t> result;
         for (const auto& attribute : attributes)
         {
-            const auto& name = attribute.first;
+            const auto& [name, attributeIndex] = attribute;
             auto texCoords = getUintSuffix(prefix, name);
             if (texCoords)
             {
-                result[*texCoords] = attribute.second;
+                result[*texCoords] = attributeIndex;
             }
         }
         return result;
@@ -882,23 +885,18 @@ ModelBuilder::operator()()
 {
     vsg::ref_ptr<vsg::Group> resultNode = vsg::Group::create();
 
-    if (safeIndex(_model->scenes, _model->scene))
+    if (!_model->scenes.empty())
     {
-        // Show the default scene
-        const Scene& defaultScene = _model->scenes[_model->scene];
-        for (int nodeId : defaultScene.nodes)
+        int32_t scene = 0;
+
+        if (safeIndex(_model->scenes, _model->scene))
         {
-            resultNode->addChild(loadNode(&_model->nodes[nodeId]));
+            scene = _model->scene;
         }
-    }
-    else if (!_model->scenes.empty())
-    {
-        // There's no default, so show the first scene
-        const Scene& defaultScene = _model->scenes[0];
-        for (int nodeId : defaultScene.nodes)
+        transform_append(_model->scenes[scene].nodes, resultNode->children, [this](int nodeId)
         {
-            resultNode->addChild(loadNode(&_model->nodes[nodeId]));
-        }
+            return loadNode(&_model->nodes[nodeId]);
+        });
     }
     else if (!_model->nodes.empty())
     {
@@ -908,10 +906,10 @@ ModelBuilder::operator()()
     else if (!_model->meshes.empty())
     {
         // No nodes either, show all the meshes.
-        for (const Mesh& mesh : _model->meshes)
+        transform_append(_model->meshes, resultNode->children, [this](auto&& mesh)
         {
-            resultNode->addChild(loadMesh(&mesh));
-        }
+            return loadMesh(&mesh);
+        });
     }
     return resultNode;
 }
