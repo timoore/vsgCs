@@ -134,6 +134,7 @@ int main(int argc, char** argv)
             }
         }
         bool useHeadlight = arguments.read({"--headlight"});
+        auto shadowMaps = arguments.value(0, "--shadow-maps");
         if (arguments.errors())
         {
             return arguments.writeErrorMessages(std::cerr);
@@ -159,6 +160,7 @@ int main(int argc, char** argv)
             vsg::vec3 noon( -.9397, 0.0, -.340);
             vsg::vec3 atTime = hourRot * noon;
             directionalLight->direction.set(atTime.x, atTime.y, atTime.z);
+            directionalLight->shadowMaps = shadowMaps;
             vsg_scene->addChild(directionalLight);
         }
 
