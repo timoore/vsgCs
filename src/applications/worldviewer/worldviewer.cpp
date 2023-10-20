@@ -134,7 +134,9 @@ int main(int argc, char** argv)
             }
         }
         bool useHeadlight = arguments.read({"--headlight"});
-        auto shadowMaps = arguments.value(0, "--shadow-maps");
+        auto shadowMaps = arguments.value<uint32_t>(0, "--shadow-maps");
+        auto maxShadowDistance = arguments.value<double>(10000.0, "--sd");
+
         if (arguments.errors())
         {
             return arguments.writeErrorMessages(std::cerr);
@@ -261,6 +263,7 @@ int main(int argc, char** argv)
         commandGraph->addChild(renderGraph);
 
         auto view = vsg::View::create(camera);
+        view->viewDependentState->maxShadowDistance = maxShadowDistance;
         if (useHeadlight)
         {
             view->addChild(vsg::createHeadlight());
@@ -270,14 +273,25 @@ int main(int argc, char** argv)
         // Attach the ImGui graphical interface
         renderGraph->addChild(ui->getImGui());
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
-        // Compile everything we can at this point.
-        viewer->compile();
+
         // Perform any late initialization of TilesetNode objects. Most importantly, this tracks VSG
         // cameras so that they can be used by cesium-native to determine visible tiles.
         worldNode->initialize(viewer);
+
+        // Compile everything we can at this point.
+        //
+        // best practice is to tell the viewer what resources to allocate in the viewer.compile() call via ResourceHints
+        //
+        // auto resourceHints = vsg::ResourceHints::create();
+        // resourceHints->numShadowMapsRange = {shadowMaps, 64};
+        // resourceHints->maxSlot = 4;
+        // viewer->compile(resourceHints);
+        viewer->compile();
+
         auto lastAct = gsl::finally([worldNode]() {
             vsgCs::shutdown();
             worldNode->shutdown();});
+
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {

@@ -86,8 +86,6 @@ bool WorldNode::initialize(const vsg::ref_ptr<vsg::Viewer>& viewer)
                                          genv->overlayPipelineLayout, pbr::WORLD_DESCRIPTOR_SET,
                                          descriptorBuilder->descriptorSets[pbr::WORLD_DESCRIPTOR_SET]);
     stateGroup->add(bindDescriptorSet);
-    // Overkill; better to just compile the stateGroup
-    viewer->compile();
     return result;
 }
 
