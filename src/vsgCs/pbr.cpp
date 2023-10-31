@@ -95,18 +95,18 @@ namespace vsgCs::pbr
         shaderSet->addDescriptorBinding("material", "", PRIMITIVE_DESCRIPTOR_SET, 10,
                                      VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_FRAGMENT_BIT, vsg::PbrMaterialValue::create());
         shaderSet->addDescriptorBinding("lightData", "", VIEW_DESCRIPTOR_SET, 0,
-                                     VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(64));
+                                        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, {});
         shaderSet->addDescriptorBinding("viewData", "", VIEW_DESCRIPTOR_SET, 1,
-                                     VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 ,VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::ubyteArray::create(sizeof(vsg::vec4)));
+                                        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1 ,VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, {});
         shaderSet->addDescriptorBinding("shadowMaps", "", VIEW_DESCRIPTOR_SET, 2,
                                     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
-                                        VK_SHADER_STAGE_FRAGMENT_BIT, vsg::floatArray3D::create(1, 1, 1, vsg::Data::Properties{VK_FORMAT_R32_SFLOAT}));
+                                        VK_SHADER_STAGE_FRAGMENT_BIT, {});
         // XXX Want a VSGCS_LOD_FADE define here, but that to messes up the descriptor defaulting mechanism.
         shaderSet->addDescriptorBinding("blueNoise", "", WORLD_DESCRIPTOR_SET, 0,
                                      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
-                                     VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array2D::create(1, 1));
+                                        VK_SHADER_STAGE_FRAGMENT_BIT, {});
         shaderSet->addDescriptorBinding("tileParams", "", TILE_DESCRIPTOR_SET, 0,
-                                     VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, vsg::vec4Array::create(1 + sizeof(OverlayParams)));
+                                        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, {});
         shaderSet->addDescriptorBinding("overlayTextures", "", TILE_DESCRIPTOR_SET, 1,
                                      VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxOverlays, VK_SHADER_STAGE_FRAGMENT_BIT, {});
         // additional defines
