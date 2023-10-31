@@ -67,7 +67,7 @@ namespace vsgCs::pbr
         memcpy(tileBufData->data() + sizeof(float) * 3, &floatFadeOut, sizeof(float));
     }
 
-    vsg::ref_ptr<vsg::ShaderSet> makeShaderSetAux(vsg::ref_ptr<vsg::ShaderSet> shaderSet)
+    void addBindings(vsg::ref_ptr<vsg::ShaderSet> shaderSet)
     {
         shaderSet->addAttributeBinding("vsg_Vertex", "", 0, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
         shaderSet->addAttributeBinding("vsg_Normal", "", 1, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
@@ -101,14 +101,6 @@ namespace vsgCs::pbr
         shaderSet->addDescriptorBinding("shadowMaps", "", VIEW_DESCRIPTOR_SET, 2,
                                     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
                                         VK_SHADER_STAGE_FRAGMENT_BIT, {});
-        // XXX Want a VSGCS_LOD_FADE define here, but that to messes up the descriptor defaulting mechanism.
-        shaderSet->addDescriptorBinding("blueNoise", "", WORLD_DESCRIPTOR_SET, 0,
-                                     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
-                                        VK_SHADER_STAGE_FRAGMENT_BIT, {});
-        shaderSet->addDescriptorBinding("tileParams", "", TILE_DESCRIPTOR_SET, 0,
-                                        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, {});
-        shaderSet->addDescriptorBinding("overlayTextures", "", TILE_DESCRIPTOR_SET, 1,
-                                     VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxOverlays, VK_SHADER_STAGE_FRAGMENT_BIT, {});
         // additional defines
         shaderSet->optionalDefines = {"VSG_GREYSACLE_DIFFUSE_MAP", "VSG_TWO_SIDED_LIGHTING", "VSG_WORKFLOW_SPECGLOSS"};
 
@@ -117,10 +109,21 @@ namespace vsgCs::pbr
         shaderSet->definesArrayStates.push_back(vsg::DefinesArrayState{{"VSG_INSTANCE_POSITIONS", "VSG_DISPLACEMENT_MAP"}, vsg::PositionAndDisplacementMapArrayState::create()});
         shaderSet->definesArrayStates.push_back(vsg::DefinesArrayState{{"VSG_INSTANCE_POSITIONS"}, vsg::PositionArrayState::create()});
         shaderSet->definesArrayStates.push_back(vsg::DefinesArrayState{{"VSG_DISPLACEMENT_MAP"}, vsg::DisplacementMapArrayState::create()});
-
-        return shaderSet;
     }
 
+    void addTileBindings(vsg::ref_ptr<vsg::ShaderSet> shaderSet)
+    {
+        // XXX Want a VSGCS_LOD_FADE define here, but that to messes up the descriptor defaulting mechanism.
+        shaderSet->addDescriptorBinding("blueNoise", "", WORLD_DESCRIPTOR_SET, 0,
+                                        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, 1,
+                                        VK_SHADER_STAGE_FRAGMENT_BIT, {});
+        shaderSet->addDescriptorBinding("tileParams", "", TILE_DESCRIPTOR_SET, 0,
+                                        VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER, 1, VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, {});
+        shaderSet->addDescriptorBinding("overlayTextures", "", TILE_DESCRIPTOR_SET, 1,
+                                        VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER, maxOverlays, VK_SHADER_STAGE_FRAGMENT_BIT, {});
+
+    }
+    
     vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(const vsg::ref_ptr<const vsg::Options>& options)
     {
         auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard.vert", options);
@@ -139,7 +142,8 @@ namespace vsgCs::pbr
             {0, vsg::intValue::create(maxOverlays)}, // numTiles
         };
 
-        makeShaderSetAux(shaderSet);
+        addBindings(shaderSet);
+        addTileBindings(shaderSet);
         shaderSet->optionalDefines.insert({"VSGCS_FLAT_SHADING", "VSGCS_BILLBOARD_NORMAL"});
         return shaderSet;
     }
@@ -162,7 +166,8 @@ namespace vsgCs::pbr
             {0, vsg::intValue::create(maxOverlays)}, // numTiles
         };
 
-        makeShaderSetAux(shaderSet);
+        addBindings(shaderSet);
+        addTileBindings(shaderSet);
         shaderSet->optionalDefines.insert({"VSGCS_BILLBOARD_NORMAL", "VSGCS_SIZE_TO_ERROR"});
         return shaderSet;
     }
