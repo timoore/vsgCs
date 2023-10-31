@@ -19,15 +19,4 @@ struct OverlayParamBlock
   // 4 bytes padding
 };
 
-// The params block should be sized with maxOverlays, but it's provoking a bug linking the shader stages
-layout(set = TILE_DESCRIPTOR_SET, binding = 0) uniform TileParams 
-{
-  float geometricError;
-  float maxPointSize;
-  float fadeValue;
-  float fadeOut;                // using a float as a bool
-  OverlayParamBlock params[4];
-} tileParams;
-
-
 #endif

@@ -2,7 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable
 
-#pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSACLE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSGCS_OVERLAY_MAPS, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, VSGCS_FLAT_SHADING, SHADOWMAP_DEBUG)
+#pragma import_defines (VSG_DIFFUSE_MAP, VSG_GREYSACLE_DIFFUSE_MAP, VSG_EMISSIVE_MAP, VSG_LIGHTMAP_MAP, VSG_NORMAL_MAP, VSG_METALLROUGHNESS_MAP, VSG_SPECULAR_MAP, VSGCS_OVERLAY_MAPS, VSG_TWO_SIDED_LIGHTING, VSG_WORKFLOW_SPECGLOSS, VSGCS_FLAT_SHADING, SHADOWMAP_DEBUG, VSGCS_TILE)
 
 #include "descriptor_defs.glsl"
 
@@ -38,8 +38,20 @@ layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 5) uniform sampler2D specularMa
 
 layout(set = WORLD_DESCRIPTOR_SET, binding = 0) uniform sampler2D blueNoise;
 
+#ifdef VSGCS_TILE
+// The params block should be sized with maxOverlays, but it's provoking a bug linking the shader stages
+layout(set = TILE_DESCRIPTOR_SET, binding = 0) uniform TileParams 
+{
+  float geometricError;
+  float maxPointSize;
+  float fadeValue;
+  float fadeOut;                // using a float as a bool
+  OverlayParamBlock params[4];
+} tileParams;
+
 layout(set = TILE_DESCRIPTOR_SET, binding = 1) uniform sampler2D overlayTextures[maxOverlays];
- 
+#endif
+
 layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 10) uniform PbrData
 {
     vec4 baseColorFactor;
@@ -551,6 +563,7 @@ void main()
     // "fading out" is indicated by a negative fade percentage
     //
     // Ack, fade Cesium percentage is 0-1 fade in, 0-1 fade out!
+#ifdef VSGCS_TILE
     float fadeCutoff = texture(blueNoise, noiseCoords()).r;
     if (tileParams.fadeOut == 0.0)
     {
@@ -562,5 +575,6 @@ void main()
         if (tileParams.fadeValue == 1.0 || tileParams.fadeValue >= fadeCutoff)
             discard;
     }
+#endif
     outColor = vec4(color, baseColor.a);
 }

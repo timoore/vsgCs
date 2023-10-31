@@ -820,15 +820,20 @@ ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopo
     csMat->descriptorConfig
         = vsg::DescriptorConfigurator::create(_genv->shaderFactory->getShaderSet(topology));
     // XXX Cesium Unreal always enables two-sided, but it should come from the material...
+    // ... and why is this in the descriptorConfig anyway?
     csMat->descriptorConfig->two_sided = true;
     csMat->descriptorConfig->defines.insert("VSG_TWO_SIDED_LIGHTING");
-    if (_options.renderOverlays)
+    if (isEnabled<Cs3DTilesExtension>())
     {
-        csMat->descriptorConfig->defines.insert("VSGCS_OVERLAY_MAPS");
-    }
-    if (_options.lodFade)
-    {
-        csMat->descriptorConfig->defines.insert("VSGCS_LOD_FADE");
+        if (_options.renderOverlays)
+        {
+            csMat->descriptorConfig->defines.insert("VSGCS_OVERLAY_MAPS");
+        }
+        if (_options.lodFade)
+        {
+            csMat->descriptorConfig->defines.insert("VSGCS_LOD_FADE");
+        }
+        csMat->descriptorConfig->defines.insert("VSGCS_TILE");
     }
     vsg::PbrMaterial pbr;
     if (material->alphaMode == CesiumGltf::Material::AlphaMode::BLEND)

@@ -33,6 +33,18 @@ layout(set = VIEW_DESCRIPTOR_SET, binding = 1) uniform ViewportParams
 #endif
 } viewportParams;
 
+#ifdef VSGCS_SIZE_TO_ERROR
+// The params block should be sized with maxOverlays, but it's provoking a bug linking the shader stages
+layout(set = TILE_DESCRIPTOR_SET, binding = 0) uniform TileParams 
+{
+  float geometricError;
+  float maxPointSize;
+  float fadeValue;
+  float fadeOut;                // using a float as a bool
+  OverlayParamBlock params[4];
+} tileParams;
+#endif
+
 out gl_PerVertex{ vec4 gl_Position; float gl_PointSize; };
 
 
