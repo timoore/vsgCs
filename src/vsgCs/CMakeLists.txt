@@ -10,6 +10,7 @@ set(LIB_PUBLIC_HEADERS
   CsOverlay.h
   CesiumGltfBuilder.h
   Export.h
+  GeoNode.h
   GeospatialServices.h
   GraphicsEnvironment.h
   jsonUtils.h
@@ -30,6 +31,7 @@ set(SOURCES
   CsOverlay.cpp
   CesiumGltfBuilder.cpp
   CompilableImage.cpp
+  GeoNode.cpp
   GeospatialServices.cpp
   GraphicsEnvironment.cpp
   jsonUtils.cpp

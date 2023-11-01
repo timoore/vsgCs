@@ -49,7 +49,7 @@ if (vsg_SOURCE_DIR)
   include("vsgMacros")
 endif()
 
-#find_package(vsgXchange)
+find_package(vsgXchange)
 
 set(VSGIMGUI_MIN_VERSION 0.1.0)
 

@@ -187,7 +187,7 @@ namespace vsgCs::pbr
 
         addBindings(shaderSet);
         addTileBindings(shaderSet);
-        shaderSet->optionalDefines.insert({"VSGCS_BILLBOARD_NORMAL", "VSGCS_SIZE_TO_ERROR"});
+        shaderSet->optionalDefines.insert({"VSGCS_BILLBOARD_NORMAL", "VSGCS_SIZE_TO_ERROR", "VSGCS_TILE"});
         return shaderSet;
     }
 }
