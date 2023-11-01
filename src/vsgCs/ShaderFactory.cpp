@@ -33,16 +33,25 @@ ShaderFactory::ShaderFactory(const vsg::ref_ptr<vsg::Options>& vsgOptions)
 {
 }
 
-vsg::ref_ptr<vsg::ShaderSet> ShaderFactory::getShaderSet(VkPrimitiveTopology topology)
+vsg::ref_ptr<vsg::ShaderSet> ShaderFactory::getShaderSet(ShaderDomain domain, VkPrimitiveTopology topology)
 {
     vsg::ref_ptr<vsg::ShaderSet> result;
-    auto itr = _shaderSetMap.find(topology);
+    const auto key = std::make_pair(domain, topology);
+    auto itr = _shaderSetMap.find(key);
     if (itr == _shaderSetMap.end())
     {
-        result = (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST
-                  ? pbr::makePointShaderSet(_vsgOptions)
-                  : pbr::makeShaderSet(_vsgOptions));
-        _shaderSetMap.insert({topology, result});
+        if (domain == MODEL)
+        {
+            // XXX No point version yet
+            result = pbr::makeModelShaderSet(_vsgOptions);
+        }
+        else
+        {
+            result = (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST
+                      ? pbr::makePointShaderSet(_vsgOptions)
+                      : pbr::makeShaderSet(_vsgOptions));
+        }
+        _shaderSetMap.insert({key, result});
     }
     else
     {

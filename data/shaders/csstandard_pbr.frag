@@ -36,9 +36,10 @@ layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 4) uniform sampler2D emissiveMa
 layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 5) uniform sampler2D specularMap;
 #endif
 
+#ifdef VSGCS_TILE
+
 layout(set = WORLD_DESCRIPTOR_SET, binding = 0) uniform sampler2D blueNoise;
 
-#ifdef VSGCS_TILE
 // The params block should be sized with maxOverlays, but it's provoking a bug linking the shader stages
 layout(set = TILE_DESCRIPTOR_SET, binding = 0) uniform TileParams 
 {

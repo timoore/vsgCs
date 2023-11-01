@@ -50,6 +50,7 @@ namespace vsgCs
         void setFadeValue(const vsg::ref_ptr<vsg::Data>& tileData, float fadeValue, bool fadeOut);
         vsg::ref_ptr<vsg::ShaderSet> makeShaderSet(const vsg::ref_ptr<const vsg::Options>& options = {});
         vsg::ref_ptr<vsg::ShaderSet> makePointShaderSet(const vsg::ref_ptr<const vsg::Options>& options = {});
+        vsg::ref_ptr<vsg::ShaderSet> makeModelShaderSet(const vsg::ref_ptr<const vsg::Options>& options = {});
     }
 
 }

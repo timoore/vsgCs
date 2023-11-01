@@ -144,6 +144,25 @@ namespace vsgCs::pbr
 
         addBindings(shaderSet);
         addTileBindings(shaderSet);
+        shaderSet->optionalDefines.insert({"VSGCS_FLAT_SHADING", "VSGCS_BILLBOARD_NORMAL", "VSGCS_TILE"});
+        return shaderSet;
+    }
+
+    vsg::ref_ptr<vsg::ShaderSet> makeModelShaderSet(const vsg::ref_ptr<const vsg::Options>& options)
+    {
+        auto vertexShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard.vert", options);
+        auto fragmentShader = vsg::read_cast<vsg::ShaderStage>("shaders/csstandard_pbr.frag", options);
+
+        if (!vertexShader || !fragmentShader)
+        {
+            vsg::fatal("pbr::makeShaderSet(...) could not find shaders.");
+            return {};
+        }
+        auto hints = vsg::ShaderCompileSettings::create();
+        hints->generateDebugInfo = RuntimeEnvironment::get()->generateShaderDebugInfo;
+        auto shaderSet = vsg::ShaderSet::create(vsg::ShaderStages{vertexShader, fragmentShader}, hints);
+
+        addBindings(shaderSet);
         shaderSet->optionalDefines.insert({"VSGCS_FLAT_SHADING", "VSGCS_BILLBOARD_NORMAL"});
         return shaderSet;
     }

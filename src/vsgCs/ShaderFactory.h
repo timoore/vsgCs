@@ -32,13 +32,23 @@ SOFTWARE.
 
 namespace vsgCs
 {
+    enum ShaderDomain
+    {
+        MODEL,                  // bog-standard glTF style model
+        TILESET                 // shader for 3D Tiles
+    };
+
     class ShaderFactory : public vsg::Inherit<vsg::Object, ShaderFactory>
     {
     public:
         ShaderFactory(const vsg::ref_ptr<vsg::Options>& vsgOptions);
-        vsg::ref_ptr<vsg::ShaderSet> getShaderSet(VkPrimitiveTopology topology);
+        vsg::ref_ptr<vsg::ShaderSet> getShaderSet(VkPrimitiveTopology topology)
+        {
+            return getShaderSet(TILESET, topology);
+        }
+        vsg::ref_ptr<vsg::ShaderSet> getShaderSet(ShaderDomain domain, VkPrimitiveTopology topology);
     protected:
         vsg::ref_ptr<vsg::Options> _vsgOptions;
-        std::map<VkPrimitiveTopology, vsg::ref_ptr<vsg::ShaderSet>> _shaderSetMap;
+        std::map<std::pair<ShaderDomain, VkPrimitiveTopology>, vsg::ref_ptr<vsg::ShaderSet>> _shaderSetMap;
     };
 }
