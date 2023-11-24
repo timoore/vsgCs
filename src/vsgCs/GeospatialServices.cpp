@@ -67,6 +67,37 @@ vsg::dbox CsGeospatialServices::bounds()
     return {radii * -1.0, radii};
 }
 
+struct QuadraticResult
+{
+    int numRoots;
+    double roots[2];
+};
+
+QuadraticResult solveQuadratic(double a, double b, double c)
+{
+    double d = b * b - 4.0 * a * c;
+    if (d > 0.0)
+    {
+        QuadraticResult result{2, {0.0, 0.0}};
+        // Improve precision by finding root with greatest magnitude via addition or subtraction
+        if (-b < 0.0)
+        {
+            result.roots[0] = (-b - sqrt(d)) / (2.0 * a);
+        }
+        else
+        {
+            result.roots[0] = (-b + sqrt(d)) / (2.0 * a);
+        }
+        result.roots[1] = c / result.roots[0];
+        return result;
+    }
+    else if (d == 0.0)
+    {
+        return {1, {-b / (2.0 * a), 0.0}};
+    }
+    return {0, {0.0, 0.0}};
+}
+
 // Thank you rocky
 
 std::optional<vsg::dvec3> CsGeospatialServices::intersectGeocentricLine(const vsg::dvec3& p0_world,
@@ -89,32 +120,23 @@ std::optional<vsg::dvec3> CsGeospatialServices::intersectGeocentricLine(const vs
     double C = dot(p0, p0) - R * R; // (p0 * p0) - R * R;
 
     // now solve the quadratic A + B*t + C*t^2 = 0.
-    double D = B * B - 4.0*A*C;
-    if (D > 0)
+    const QuadraticResult roots = solveQuadratic(A, B, C);
+
+    if (roots.numRoots > 0)
     {
         // two roots (line passes through sphere twice)
         // find the closer of the two.
-        double sqrtD = sqrt(D);
-        double t0 = (-B + sqrtD) / (2.0*A);
-        double t1 = (-B - sqrtD) / (2.0*A);
 
         //seg; pick closest:
-        if (fabs(t0) < fabs(t1))
+        if (roots.numRoots == 1 || fabs(roots.roots[0]) < fabs(roots.roots[1]))
         {
-            v = d * t0;
+            v = d * roots.roots[0];
         }
         else
         {
-            v = d * t1;
+            v = d * roots.roots[1];
         }
     }
-    else if (D == 0.0)
-    {
-        // one root (line is tangent to sphere?)
-        double t = -B / (2.0*A);
-        v = d * t;
-    }
-
     dist2 = dot(v, v); // v.length2();
 
     if (dist2 > 0.0)
@@ -128,4 +150,21 @@ std::optional<vsg::dvec3> CsGeospatialServices::intersectGeocentricLine(const vs
 vsg::ref_ptr<vsg::Node> CsGeospatialServices::getWorldNode()
 {
     return _worldNode;
+}
+
+vsg::dvec3 CsGeospatialServices::toCartographic(const vsg::dvec3 &worldPos)
+{
+    auto csResult = CesiumGeospatial::Ellipsoid::WGS84.cartesianToCartographic(vsgCs::vsg2glm(worldPos));
+    if (csResult)
+    {
+        return vsg::dvec3(csResult->longitude, csResult->latitude, csResult->height);
+    }
+    return vsg::dvec3(0, 0, 0); // XXX Real error result
+}
+
+vsg::dvec3 CsGeospatialServices::toWorld(const vsg::dvec3& cartographic)
+{
+    CesiumGeospatial::Cartographic carto(cartographic.x, cartographic.y, cartographic.z);
+    glm::dvec3 csResult = CesiumGeospatial::Ellipsoid::WGS84.cartographicToCartesian(carto);
+    return glm2vsg(csResult);
 }

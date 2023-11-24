@@ -136,6 +136,7 @@ int main(int argc, char** argv)
         bool useHeadlight = arguments.read({"--headlight"});
         auto shadowMaps = arguments.value<uint32_t>(0, "--shadow-maps");
         auto maxShadowDistance = arguments.value<double>(10000.0, "--sd");
+        bool debugManipulator = arguments.read({"--debug-manipulator"});
 
         if (arguments.errors())
         {
@@ -254,7 +255,8 @@ int main(int argc, char** argv)
         // Create this application's user interface, including the trackball manipulator and the
         // graphical overlay.
         auto ui = vsgCs::UI::create();
-        ui->createUI(window, viewer, camera, ellipsoidModel, environment->options, worldNode);
+        ui->createUI(window, viewer, camera, ellipsoidModel, environment->options, worldNode, vsg_scene,
+                     debugManipulator);
         // Basic VSG objects for rendering
         auto commandGraph = vsg::CommandGraph::create(window);
         auto renderGraph = vsg::RenderGraph::create(window);
