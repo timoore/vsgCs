@@ -28,6 +28,7 @@ SOFTWARE.
 
 #include <CesiumAsync/IAssetResponse.h>
 
+#include <algorithm>
 #include <cstring>
 
 
@@ -127,7 +128,7 @@ size_t UrlAssetResponse::headerCallback(char* buffer, size_t size, size_t nitems
     if (colon)
     {
         char* value = colon + 1;
-        char* end = buffer + cnt;
+        auto *end = std::find(value, buffer + cnt, '\r');
         while (value < end && *value == ' ')
         {
             ++value;
