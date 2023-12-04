@@ -32,6 +32,8 @@ SOFTWARE.
 
 #include <vsgImGui/Texture.h>
 
+#include <tinyxml2.h>
+
 #include <map>
 #include <string>
 #include <optional>
@@ -52,5 +54,6 @@ namespace CsApp
         };
         mutable std::map<std::string, RemoteImage> imageCache;
         vsg::ref_ptr<vsgImGui::Texture> getTexture(const std::string& url) const;
+        void renderImg(vsg::CommandBuffer& cb, const tinyxml2::XMLElement* element) const; 
     };
 }

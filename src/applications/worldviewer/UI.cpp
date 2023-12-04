@@ -25,6 +25,9 @@ SOFTWARE.
 #include "UI.h"
 
 #include <vsg/all.h>
+#include <vsg/nodes/MatrixTransform.h>
+#include <vsg/utils/Builder.h>
+
 #if defined(vsgXchange_found)
 #include <vsgXchange/all.h>
 #endif
@@ -35,36 +38,88 @@ SOFTWARE.
 #include "vsgCs/runtimeSupport.h"
 
 
-using namespace vsgCs;
-
-bool UI::createUI(const vsg::ref_ptr<vsg::Window>& window,
-                  const vsg::ref_ptr<vsg::Viewer>& viewer,
-                  const vsg::ref_ptr<vsg::Camera>& camera,
-                  const vsg::ref_ptr<vsg::EllipsoidModel>&,
-                  const vsg::ref_ptr<vsg::Options>&,
-                  const vsg::ref_ptr<WorldNode>& worldNode)
+namespace vsgCs
 {
-    createImGui(window);
-    // Add the ImGui event handler first to handle events early
-    viewer->addEventHandler(vsgImGui::SendEventsToImGui::create());
-    viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-    _mapManipulator = MapManipulator::create(worldNode, camera);
-    viewer->addEventHandler(_mapManipulator);
 
-    return true;
-}
+// For debugging manipulator
 
-vsg::ref_ptr<vsgImGui::RenderImGui> UI::createImGui(const vsg::ref_ptr<vsg::Window>& window)
-{
-    _ionIconComponent = CsApp::CreditComponent::create();
-    _renderImGui = vsgImGui::RenderImGui::create(window, _ionIconComponent);
-    return _renderImGui;
-}
-
-void UI::setViewpoint(const vsg::ref_ptr<vsg::LookAt>& lookAt, float duration)
-{
-    if (_trackball)
+    vsg::ref_ptr<vsg::MatrixTransform> createDot()
     {
-        _trackball->setViewpoint(lookAt, duration);
+        auto builder = vsg::Builder::create();
+        vsg::StateInfo stateInfo;
+        stateInfo.lighting = false;
+        vsg::GeometryInfo geomInfo;
+        geomInfo.dx.set(0.005f, 0.0f, 0.0f);
+        geomInfo.dy.set(0.0f, 0.005f, 0.0f);
+        geomInfo.dz.set(0.0f, 0.0f, 0.005f);
+        geomInfo.color = vsg::vec4(1.0, 0.0, 1.0, 1.0);
+
+        auto sphere = builder->createSphere(geomInfo, stateInfo);
+        auto transform = vsg::MatrixTransform::create();
+        transform->addChild(sphere);
+        return transform;
+    }
+
+    class UpdateCenterOperation : public vsg::Inherit<vsg::Operation, UpdateCenterOperation>
+    {
+    public:
+        void run() override
+        {
+
+            auto camera = manipulator->_camera;
+            auto lookAt = ref_ptr_cast<vsg::LookAt>(camera->viewMatrix);
+            if (!lookAt)
+            {
+                return;
+            }
+
+            auto pos = manipulator->_state.center;
+            auto scaleFactor = vsg::length(pos - lookAt->eye);
+            dot->matrix = vsg::translate(pos) * vsg::scale(scaleFactor);
+        }
+        vsg::ref_ptr<MapManipulator> manipulator;
+        vsg::ref_ptr<vsg::MatrixTransform> dot;
+    };
+
+    bool UI::createUI(const vsg::ref_ptr<vsg::Window>& window,
+                      const vsg::ref_ptr<vsg::Viewer>& viewer,
+                      const vsg::ref_ptr<vsg::Camera>& camera,
+                      const vsg::ref_ptr<vsg::EllipsoidModel>&,
+                      const vsg::ref_ptr<vsg::Options>&,
+                      const vsg::ref_ptr<WorldNode>& worldNode,
+                      const vsg::ref_ptr<vsg::Group>& scene,
+                      bool debugManipulator)
+    {
+        createImGui(window);
+        // Add the ImGui event handler first to handle events early
+        viewer->addEventHandler(vsgImGui::SendEventsToImGui::create());
+        viewer->addEventHandler(vsg::CloseHandler::create(viewer));
+        _mapManipulator = MapManipulator::create(worldNode, camera);
+        viewer->addEventHandler(_mapManipulator);
+        if (debugManipulator)
+        {
+            auto manipCenter = createDot();
+            auto updateCenter = UpdateCenterOperation::create();
+            updateCenter->manipulator = _mapManipulator;
+            updateCenter->dot = manipCenter;
+            scene->addChild(manipCenter);
+            viewer->addUpdateOperation(updateCenter, vsg::UpdateOperations::ALL_FRAMES);
+        }
+        return true;
+    }
+
+    vsg::ref_ptr<vsgImGui::RenderImGui> UI::createImGui(const vsg::ref_ptr<vsg::Window>& window)
+    {
+        _ionIconComponent = CsApp::CreditComponent::create();
+        _renderImGui = vsgImGui::RenderImGui::create(window, _ionIconComponent);
+        return _renderImGui;
+    }
+
+    void UI::setViewpoint(const vsg::ref_ptr<vsg::LookAt>& lookAt, float duration)
+    {
+        if (_trackball)
+        {
+            _trackball->setViewpoint(lookAt, duration);
+        }
     }
 }

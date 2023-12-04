@@ -1617,13 +1617,18 @@ MapManipulator::recalculateCenterFromLookVector()
     return false;
 }
 
+vsg::dvec3 MapManipulator::adjustToSameHeight(const vsg::dvec3& reference, const vsg::dvec3& point)
+{
+    auto refCarto = _geoServices->toCartographic(reference);
+    auto pointCarto = _geoServices->toCartographic(point);
+    // Is this any worse that getting the local normal of the point and moving it?
+    vsg::dvec3 newCarto(pointCarto.x, pointCarto.y, refCarto.z);
+    return _geoServices->toWorld(newCarto);
+}
+
 void
 MapManipulator::pan(double dx, double dy)
 {
-    // to pan, we need a focus point on the terrain:
-    if ( !recalculateCenterFromLookVector() )
-        return;
-
     double scale = -0.3 * _state.distance;
 
     // the view-space coordinate frame:
@@ -1637,14 +1642,11 @@ MapManipulator::pan(double dx, double dy)
     //vsg::dmat4 oldCenterLocalToWorld = _centerReferenceFrame; // _centerLocalToWorld;
 
     // move the center point
-    double old_len = vsg::length(_state.center);
     vsg::dvec3 new_center = _state.center + dv;
 
     if (_geoServices->isGeocentric())
     {
-        // in geocentric, ensure that it doesn't change length.
-        new_center = vsg::normalize(new_center);
-        new_center *= old_len;
+        new_center = adjustToSameHeight(_state.center, new_center);
     }
 
     setCenter(new_center);
@@ -1729,7 +1731,6 @@ MapManipulator::zoom(double, double dy)
 
     if (_settings->getZoomToMouse() == false)
     {
-        recalculateCenterFromLookVector();
         double scale = 1.0f + dy;
         setDistance(_state.distance * scale);
         //collisionDetect();

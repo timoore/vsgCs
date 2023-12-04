@@ -44,6 +44,9 @@ namespace vsgCs
         virtual std::optional<vsg::dvec3>
         intersectGeocentricLine(const vsg::dvec3& pnt1, const vsg::dvec3& pnt2) = 0;
         virtual vsg::ref_ptr<vsg::Node> getWorldNode() = 0;
+        // Cartographic coordinates in radians / meters: long, lat, height
+        virtual vsg::dvec3 toCartographic(const vsg::dvec3& worldPos) = 0;
+        virtual vsg::dvec3 toWorld(const vsg::dvec3& cartographic) = 0;
     };
 
     class CsGeospatialServices : public vsg::Inherit<IGeospatialServices, CsGeospatialServices>
@@ -57,6 +60,9 @@ namespace vsgCs
         std::optional<vsg::dvec3> intersectGeocentricLine(const vsg::dvec3& p0_world,
                                                           const vsg::dvec3& p1_world) override;
         vsg::ref_ptr<vsg::Node> getWorldNode() override;
+        vsg::dvec3 toCartographic(const vsg::dvec3& worldPos) override;
+        vsg::dvec3 toWorld(const vsg::dvec3& cartographic) override;
+
     protected:
         vsg::ref_ptr<vsg::Node> _worldNode;
         vsg::dmat3 _ellipsoidToUnitSphere;
