@@ -73,6 +73,8 @@ FetchContent_Declare(Cesium
 message("Fetching cesium-native. This could take a while...")
 FetchContent_MakeAvailable(Cesium)
 
+find_package(PROJ REQUIRED)
+
 if (RUN_CLANG_TIDY)
   find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
   if(CLANG_TIDY_EXE)

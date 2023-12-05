@@ -6,6 +6,7 @@ set(LIB_PUBLIC_HEADERS
   accessorUtils.h
   accessor_traits.h
   ${GENERATED_HEADERS_DIR}/vsgCs/Config.h
+  CRS.h
   CsDebugColorizeTilesOverlay.h
   CsOverlay.h
   CesiumGltfBuilder.h
@@ -27,6 +28,7 @@ set(LIB_PUBLIC_HEADERS
 
 set(SOURCES
   ${LIB_PUBLIC_HEADERS}
+  CRS.cpp
   CsDebugColorizeTilesOverlay.cpp
   CsOverlay.cpp
   CesiumGltfBuilder.cpp
