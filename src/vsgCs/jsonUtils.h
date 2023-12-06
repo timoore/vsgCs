@@ -127,4 +127,13 @@ namespace vsgCs
         // Leaving this public. If you want to mess with it, be my guest.
         std::map<std::string, Builder> builders;
     };
+
+    // Throw std::runtime_error if property isn't found.
+    std::string getStringOrError(const rapidjson::Value& json, const std::string& key,
+                                 const char* errorMsg);
+    inline std::string getStringOrError(const rapidjson::Value& json, const std::string& key,
+                                 const std::string& errorMsg)
+    {
+        return getStringOrError(json, key, errorMsg.c_str());
+    }
 }

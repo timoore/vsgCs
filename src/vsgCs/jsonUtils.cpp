@@ -64,6 +64,16 @@ vsg::ref_ptr<JSONObjectFactory> JSONObjectFactory::get()
     return factory;
 }
 
+std::string vsgCs::getStringOrError(const rapidjson::Value& json, const std::string& key,
+                                    const char* errorMsg)
+{
+    const auto it = json.FindMember(key.c_str());
+    if (it != json.MemberEnd() && it->value.IsString())
+    {
+        return it->value.GetString();
+    }
+    throw std::runtime_error(errorMsg);
+}
 
 // XXX Very gross workaround to static library problems...
 
