@@ -64,7 +64,7 @@ vsg::ref_ptr<vsg::StateGroup> vsgCs::createModelRoot(const vsg::ref_ptr<RuntimeE
 namespace
 {
     vsg::ref_ptr<vsg::Object> buildGeoNode(const rapidjson::Value& json,
-                                           JSONObjectFactory* factory,
+                                           JSONObjectFactory*,
                                            const vsg::ref_ptr<vsg::Object>&)
     {
         std::map<std::string, vsg::ref_ptr<vsg::Node>> models;

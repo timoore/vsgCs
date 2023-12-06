@@ -40,7 +40,9 @@ namespace vsgCs
                       const vsg::ref_ptr<vsg::Camera>& camera,
                       const vsg::ref_ptr<vsg::EllipsoidModel>& ellipsoidModel,
                       const vsg::ref_ptr<vsg::Options>& options,
-                      const vsg::ref_ptr<WorldNode>& worldNode);
+                      const vsg::ref_ptr<WorldNode>& worldNode,
+                      const vsg::ref_ptr<vsg::Group>& scene,
+                      bool debugManipulator = false);
         vsg::ref_ptr<vsgImGui::RenderImGui> getImGui()
         {
             return _renderImGui;

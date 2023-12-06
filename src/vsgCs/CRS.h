@@ -24,36 +24,39 @@ SOFTWARE.
 
 #pragma once
 
-#include "vsgCs/runtimeSupport.h"
-#include <vsgImGui/RenderImGui.h>
-#include <vsgImGui/SendEventsToImGui.h>
+/* A Coordinate Reference System, or CRS.
+   Very much like osgEarth's SRS (Spatial Reference System), but we choose a
+   synonym to avoid too much confusion.
 
-#include <CesiumAsync/Future.h>
+   A CRS' main function is to convert from its own coordinates to Earth Centered
+   Earth Fixed (ECEF) coordinates and calculate an East North Up (ENU) tangent
+   plane at that point.
 
-#include <vsgImGui/Texture.h>
+   It's assumed that the 3D tiles use the WGS84-based Cartesian system (EPSG
+   4979). It would be good to look at the tileset metadata and use the
+   TILESET_CRS_GEOCENTRIC, if any.
+ */
 
-#include <tinyxml2.h>
+#include "Export.h"
 
-#include <map>
-#include <string>
-#include <optional>
+#include <vsg/maths/vec3.h>
+#include <vsg/maths/mat4.h>
 
-namespace CsApp
+namespace vsgCs
 {
-    class CreditComponent : public vsg::Inherit<vsg::Command, CreditComponent>
+    class VSGCS_EXPORT CRS
     {
     public:
-        void record(vsg::CommandBuffer& cb) const override;
-    protected:
-        // level of indirection because of deleted Future constructors?
-        using TextureFuture = CesiumAsync::Future<vsgCs::ReadImGuiTextureResult>;
-        struct RemoteImage
-        {
-            std::shared_ptr<TextureFuture> imageResult;
-            vsg::ref_ptr<vsgImGui::Texture> texture;
-        };
-        mutable std::map<std::string, RemoteImage> imageCache;
-        vsg::ref_ptr<vsgImGui::Texture> getTexture(const std::string& url) const;
-        void renderImg(vsg::CommandBuffer& cb, const tinyxml2::XMLElement* element) const; 
+        virtual vsg::dvec3 getECEF(const vsg::dvec3& coord) = 0;
+        // Also known as "localToWorld"; is that a better name for any reason?
+        virtual vsg::dmat4 getENU(const vsg::dvec3& coord) = 0;
+    };
+
+    // Bog-standard WGS84 longitude, latitude, height to ECEF
+    class VSGCS_EXPORT EPSG4979 : public CRS
+    {
+    public:
+        vsg::dvec3 getECEF(const vsg::dvec3& coord) override;
+        vsg::dmat4 getENU(const vsg::dvec3& coord) override;
     };
 }

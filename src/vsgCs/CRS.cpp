@@ -22,38 +22,27 @@ SOFTWARE.
 
 </editor-fold> */
 
-#pragma once
+#include "CRS.h"
 
-#include "vsgCs/runtimeSupport.h"
-#include <vsgImGui/RenderImGui.h>
-#include <vsgImGui/SendEventsToImGui.h>
+#include "runtimeSupport.h"
 
-#include <CesiumAsync/Future.h>
+#include <CesiumGeospatial/Ellipsoid.h>
+#include <CesiumGeospatial/LocalHorizontalCoordinateSystem.h>
 
-#include <vsgImGui/Texture.h>
-
-#include <tinyxml2.h>
-
-#include <map>
-#include <string>
-#include <optional>
-
-namespace CsApp
+namespace vsgCs
 {
-    class CreditComponent : public vsg::Inherit<vsg::Command, CreditComponent>
+    vsg::dvec3 EPSG4979::getECEF(const vsg::dvec3& coord)
     {
-    public:
-        void record(vsg::CommandBuffer& cb) const override;
-    protected:
-        // level of indirection because of deleted Future constructors?
-        using TextureFuture = CesiumAsync::Future<vsgCs::ReadImGuiTextureResult>;
-        struct RemoteImage
-        {
-            std::shared_ptr<TextureFuture> imageResult;
-            vsg::ref_ptr<vsgImGui::Texture> texture;
-        };
-        mutable std::map<std::string, RemoteImage> imageCache;
-        vsg::ref_ptr<vsgImGui::Texture> getTexture(const std::string& url) const;
-        void renderImg(vsg::CommandBuffer& cb, const tinyxml2::XMLElement* element) const; 
-    };
+        using namespace CesiumGeospatial;
+        auto glmvec = Ellipsoid::WGS84.cartographicToCartesian(Cartographic(coord.x, coord.y, coord.z));
+        return glm2vsg(glmvec);
+    }
+
+    vsg::dmat4 EPSG4979::getENU(const vsg::dvec3& coord)
+    {
+        using namespace CesiumGeospatial;
+        LocalHorizontalCoordinateSystem localSys(Cartographic(coord.x, coord.y, coord.z));
+        vsg::dmat4 localMat = glm2vsg(localSys.getLocalToEcefTransformation());
+        return localMat;
+    }
 }

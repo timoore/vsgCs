@@ -71,6 +71,7 @@ namespace vsgCs
         PrimitiveStyling getStyling(const CesiumGltf::MeshPrimitive* primitive);
 
         ModelBuilder* modelBuilder;
+        int64_t propertyTableID;
         std::vector<std::optional<vsg::vec4>> featureColors;
     };
 }

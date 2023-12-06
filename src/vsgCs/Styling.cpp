@@ -31,10 +31,9 @@ SOFTWARE.
 #include <vsg/maths/vec4.h>
 
 #include <CesiumUtility/JsonHelpers.h>
-#include <CesiumGltf/ExtensionMeshPrimitiveExtFeatureMetadata.h>
-#include <CesiumGltf/ExtensionModelExtFeatureMetadata.h>
-#include <CesiumGltf/MetadataFeatureTableView.h>
-#include <CesiumGltf/MetadataPropertyView.h>
+#include <CesiumGltf/ExtensionModelExtStructuralMetadata.h>
+#include <CesiumGltf/ExtensionExtMeshFeatures.h>
+#include <CesiumGltf/PropertyTableView.h>
 
 #include <algorithm>
 #include <charconv>
@@ -43,6 +42,22 @@ SOFTWARE.
 #include <string>
 
 using namespace vsgCs;
+
+// XXX I really want to put this in an anonymous namespace, but then it isn't visible in the member
+// functions! Really need to move away from "using namespace vsgCs" and put all these definitions
+// explicitly in the vsgCs namespace.
+namespace vsgCs
+{
+
+    const CesiumGltf::Accessor* getAccessor(const CesiumGltf::Model* model,
+                                            const CesiumGltf::MeshPrimitive* primitive,
+                                            int64_t featureAttribute)
+    {
+        std::string featureAttributeName("_FEATURE_ID_");
+        featureAttributeName += std::to_string(featureAttribute);
+        return vsgCs::getAccessor(model, primitive, featureAttributeName);
+    }
+}
 
 Styling::Styling() : show(true) {}
 
@@ -292,7 +307,7 @@ std::optional<vsg::vec4> parseColorString(const std::string_view &color)
     return w3cColor->second;
 }
 
-std::optional<vsg::vec4> parseColorSpec(const std::string &expr)
+std::optional<vsg::vec4> parseColorSpec(const std::string_view expr)
 {
     const vsg::vec4 white(1.0f, 1.0f, 1.0f, 1.0f);
     const std::string colorFunc("color(");
@@ -370,7 +385,7 @@ std::optional<vsg::vec4> parseRGBSpec(const std::string_view expr)
 }
 
 // Parse color expression from styling language
-std::optional<vsg::vec4> parseColorExpr(const std::string& expr)
+std::optional<vsg::vec4> parseColorExpr(const std::string_view& expr)
 {
     auto colorFuncResult = parseColorSpec(expr);
     if (colorFuncResult)
@@ -413,11 +428,11 @@ namespace vsgCs
 }
 
 Stylist::Stylist(Styling* in_styling, ModelBuilder* builder)
-    : styling(in_styling), modelBuilder(builder)
+    : styling(in_styling), modelBuilder(builder), propertyTableID(0)
 {
     using namespace CesiumGltf;
     auto* metadata =
-        builder->_model->getExtension<ExtensionModelExtFeatureMetadata>();
+        builder->_model->getExtension<ExtensionModelExtStructuralMetadata>();
     if (!metadata)
     {
         return;
@@ -435,7 +450,6 @@ Stylist::Stylist(Styling* in_styling, ModelBuilder* builder)
     }
     const Class& defaultClass = classItr->second;
     const std::unordered_map<std::string, ClassProperty>& properties = defaultClass.properties;
-    const FeatureTable& featureTable = metadata->featureTables["default"];
     auto classPropertyItr = properties.find("cesium#color");
     if (classPropertyItr == properties.end())
     {
@@ -446,27 +460,37 @@ Stylist::Stylist(Styling* in_styling, ModelBuilder* builder)
     {
         return;
     }
-    MetadataFeatureTableView view(builder->_model, &featureTable);
-    std::optional<MetadataPropertyView<std::string_view>> propertyView =
-        view.getPropertyView<std::string_view>("cesium#color");
-    if (!propertyView)
+
+    auto propertyTableItr = std::find_if(metadata->propertyTables.begin(), metadata->propertyTables.end(),
+                                         [](const PropertyTable& propTable)
+                                         {
+                                             return propTable.classProperty == "default";
+                                         });
+    if (propertyTableItr == metadata->propertyTables.end())
     {
-        vsg::debug("empty cesium#color property view");
         return;
     }
-    for (int64_t i = 0; i < propertyView->size(); ++i)
+    PropertyTableView view(*builder->_model, *propertyTableItr);
+
+    auto propertyView = view.getPropertyView<std::string_view>("cesium#color");
+    if (propertyView.status() != PropertyTablePropertyViewStatus::Valid)
     {
-        auto val = propertyView->get(i);
-        if (val != "null")
+        vsg::debug("empty cesium#color property view ", propertyView.status());
+        return;
+    }
+    for (int64_t i = 0; i < propertyView.size(); ++i)
+    {
+        auto val = propertyView.get(i);
+        if (val && *val != "null")
         {
             if (featureColors.empty())
             {
-                featureColors.resize(propertyView->size());
+                featureColors.resize(propertyView.size());
             }
-            featureColors[i] = parseColorExpr(std::string(val));
+            featureColors[i] = parseColorExpr(*val);
             if (!featureColors[i])
             {
-                vsg::warn("invalid color string ", std::string(val));
+                vsg::warn("invalid color string ", *val);
             }
         }
     }
@@ -483,47 +507,52 @@ Stylist::PrimitiveStyling Stylist::getStyling(const CesiumGltf::MeshPrimitive *p
         return result;
     }
     const auto* primExtFeatureMetadata
-        = prim->getExtension<CesiumGltf::ExtensionMeshPrimitiveExtFeatureMetadata>();
+        = prim->getExtension<CesiumGltf::ExtensionExtMeshFeatures>();
     if (!primExtFeatureMetadata
         || featureColors.empty()
-        || primExtFeatureMetadata->featureIdAttributes.empty())
+        || primExtFeatureMetadata->featureIds.empty())
     {
         return result;
     }
-    const auto& idAttributes = primExtFeatureMetadata->featureIdAttributes[0];
-    if (idAttributes.featureTable != "default")
+    // Identify the feature ID relevant to our property table.
+    auto fIDIter = std::find_if(primExtFeatureMetadata->featureIds.begin(),
+                                primExtFeatureMetadata->featureIds.end(),
+                                [this](auto&& fid) {
+                                    return fid.propertyTable && *fid.propertyTable == propertyTableID;
+                                    });
+    if (fIDIter == primExtFeatureMetadata->featureIds.end())
     {
         return result;
     }
-    const auto& ids = idAttributes.featureIds;
-    if (!ids.attribute)
+    const auto& featureID = *fIDIter;
+    if (!featureID.attribute)
     {
-        vsg::info("Can't handle constant / divisor features.");
+        vsg::info("Can't handle constant features.");
         return result;
     }
-    const CesiumGltf::Accessor* featureAccessor = getAccessor(modelBuilder->_model, prim, *ids.attribute);
+
+    const CesiumGltf::Accessor* featureAccessor = getAccessor(modelBuilder->_model, prim, *featureID.attribute);
     if (!featureAccessor)
     {
-        vsg::info("No feature accessor: ", *ids.attribute);
+        vsg::info("No feature accessor: ", *featureID.attribute);
     }
-#if 0
-    const Accessor* colorAccessor = getAccessor(modelBuilder->_model, prim, "COLOR_0");
-#endif
     auto colorResult = CesiumGltf::createAccessorView(
         *modelBuilder->_model,
         *featureAccessor,
-        [&featureColors = featureColors](auto&& featureView)
+        [this, &featureID](auto&& featureView)
         {
             auto result = vsg::vec4Array::create(featureView.size());
             for (int i = 0; i < featureView.size(); ++i)
             {
-                if (featureColors.at(static_cast<size_t>(featureView[i].value[0])))
+                auto featureIDNum = featureView[i].value[0];
+                if ((featureID.nullFeatureId && featureIDNum == *featureID.nullFeatureId)
+                    || !featureColors.at(static_cast<size_t>(featureIDNum)))
                 {
-                    (*result)[i] = *featureColors.at(static_cast<size_t>(featureView[i].value[0]));
+                    (*result)[i] = colorWhite;
                 }
                 else
                 {
-                    (*result)[i] = colorWhite;
+                    (*result)[i] = *featureColors.at(static_cast<size_t>(featureIDNum));
                 }
             }
             return result;

@@ -68,6 +68,16 @@ namespace vsgCs
         return vsg::dvec3(vec3.x, vec3.y, vec3.z);
     }
 
+    inline glm::dvec2 vsg2glm(const vsg::dvec2& vec2)
+    {
+        return glm::dvec2(vec2.x, vec2.y);
+    }
+
+    inline glm::dvec3 vsg2glm(const vsg::dvec3& vec3)
+    {
+        return glm::dvec3(vec3.x, vec3.y, vec3.z);
+    }
+
     inline bool isIdentity(const glm::dmat4x4& mat)
     {
         for (int c = 0; c < 4; ++c)

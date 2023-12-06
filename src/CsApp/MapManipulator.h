@@ -28,10 +28,28 @@ namespace vsg
 namespace vsgCs
 {
     class WorldNode;
+    class UpdateCenterOperation;
 
     /**
      * Programmable event handler that lets you control a camera using input devices,
      * designed for use with a geospatial display (2D map or 3D globe).
+     *
+     * This is the manipulator from osgEarth, by way of Rocky, which ported the structure of event
+     * handling to VSG. It has a lot of bells and whistles that are not yet enabled in rocky or
+     * vsgCs.
+     *
+     * Theory of Operation
+     *
+     * The manipulator maintains a center point of interest and tracks its local coordinate
+     * frame. On an ellipsoid this is the local ENU (East North Up) frame; otherwise it has the same
+     * orientation as the global frame. The center point is (usually) at the center of the view. The
+     * manipulator also tracks a local rotation (heading, pitch) in the local frame and a distance
+     * from the center point to the viewer's eye. Changes in the view are made by modifying the
+     * center point, local orientation, or distance. For a pan operation which works like a "drag"
+     * for the user, moving the center point and keeping the viewer's pose in the center point's
+     * local frame constant has the happy effect of acting like a rotation of the Earth when far
+     * away; close to the Earth's surface, it acts like a translation because the change in local
+     * frame orientation is not noticeable.
      */
     class MapManipulator : public vsg::Inherit<vsg::Visitor, MapManipulator> {
     public:
@@ -684,10 +702,14 @@ namespace vsgCs
             // XY offsets (left/right, down/up) of the focal point in the plane normal to
             // the view heading.
             vsg::dvec2 viewOffset;
+            // Can be used to stash the results of terrain intersection tests, which can then be
+            // logged or graphically displayed.
+            vsg::dvec3 debugIntersection;
 
             State() :
                 localRotation(0, 0, 0, 1),
-                distance(1.0)
+                distance(1.0),
+                debugIntersection(0, 0, 0)
             { }
         };
 
@@ -730,5 +752,9 @@ namespace vsgCs
         bool withinRenderArea(const vsg::PointerEvent& pointerEvent) const;
 
         vsg::dvec2 ndc(const vsg::PointerEvent&) const;
+
+        vsg::dvec3 adjustToSameHeight(const vsg::dvec3& reference, const vsg::dvec3& point);
+        // For graphical debugging
+        friend class UpdateCenterOperation;
     };
 }

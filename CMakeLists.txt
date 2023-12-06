@@ -66,12 +66,14 @@ FetchContent_MakeAvailable(vsgImGui)
 option(GSL_INSTALL "Generate and install GSL target" ON)
 FetchContent_Declare(Cesium
   GIT_REPOSITORY https://github.com/timoore/cesium-native.git
-  GIT_TAG dfcee62cd39ee4b441ee737a97481c396555f781  # cmake-fixes
+  GIT_TAG c1b1c737a14620efc7e043d39272a23942d10386  # cmake-fixes
   GIT_PROGRESS TRUE
 )
 
 message("Fetching cesium-native. This could take a while...")
 FetchContent_MakeAvailable(Cesium)
+
+find_package(PROJ REQUIRED)
 
 if (RUN_CLANG_TIDY)
   find_program(CLANG_TIDY_EXE NAMES "clang-tidy")

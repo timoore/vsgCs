@@ -177,30 +177,39 @@ void CreditComponent::record(vsg::CommandBuffer& cb) const
                     auto* element = aContents->ToElement();
                     if (element && strcmp(element->Name(), "img") == 0)
                     {
-                        const auto* src = element->Attribute("src");
-                        const auto* alt = element->Attribute("alt");
-                        auto component = getTexture(src);
-                        if (component)
-                        {
-                            auto height = component->height;
-                            ImGui::Image(component->id(cb.deviceID), ImVec2(component->width,
-                                                                            component->height));
-                            ImGui::SameLine();
-                            auto pos = ImGui::GetCursorPos();
-                            ImGui::SetCursorPosY(pos.y + height / 2.0 - ImGui::GetFontSize() / 2);
-                        }
-                        else if (alt)
-                        {
-                            ImGui::Text("%s", alt);
-                            ImGui::SameLine();
-
-                        }
+                        renderImg(cb, element);
                     }
                 }
+            }
+            else if (std::strcmp(node->Name(), "img") == 0)
+            {
+                renderImg(cb, node);
             }
         }
     }
 
     ImGui::End();
     ImGui::PopStyleVar();
+}
+
+void CreditComponent::renderImg(vsg::CommandBuffer& cb, const tinyxml2::XMLElement* element) const
+{
+    const auto* src = element->Attribute("src");
+    const auto* alt = element->Attribute("alt");
+    auto component = getTexture(src);
+    if (component)
+    {
+        auto height = component->height;
+        ImGui::Image(component->id(cb.deviceID), ImVec2(component->width,
+                                                        component->height));
+        ImGui::SameLine();
+        auto pos = ImGui::GetCursorPos();
+        ImGui::SetCursorPosY(pos.y + height / 2.0 - ImGui::GetFontSize() / 2);
+    }
+    else if (alt)
+    {
+        ImGui::Text("%s", alt);
+        ImGui::SameLine();
+
+    }
 }

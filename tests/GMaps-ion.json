@@ -1,0 +1,9 @@
+{  "Type": "World",
+   "comment": "Google Photorealistic 3D Tiles delivered by Cesium ion",
+   "tilesets": [
+       {
+       "Type": "Tileset",
+       "ionAssetID":2275207
+   }
+   ]
+}
