@@ -36,6 +36,7 @@ SOFTWARE.
 
 #include <algorithm>
 #include <iterator>
+#include <string>
 
 // Various random helper functions
 
@@ -327,4 +328,12 @@ namespace vsgCs
     {
         std::transform(source.begin(), source.end(), std::back_inserter(result), f);
     }
+
+    /** Returns a lower-case version of the input string.
+     *
+     * Borrowed from Rocky.
+     */
+    std::string toLower(const std::string& input);
+
+    std::string& replace_in_place(std::string& s, const std::string& sub, const std::string& other);
 }

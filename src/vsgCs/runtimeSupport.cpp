@@ -502,5 +502,29 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMap
         obj->getValue("tileUrl", result);
         return result;
     }
+
+    std::string toLower(const std::string& input)
+    {
+        std::string output = input;
+        std::transform(output.begin(), output.end(), output.begin(), ::tolower);
+        return output;
+    }
+
+    std::string& replace_in_place(std::string& s,
+                                  const std::string& sub,
+                                  const std::string& other)
+    {
+        if (sub.empty()) return s;
+        size_t b = 0;
+        for (; ; )
+        {
+            b = s.find(sub, b);
+            if (b == s.npos) break;
+            s.replace(b, sub.size(), other);
+            b += other.size();
+        }
+        return s;
+    }
+
 }
 

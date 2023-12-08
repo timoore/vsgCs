@@ -26,11 +26,11 @@ SOFTWARE.
 
 /* A Coordinate Reference System, or CRS.
    Very much like osgEarth's SRS (Spatial Reference System), but we choose a
-   synonym to avoid too much confusion.
+   synonym to avoid too much confusion. Also, we mostly care about going from geographic or
+   projected coordinates to Earth Centered Earth Fixed (ECEF) and back again.
 
-   A CRS' main function is to convert from its own coordinates to Earth Centered
-   Earth Fixed (ECEF) coordinates and calculate an East North Up (ENU) tangent
-   plane at that point.
+   A CRS' main function is to convert from its own coordinates to ECEF coordinates and calculate an
+   East North Up (ENU) tangent plane at that point.
 
    It's assumed that the 3D tiles use the WGS84-based Cartesian system (EPSG
    4979). It would be good to look at the tileset metadata and use the
@@ -42,21 +42,21 @@ SOFTWARE.
 #include <vsg/maths/vec3.h>
 #include <vsg/maths/mat4.h>
 
+#include <memory>
+#include <string>
+
 namespace vsgCs
 {
     class VSGCS_EXPORT CRS
     {
     public:
-        virtual vsg::dvec3 getECEF(const vsg::dvec3& coord) = 0;
+    CRS(const std::string& name);
+    vsg::dvec3 getECEF(const vsg::dvec3& coord);
         // Also known as "localToWorld"; is that a better name for any reason?
-        virtual vsg::dmat4 getENU(const vsg::dvec3& coord) = 0;
-    };
-
-    // Bog-standard WGS84 longitude, latitude, height to ECEF
-    class VSGCS_EXPORT EPSG4979 : public CRS
-    {
-    public:
-        vsg::dvec3 getECEF(const vsg::dvec3& coord) override;
-        vsg::dmat4 getENU(const vsg::dvec3& coord) override;
+    vsg::dmat4 getENU(const vsg::dvec3& coord);
+    class ConversionOperation;
+    protected:
+    std::shared_ptr<ConversionOperation> _converter;
+    std::string _name;
     };
 }

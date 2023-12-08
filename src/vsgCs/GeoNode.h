@@ -24,16 +24,26 @@ SOFTWARE.
 
 #pragma once
 
+#include "CRS.h"
 #include "Export.h"
 #include "RuntimeEnvironment.h"
 
+#include <vsg/maths/vec3.h>
 #include <vsg/nodes/MatrixTransform.h>
 #include <vsg/nodes/StateGroup.h>
+
+#include <memory>
+#include <string>
 
 namespace vsgCs
 {
     class VSGCS_EXPORT GeoNode : public vsg::Inherit<vsg::MatrixTransform, GeoNode>
     {
+    public:
+        GeoNode(const std::string& crs = "epsg:4979");
+        void setOrigin(const vsg::dvec3& origin);
+    protected:
+        std::shared_ptr<CRS> _crs;
     };
 
     vsg::ref_ptr<vsg::StateGroup> VSGCS_EXPORT createModelRoot(const vsg::ref_ptr<RuntimeEnvironment>& env);

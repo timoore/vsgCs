@@ -39,6 +39,16 @@ SOFTWARE.
 
 using namespace vsgCs;
 
+GeoNode::GeoNode(const std::string& crs)
+{
+    _crs = std::make_shared<CRS>(crs);
+}
+
+void GeoNode::setOrigin(const vsg::dvec3& origin)
+{
+    matrix = _crs->getENU(origin);
+}
+
 // Try stepping back from runtime environment singleton by passing the environment as an argument.
 
 // Models loaded via vsgXchange are placed in their own graph, with a different arrangement of
@@ -69,19 +79,33 @@ namespace
     {
         std::map<std::string, vsg::ref_ptr<vsg::Node>> models;
         using namespace CesiumGeospatial;
+        std::string crs = CesiumUtility::JsonHelpers::getStringOrDefault(json, "crs", "epsg:4979");
+        // Geographic coordinates are in degrees. If they are supplied, then we should probably
+        // check that the CRS is geographic / geodetic.
         auto earthCoords = CesiumUtility::JsonHelpers::getDoubles(json, 3, "geographicCoordinates");
+        auto coordinates = CesiumUtility::JsonHelpers::getDoubles(json, 3, "coordinates");
         auto heading = CesiumUtility::JsonHelpers::getDoubleOrDefault(json, "heading", 0.0);
-        if (!earthCoords)
+        vsg::dvec3 crsCoords;
+        if (earthCoords)
         {
-            vsg::error("No valid coordinates");
+            crsCoords.set(vsg::radians((*earthCoords)[0]),
+                          vsg::radians((*earthCoords)[1]),
+                          (*earthCoords)[2]);
+        }
+        else if (coordinates)
+        {
+            crsCoords.set((*coordinates)[0], (*coordinates)[1], (*coordinates)[2]);
+        }
+        else
+        {
+            vsg::error("GeoNode JSON has No valid coordinates");
             return {};
         }
-        auto node = GeoNode::create();
-        LocalHorizontalCoordinateSystem localSys(Cartographic::fromDegrees((*earthCoords)[0],
-                                                                           (*earthCoords)[1],
-                                                                           (*earthCoords)[2]));
-        vsg::dmat4 localMat = glm2vsg(localSys.getLocalToEcefTransformation());
-        node->matrix = localMat * vsg::rotate(vsg::radians(-heading), 0.0, 0.0, 1.0);
+        auto geoNode = GeoNode::create(crs);
+        geoNode->setOrigin(crsCoords);
+        auto node = vsg::MatrixTransform::create();
+        node->matrix =  vsg::rotate(vsg::radians(-heading), 0.0, 0.0, 1.0);
+        geoNode->addChild(node);
 
         auto modelDefsItr = json.FindMember("modelDefinitions");
         if (modelDefsItr != json.MemberEnd())
@@ -145,7 +169,7 @@ namespace
                 }
             }
         }
-        return node;
+        return geoNode;
     }
 
     JSONObjectFactory::Registrar r("GeoNode", buildGeoNode);
