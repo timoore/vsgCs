@@ -1,0 +1,7 @@
+{ "Type": "GeoNode",
+  "geographicCoordinates": [8.463055555555554, 55.45138888888889, 10],
+  "modelDefinitions": [{"name": "ship",
+                        "path": "models/maersk_container_ship.glb"}],
+  "instances": [{"modelName": "ship", "scale": 3.8314, "heading": 270.0}]
+}
+

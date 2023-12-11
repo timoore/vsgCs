@@ -1,0 +1,8 @@
+{ "Type": "GeoNode",
+  "crs": "+proj=utm +zone=32 +datum=WGS84 +units=m",
+  "coordinates": [465750.59375, 6145665.5, 10],
+  "modelDefinitions": [{"name": "ship",
+                        "path": "models/maersk_container_ship.glb"}],
+  "instances": [{"modelName": "ship", "scale": 3.8314, "heading": 270.0}]
+}
+
