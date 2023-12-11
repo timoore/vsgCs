@@ -138,13 +138,13 @@ namespace vsgCs
 
                 // process some common aliases
                 if (ndef == "wgs84" || ndef == "global-geodetic")
-                    to_try = "epsg:4979";
+                    to_try = "EPSG:4979";
                 else if (ndef == "spherical-mercator")
-                    to_try = "epsg:3785";
+                    to_try = "EPSG:3785";
                 else if (ndef == "geocentric" || ndef == "ecef")
                     to_try = "EPSG:4978";
                 else if (ndef == "plate-carree" || ndef == "plate-carre")
-                    to_try = "epsg:32663";
+                    to_try = "EPSG:32663";
 
                 // try to determine whether this ia WKT so we can use the right create function
                 auto wkt_dialect = proj_context_guess_wkt_dialect(ctx, to_try.c_str());
@@ -162,14 +162,6 @@ namespace vsgCs
                             to_try += " +type=crs";
                         }
                     }
-                    else
-                    {
-                        // perhaps it's an EPSG string, in which case we must lower-case it so it
-                        // works on case-sensitive file systems
-                        // https://github.com/pyproj4/pyproj/blob/9283f962e4792da2a7f05ba3735c1ed7f3479502/pyproj/crs/crs.py#L111
-                        replace_in_place(to_try, "+init=EPSG", "+init=epsg");
-                    }
-
                     pj = proj_create(ctx, to_try.c_str());
                 }
 
