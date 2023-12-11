@@ -79,7 +79,7 @@ namespace
     {
         std::map<std::string, vsg::ref_ptr<vsg::Node>> models;
         using namespace CesiumGeospatial;
-        std::string crs = CesiumUtility::JsonHelpers::getStringOrDefault(json, "crs", "epsg:4979");
+        std::string crs = CesiumUtility::JsonHelpers::getStringOrDefault(json, "crs", "wgs84");
         // Geographic coordinates are in degrees. If they are supplied, then we should probably
         // check that the CRS is geographic / geodetic.
         auto earthCoords = CesiumUtility::JsonHelpers::getDoubles(json, 3, "geographicCoordinates");
