@@ -250,7 +250,19 @@ DeviceFeatures RuntimeEnvironment::prepareFeaturesAndExtensions(const vsg::ref_p
     {
         std::fill(&features.pointSizeRange[0], &features.pointSizeRange[2], 1.0f);
     }
-
+#ifdef TRACY_ENABLE
+    for (VkExtensionProperties extension : extensionProperties)
+    {
+        if (!strcmp(extension.extensionName, VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME))
+        {
+            traits->deviceExtensionNames.push_back(VK_EXT_CALIBRATED_TIMESTAMPS_EXTENSION_NAME);
+            vsg::ref_ptr<vsg::Instance> instance = physDevice->getInstance();
+            instance->getProcAddr(features.vkGetPhysicalDeviceCalibrateableTimeDomainsEXT,
+                                  "vkGetPhysicalDeviceCalibrateableTimeDomainsEXT");
+            instance->getProcAddr(features.vkGetCalibratedTimestampsEXT, "vkGetCalibratedTimestampsEXT");
+        }
+    }
+#endif
     return features;
 }
 

@@ -51,6 +51,9 @@ namespace vsgCs
         bool depthClamp = false;
         CesiumGltf::Ktx2TranscodeTargets ktx2TranscodeTargets;
         float pointSizeRange[2];
+        PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT vkGetPhysicalDeviceCalibrateableTimeDomainsEXT
+        = nullptr;
+        PFN_vkGetCalibratedTimestampsEXT vkGetCalibratedTimestampsEXT = nullptr;
     };
 
     class VSGCS_EXPORT GraphicsEnvironment : public vsg::Inherit<vsg::Object, GraphicsEnvironment>

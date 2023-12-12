@@ -22,9 +22,10 @@ namespace vsgCs
 #endif
     }
     
-    TracingCommandGraph::TracingCommandGraph(vsg::ref_ptr<vsg::Window> in_window,
+    TracingCommandGraph::TracingCommandGraph(const DeviceFeatures& in_features,
+                                             vsg::ref_ptr<vsg::Window> in_window,
                                              vsg::ref_ptr<vsg::Node> child)
-        : Inherit(in_window, child)
+        : Inherit(in_window, child), features(in_features)
     {
         vsg::ref_ptr<TracyContextValue> tracyCtx;
         addChild(TracingCollectCommand::create(tracyCtx));
@@ -47,8 +48,19 @@ namespace vsgCs
             tmpCmd = cp->allocate(level());
             auto queue = device->getQueue(queueFamily, 0);
             tracyCtx = TracyContextValue::create();
-            tracyCtx->ctx = TracyVkContext(device->getPhysicalDevice()->vk(), device->vk(), queue->vk(),
+            if (features.vkGetCalibratedTimestampsEXT)
+            {
+                tracyCtx->ctx
+                    = TracyVkContextCalibrated(device->getPhysicalDevice()->vk(), device->vk(), queue->vk(),
+                                               tmpCmd->vk(),
+                                               features.vkGetPhysicalDeviceCalibrateableTimeDomainsEXT,
+                                               features.vkGetCalibratedTimestampsEXT);
+            }
+            else
+            {
+                tracyCtx->ctx = TracyVkContext(device->getPhysicalDevice()->vk(), device->vk(), queue->vk(),
                                            tmpCmd->vk());
+            }
             recordTraversal->setObject("tracyCtx", tracyCtx);
             auto collectCmd = children[0].cast<TracingCollectCommand>();
             if (collectCmd)
