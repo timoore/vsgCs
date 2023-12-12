@@ -3,6 +3,7 @@
 #include "vsgCs/Tracing.h"
 
 #include <vsg/app/CommandGraph.h>
+#include <vsg/app/RenderGraph.h>
 #include <vsg/commands/Command.h>
 #include <vsg/nodes/VertexDraw.h>
 #include <vsg/nodes/VertexIndexDraw.h>
@@ -35,7 +36,14 @@ namespace vsgCs
 
     class TracingVertexIndexDraw : public vsg::Inherit<vsg::VertexIndexDraw, TracingVertexIndexDraw>
     {
-        public:
+    public:
+        void accept(vsg::RecordTraversal& visitor) const override;
+    };
+
+    class TracingRenderGraph : public vsg::Inherit<vsg::RenderGraph, TracingRenderGraph>
+    {
+    public:
+        explicit TracingRenderGraph(vsg::ref_ptr<vsg::Window> in_window, vsg::ref_ptr<vsg::View> view = {});
         void accept(vsg::RecordTraversal& visitor) const override;
     };
     

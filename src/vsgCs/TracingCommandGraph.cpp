@@ -1,5 +1,6 @@
 #include "TracingCommandGraph.h"
 
+#include <vsg/app/View.h>
 #include <vsg/io/DatabasePager.h>
 #include <vsg/ui/FrameStamp.h>
 #include <vsg/vk/State.h>
@@ -77,4 +78,18 @@ namespace vsgCs
         VertexIndexDraw::accept(visitor);
     }
 
+    TracingRenderGraph::TracingRenderGraph(vsg::ref_ptr<vsg::Window> in_window,
+                                                vsg::ref_ptr<vsg::View> view)
+        : Inherit(in_window, view)
+    {
+    }
+
+    void TracingRenderGraph::accept(vsg::RecordTraversal& visitor) const
+    {
+#ifdef TRACY_ENABLE
+        auto tracyCtx = visitor.getObject<TracyContextValue>("tracyCtx");
+        TracyVkZone(tracyCtx->ctx, visitor.getState()->_commandBuffer->vk(), "RenderGraph");
+#endif
+        RenderGraph::accept(visitor);
+    }
 }

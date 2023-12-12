@@ -758,7 +758,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     if (indicesAccessor && !expansionIndices)
     {
         vsg::ref_ptr<vsg::Data> indices = createAccessorView(*_model, *indicesAccessor, IndexVisitor());
-        auto vid = TracingVertexIndexDraw::create();
+        auto vid = vsg::VertexIndexDraw::create();
         vid->assignArrays(vertexArrays);
         vid->assignIndices(indices);
         vid->indexCount = static_cast<uint32_t>(indices->valueCount());
@@ -767,7 +767,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     }
     else
     {
-        auto vd = TracingVertexDraw::create();
+        auto vd = vsg::VertexDraw::create();
         vd->assignArrays(vertexArrays);
         vd->vertexCount = static_cast<uint32_t>(positions->valueCount());
         vd->instanceCount = 1;

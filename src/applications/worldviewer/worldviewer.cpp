@@ -268,7 +268,7 @@ int main(int argc, char** argv)
                      debugManipulator);
         // Basic VSG objects for rendering
         auto commandGraph = vsgCs::TracingCommandGraph::create(window);
-        auto renderGraph = vsg::RenderGraph::create(window);
+        auto renderGraph = vsgCs::TracingRenderGraph::create(window);
         // The classic VSG background, translated into sRGB values.
         renderGraph->setClearValues({{0.02899f, 0.02899f, 0.13321f}});
         commandGraph->addChild(renderGraph);
