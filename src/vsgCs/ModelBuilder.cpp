@@ -29,6 +29,7 @@ SOFTWARE.
 #include "LoadGltfResult.h"
 #include "pbr.h"
 #include "Styling.h"
+#include "TracingCommandGraph.h"
 
 #include <CesiumGltf/ExtensionKhrTextureBasisu.h>
 #include <CesiumGltf/ExtensionTextureWebp.h>
@@ -757,7 +758,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     if (indicesAccessor && !expansionIndices)
     {
         vsg::ref_ptr<vsg::Data> indices = createAccessorView(*_model, *indicesAccessor, IndexVisitor());
-        auto vid = vsg::VertexIndexDraw::create();
+        auto vid = TracingVertexIndexDraw::create();
         vid->assignArrays(vertexArrays);
         vid->assignIndices(indices);
         vid->indexCount = static_cast<uint32_t>(indices->valueCount());
@@ -766,7 +767,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     }
     else
     {
-        auto vd = vsg::VertexDraw::create();
+        auto vd = TracingVertexDraw::create();
         vd->assignArrays(vertexArrays);
         vd->vertexCount = static_cast<uint32_t>(positions->valueCount());
         vd->instanceCount = 1;

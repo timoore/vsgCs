@@ -26,12 +26,30 @@ SOFTWARE.
 
 #ifdef TRACY_ENABLE
 #include "tracy/Tracy.hpp"
+#include <vsg/vk/vulkan.h>
+
+#include "tracy/TracyVulkan.hpp"
+
+#include <vsg/core/Object.h>
+#include <vsg/core/Inherit.h>
 
 #define VSGCS_ZONESCOPED ZoneScoped
 #define VSGCS_ZONESCOPEDN(name) ZoneScopedN(name)
 #define VSGCS_FRAMEMARK FrameMark
+
 #else
 #define VSGCS_ZONESCOPED
 #define VSGCS_ZONESCOPEDN(name)
 #define VSGCS_FRAMEMARK
 #endif
+
+class TracyContextValue : public vsg::Inherit<vsg::Object, TracyContextValue>
+{
+public:
+#ifdef TRACY_ENABLE
+    tracy::VkCtx* ctx = nullptr;
+#else
+    void* ctx = nullptr;
+#endif
+};
+

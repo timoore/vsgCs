@@ -20,6 +20,7 @@ set(LIB_PUBLIC_HEADERS
   RuntimeEnvironment.h
   ShaderFactory.h
   Styling.h
+  TracingCommandGraph.h
   TilesetNode.h
   vsgResourcePreparer.h
   runtimeSupport.h
@@ -42,6 +43,7 @@ set(SOURCES
   RuntimeEnvironment.cpp
   ShaderFactory.cpp
   Styling.cpp
+  TracingCommandGraph.cpp
   TilesetNode.cpp
   UrlAssetAccessor.cpp
   runtimeSupport.cpp

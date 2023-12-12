@@ -129,5 +129,6 @@ if (BUILD_TRACY)
   option ( TRACY_ENABLE "" ON)
   option ( TRACY_ON_DEMAND "" ON)
   add_subdirectory(3rdparty/tracy)
+  set_target_properties(TracyClient PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 endif()
 

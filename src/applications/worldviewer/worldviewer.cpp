@@ -51,6 +51,7 @@ SOFTWARE.
 #include "vsgCs/jsonUtils.h"
 #include "vsgCs/OpThreadTaskProcessor.h"
 #include "vsgCs/Tracing.h"
+#include "vsgCs/TracingCommandGraph.h"
 #include "vsgCs/RuntimeEnvironment.h"
 #include "vsgCs/WorldNode.h"
 #include "UI.h"
@@ -266,7 +267,7 @@ int main(int argc, char** argv)
         ui->createUI(window, viewer, camera, ellipsoidModel, environment->options, worldNode, vsg_scene,
                      debugManipulator);
         // Basic VSG objects for rendering
-        auto commandGraph = vsg::CommandGraph::create(window);
+        auto commandGraph = vsgCs::TracingCommandGraph::create(window);
         auto renderGraph = vsg::RenderGraph::create(window);
         // The classic VSG background, translated into sRGB values.
         renderGraph->setClearValues({{0.02899f, 0.02899f, 0.13321f}});
