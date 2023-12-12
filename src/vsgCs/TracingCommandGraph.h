@@ -26,7 +26,6 @@ namespace vsgCs
         void record(vsg::ref_ptr<vsg::RecordedCommandBuffers> recordedCommandBuffers, vsg::ref_ptr<vsg::FrameStamp> frameStamp, vsg::ref_ptr<vsg::DatabasePager> databasePager) override;
         const DeviceFeatures features;
         vsg::ref_ptr<TracyContextValue> tracyCtx;
-        vsg::ref_ptr<vsg::CommandBuffer> tmpCmd;
     };
 
     class TracingVertexDraw : public vsg::Inherit<vsg::VertexDraw, TracingVertexDraw>

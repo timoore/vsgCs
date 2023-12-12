@@ -45,7 +45,7 @@ namespace vsgCs
             getOrCreateRecordTraversal();
             vsg::ref_ptr<vsg::CommandPool> cp = vsg::CommandPool::create(device, queueFamily,
                                                                     VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
-            tmpCmd = cp->allocate(level());
+            auto tmpCmd = cp->allocate(level());
             auto queue = device->getQueue(queueFamily, 0);
             tracyCtx = TracyContextValue::create();
             if (features.vkGetCalibratedTimestampsEXT)
