@@ -44,7 +44,7 @@ SOFTWARE.
 
 namespace vsgCs
 {
-    void redirect_proj_log(void* user, int level, const char* msg)
+    void redirect_proj_log(void*, int, const char* msg)
     {
         if (msg)
         {
