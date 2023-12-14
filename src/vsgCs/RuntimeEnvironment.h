@@ -34,6 +34,7 @@ SOFTWARE.
 namespace vsgCs
 {
 
+    class TracyContextValue;
 
     /**
      * Objects that are needed by vsgCs for initializing VSG, Vulkan, Cesium Ion...
@@ -131,6 +132,7 @@ namespace vsgCs
         bool generateShaderDebugInfo = false;
         bool enableLodTransitionPeriod = false;
         vsg::ref_ptr<GraphicsEnvironment> genv;
+        vsg::ref_ptr<TracyContextValue> tracyContext;
         static vsg::ref_ptr<RuntimeEnvironment> get();
     protected:
         std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> _externals;

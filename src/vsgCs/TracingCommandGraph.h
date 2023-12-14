@@ -1,7 +1,7 @@
 #pragma once
 
 #include "vsgCs/Tracing.h"
-#include "vsgCs/GraphicsEnvironment.h"
+#include "vsgCs/RuntimeEnvironment.h"
 
 #include <vsg/app/CommandGraph.h>
 #include <vsg/app/RenderGraph.h>
@@ -22,7 +22,7 @@ namespace vsgCs
     class TracingCommandGraph : public vsg::Inherit<vsg::CommandGraph, TracingCommandGraph>
     {
         public:
-        explicit TracingCommandGraph(const DeviceFeatures& in_features, vsg::ref_ptr<vsg::Window> in_window, vsg::ref_ptr<vsg::Node> child = {});
+        explicit TracingCommandGraph(const vsg::ref_ptr<RuntimeEnvironment>& in_env, vsg::ref_ptr<vsg::Window> in_window, vsg::ref_ptr<vsg::Node> child = {});
         void record(vsg::ref_ptr<vsg::RecordedCommandBuffers> recordedCommandBuffers, vsg::ref_ptr<vsg::FrameStamp> frameStamp, vsg::ref_ptr<vsg::DatabasePager> databasePager) override;
         const DeviceFeatures features;
         vsg::ref_ptr<TracyContextValue> tracyCtx;

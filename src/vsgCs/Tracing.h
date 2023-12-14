@@ -30,9 +30,6 @@ SOFTWARE.
 
 #include "tracy/TracyVulkan.hpp"
 
-#include <vsg/core/Object.h>
-#include <vsg/core/Inherit.h>
-
 #define VSGCS_ZONESCOPED ZoneScoped
 #define VSGCS_ZONESCOPEDN(name) ZoneScopedN(name)
 #define VSGCS_FRAMEMARK FrameMark
@@ -43,13 +40,22 @@ SOFTWARE.
 #define VSGCS_FRAMEMARK
 #endif
 
-class TracyContextValue : public vsg::Inherit<vsg::Object, TracyContextValue>
-{
-public:
-#ifdef TRACY_ENABLE
-    tracy::VkCtx* ctx = nullptr;
-#else
-    void* ctx = nullptr;
-#endif
-};
+#include <vsg/core/Object.h>
+#include <vsg/core/Inherit.h>
 
+#include <cstdint>
+
+namespace vsgCs
+{
+    class TracyContextValue : public vsg::Inherit<vsg::Object, TracyContextValue>
+    {
+    public:
+#ifdef TRACY_ENABLE
+        tracy::VkCtx* ctx = nullptr;
+#else
+        void* ctx = nullptr;
+#endif
+        uint64_t tracingMask = 0;
+        uint64_t gpuProfilingMask = 0;
+    };
+}

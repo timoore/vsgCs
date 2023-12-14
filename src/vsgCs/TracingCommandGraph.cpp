@@ -1,5 +1,7 @@
 #include "TracingCommandGraph.h"
 
+#include "RuntimeEnvironment.h"
+
 #include <vsg/app/View.h>
 #include <vsg/io/DatabasePager.h>
 #include <vsg/ui/FrameStamp.h>
@@ -15,19 +17,19 @@ namespace vsgCs
     void TracingCollectCommand::record(vsg::CommandBuffer& cmd) const
     {
 #ifdef TRACY_ENABLE
-        if (tracyCtx)
+        if (tracyCtx && tracyCtx->gpuProfilingMask != 0)
         {
             TracyVkCollect(tracyCtx->ctx, cmd.vk());
         }
 #endif
+        (void)cmd;
     }
     
-    TracingCommandGraph::TracingCommandGraph(const DeviceFeatures& in_features,
+    TracingCommandGraph::TracingCommandGraph(const vsg::ref_ptr<RuntimeEnvironment>& in_env,
                                              vsg::ref_ptr<vsg::Window> in_window,
                                              vsg::ref_ptr<vsg::Node> child)
-        : Inherit(in_window, child), features(in_features)
+        : Inherit(in_window, child), features(in_env->features), tracyCtx(in_env->tracyContext)
     {
-        vsg::ref_ptr<TracyContextValue> tracyCtx;
         addChild(TracingCollectCommand::create(tracyCtx));
     }
 
@@ -36,7 +38,7 @@ namespace vsgCs
                                      vsg::ref_ptr<vsg::DatabasePager> databasePager)
     {
 #ifdef TRACY_ENABLE
-        if (!tracyCtx)
+        if (!tracyCtx->ctx)
         {
             if (window && !window->visible())
             {
@@ -47,7 +49,6 @@ namespace vsgCs
                                                                     VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT);
             auto tmpCmd = cp->allocate(level());
             auto queue = device->getQueue(queueFamily, 0);
-            tracyCtx = TracyContextValue::create();
             if (features.vkGetCalibratedTimestampsEXT)
             {
                 tracyCtx->ctx
@@ -76,7 +77,8 @@ namespace vsgCs
     {
 #ifdef TRACY_ENABLE
         auto tracyCtx = visitor.getObject<TracyContextValue>("tracyCtx");
-        TracyVkZone(tracyCtx->ctx, visitor.getState()->_commandBuffer->vk(), "VertexDraw");
+        TracyVkNamedZone(tracyCtx->ctx, vertexDraw, visitor.getState()->_commandBuffer->vk(),
+                         "VertexDraw", tracyCtx->gpuProfilingMask != 0);
 #endif
         VertexDraw::accept(visitor);
     }
@@ -85,7 +87,8 @@ namespace vsgCs
     {
 #ifdef TRACY_ENABLE
         auto tracyCtx = visitor.getObject<TracyContextValue>("tracyCtx");
-        TracyVkZone(tracyCtx->ctx, visitor.getState()->_commandBuffer->vk(), "VertexIndexDraw");
+        TracyVkNamedZone(tracyCtx->ctx, vertexIndexDraw, visitor.getState()->_commandBuffer->vk(),
+                         "VertexIndexDraw", tracyCtx->gpuProfilingMask != 0);
 #endif
         VertexIndexDraw::accept(visitor);
     }
@@ -100,7 +103,8 @@ namespace vsgCs
     {
 #ifdef TRACY_ENABLE
         auto tracyCtx = visitor.getObject<TracyContextValue>("tracyCtx");
-        TracyVkZone(tracyCtx->ctx, visitor.getState()->_commandBuffer->vk(), "RenderGraph");
+        TracyVkNamedZone(tracyCtx->ctx, renderGraph, visitor.getState()->_commandBuffer->vk(),
+                         "RenderGraph", tracyCtx->gpuProfilingMask != 0);
 #endif
         RenderGraph::accept(visitor);
     }
