@@ -78,7 +78,7 @@ target_compile_definitions(${LIB_NAME} PUBLIC SPDLOG_COMPILED_LIB)
 
 target_link_libraries(${LIB_NAME} PUBLIC vsg::vsg vsgImGui::vsgImGui Cesium3DTilesSelection CesiumGltfReader CesiumGltf spdlog PRIVATE CURL::libcurl PROJ::proj)
 
-if(TRACY_ENABLE)
+if(BUILD_TRACY)
   target_link_libraries(${LIB_NAME} PUBLIC Tracy::TracyClient)
 endif()
 

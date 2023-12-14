@@ -31,7 +31,7 @@ endif()
 
 target_link_libraries(${LIB_NAME} PUBLIC vsgCs vsg::vsg vsgImGui::vsgImGui Cesium3DTilesSelection CesiumGltfReader CesiumGltf)
 
-if(TRACY_ENABLE)
+if(BUILD_TRACY)
   target_link_libraries(${LIB_NAME} PUBLIC Tracy::TracyClient)
 endif()
 

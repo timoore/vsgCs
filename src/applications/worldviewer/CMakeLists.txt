@@ -18,7 +18,7 @@ if (vsgXchange_FOUND)
   target_link_libraries(worldviewer PRIVATE vsgXchange::vsgXchange)
 endif()
 
-if (TRACY_ENABLE)
+if (BUILD_TRACY)
   target_link_libraries(worldviewer PUBLIC Tracy::TracyClient)
 endif()
 
