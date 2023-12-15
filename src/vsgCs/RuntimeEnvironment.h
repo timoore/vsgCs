@@ -84,6 +84,14 @@ namespace vsgCs
         vsg::ref_ptr<vsg::Window> openWindow(vsg::CommandLine& arguments, const std::string& name,
                                              const vsg::ref_ptr<vsg::WindowTraits>& traits = {},
                                              const vsg::ref_ptr<vsg::Options>& options = {});
+
+        /**
+         * Prepare the window traits / features / extensions for an existing window and initialize
+         * environment.
+         */
+        void initializeFromWindow(const vsg::ref_ptr<vsg::Window>& window,
+                                  const vsg::ref_ptr<vsg::Options>& options = {});
+
         /**
          * @brief Set the viewer object.
          *

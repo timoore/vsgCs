@@ -339,7 +339,19 @@ vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openWindow(vsg::CommandLine& argum
     prepareFeaturesAndExtensions(result);
     initGraphicsEnvironment(result->getOrCreateDevice());
     return result;
-    
+}
+
+void RuntimeEnvironment::initializeFromWindow(const vsg::ref_ptr<vsg::Window>& window,
+                                  const vsg::ref_ptr<vsg::Options>& in_options)
+{
+    traits = window->traits();
+    if (traits->swapchainPreferences.surfaceFormat.format != VK_FORMAT_B8G8R8A8_SRGB)
+    {
+        vsg::warn("Window for vsgCs does not have an SRGB surface format.");
+    }
+    options = in_options;
+    prepareFeaturesAndExtensions(window);
+    initGraphicsEnvironment(window->getOrCreateDevice());
 }
 
 void RuntimeEnvironment::setViewer(const vsg::ref_ptr<vsg::Viewer>& viewer)

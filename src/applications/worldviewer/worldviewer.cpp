@@ -45,11 +45,8 @@ SOFTWARE.
 #include <iostream>
 #include <thread>
 
-#include "vsgCs/TilesetNode.h"
-#include "vsgCs/CsOverlay.h"
 #include "vsgCs/GeoNode.h"
 #include "vsgCs/jsonUtils.h"
-#include "vsgCs/OpThreadTaskProcessor.h"
 #include "vsgCs/Tracing.h"
 #include "vsgCs/TracingCommandGraph.h"
 #include "vsgCs/RuntimeEnvironment.h"
