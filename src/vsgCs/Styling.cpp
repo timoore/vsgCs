@@ -374,14 +374,17 @@ std::optional<vsg::vec4> parseRGBSpec(const std::string_view expr)
     {
         char* numEnd = nullptr;
         vals[i] = std::strtoul(valStart, &numEnd, 10);
-        valStart = numEnd + 1;
-        while (std::isspace(*valStart))
+        // Should this check for the closing ')'?
+        if (i < numVals - 1)
         {
-            valStart++;
+            valStart = numEnd + 1;
+            while (std::isspace(static_cast<unsigned char>(*valStart)))
+            {
+                valStart++;
+            }
         }
     }
-    const float recip255 = 1.0f / 255.0f;
-    return vsg::vec4(vals[0] * recip255, vals[1] * recip255, vals[2] * recip255, vals[3] * recip255);
+    return vsg::vec4(vals[0], vals[1], vals[2], vals[3]) * (1.0f / 255.0f);
 }
 
 // Parse color expression from styling language
