@@ -57,6 +57,11 @@ namespace
     }
 }
 
+RuntimeEnvironment::RuntimeEnvironment()
+    : tracyContext(TracyContextValue::create())
+{
+}
+
 vsg::ref_ptr<vsg::Options> RuntimeEnvironment::initializeOptions(vsg::CommandLine &arguments,
                                                                  const vsg::ref_ptr<vsg::Options>& in_options)
 {
@@ -133,7 +138,6 @@ void RuntimeEnvironment::initializeCs(vsg::CommandLine& arguments)
     }
     generateShaderDebugInfo = arguments.read("--shader-debug-info");
     enableLodTransitionPeriod = arguments.read("--lod-transition");
-    tracyContext = TracyContextValue::create();
 
     bool tracyDefault = false;
 #ifdef TRACY_ENABLE
