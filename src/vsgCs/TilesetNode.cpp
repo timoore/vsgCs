@@ -33,6 +33,7 @@ SOFTWARE.
 #include "UrlAssetAccessor.h"
 
 #include <CesiumUtility/JsonHelpers.h>
+#include <Cesium3DTilesSelection/TilesetMetadata.h>
 
 #include <glm/vec2.hpp>
 #include <glm/vec3.hpp>
@@ -40,6 +41,7 @@ SOFTWARE.
 #include <optional>
 #include <cmath>
 #include <vsg/core/ref_ptr.h>
+#include <vsg/io/Logger.h>
 #include <vsg/io/Options.h>
 
 using namespace vsgCs;
@@ -509,6 +511,42 @@ namespace
                 overlay->addToTileset(tilesetNode);
             }
         }
+        // Exploration
+        tilesetNode->getTileset()->loadMetadata()
+            .thenInMainThread([source](const Cesium3DTilesSelection::TilesetMetadata* metadata)
+            {
+                std::string tilesetName;
+                if (source.url)
+                {
+                    tilesetName = *source.url;
+                }
+                else if (source.ionAssetID)
+                {
+                    tilesetName = "ion asset " + std::to_string(*source.ionAssetID);
+                }
+
+                if (metadata)
+                {
+                    vsg::debug(tilesetName + " has metadata.");
+                    if (metadata->schema)
+                    {
+                        vsg::debug(tilesetName + " has schema.");
+                    }
+                    if (metadata->schemaUri)
+                    {
+                        vsg::debug(tilesetName + " schema uri: " + *metadata->schemaUri);
+                    }
+                }
+                else
+                {
+                    vsg::debug("Tileset has no metadata?");
+                }
+            })
+            .catchInMainThread([](std::exception& e)
+            {
+                vsg::warn("exception getting metadata");
+            });
+
         return tilesetNode;
     }
 
