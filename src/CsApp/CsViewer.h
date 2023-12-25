@@ -24,7 +24,7 @@ SOFTWARE.
 
 #pragma once
 
-#include "vsgCs/Export.h"
+#include "Export.h"
 
 #include <vsg/app/Viewer.h>
 

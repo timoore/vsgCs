@@ -10,7 +10,7 @@ set(LIB_PUBLIC_HEADERS
   CsDebugColorizeTilesOverlay.h
   CsOverlay.h
   CesiumGltfBuilder.h
-  Export.h
+  ${CMAKE_CURRENT_BINARY_DIR}/Export.h
   GeoNode.h
   GeospatialServices.h
   GraphicsEnvironment.h
@@ -28,7 +28,6 @@ set(LIB_PUBLIC_HEADERS
 )
 
 set(SOURCES
-  ${LIB_PUBLIC_HEADERS}
   CRS.cpp
   CsDebugColorizeTilesOverlay.cpp
   CsOverlay.cpp
@@ -63,6 +62,7 @@ set_target_properties(${LIB_NAME} PROPERTIES
 )
 
 target_include_directories(${LIB_NAME} PRIVATE ${CURL_INCLUDE_DIRS})
+target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
 
 if(VSGCS_BUILD_SHARED_LIBS)
   target_compile_definitions(${LIB_NAME} PRIVATE VSGCS_LIBRARY)
@@ -74,9 +74,14 @@ endif()
 # for spdlog in FindCesium.cmake. Without it there all sorts of
 # multiple definition errors.
 
-target_compile_definitions(${LIB_NAME} PUBLIC SPDLOG_COMPILED_LIB)
-
-target_link_libraries(${LIB_NAME} PUBLIC vsg::vsg vsgImGui::vsgImGui Cesium3DTilesSelection CesiumGltfReader CesiumGltf spdlog PRIVATE CURL::libcurl PROJ::proj)
+target_link_libraries(${LIB_NAME} PUBLIC
+  vsg::vsg vsgImGui::vsgImGui Cesium3DTilesSelection CesiumGltfReader CesiumGltf)
+if(CESIUM_SPDLOG_HEADER_ONLY)
+  target_link_libraries(${LIB_NAME} PUBLIC spdlog::spdlog_header_only)
+else()
+  target_link_libraries(${LIB_NAME} PUBLIC spdlog)
+endif()
+target_link_libraries(${LIB_NAME} PRIVATE CURL::libcurl PROJ::proj)
 
 if(BUILD_TRACY)
   target_link_libraries(${LIB_NAME} PUBLIC Tracy::TracyClient)
@@ -92,3 +97,6 @@ install(TARGETS ${LIB_NAME} EXPORT vsgCsTargets
 if(WIN32)
   install(IMPORTED_RUNTIME_ARTIFACTS CURL::libcurl_shared)
 endif()
+
+include(GenerateExportHeader)
+generate_export_header(vsgCs EXPORT_FILE_NAME Export.h)
