@@ -33,6 +33,7 @@ SOFTWARE.
 
 #include "runtimeSupport.h"
 
+#include <vsg/maths/transform.h>
 #include <vsg/io/Logger.h>
 
 #include <CesiumGeospatial/Ellipsoid.h>
@@ -465,7 +466,7 @@ namespace vsgCs
 
         vsg::dmat4 getENU(const vsg::dvec3& coord) override
         {
-            return {};
+            return vsg::translate(coord);
         }
     };
 
