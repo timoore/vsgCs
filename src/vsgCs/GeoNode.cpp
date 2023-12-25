@@ -47,6 +47,12 @@ GeoNode::GeoNode(const std::string& crs)
 void GeoNode::setOrigin(const vsg::dvec3& origin)
 {
     matrix = _crs->getENU(origin);
+    _origin = origin;
+}
+
+vsg::dvec3 GeoNode::getOrigin() const
+{
+    return _origin;
 }
 
 // Try stepping back from runtime environment singleton by passing the environment as an argument.

@@ -42,8 +42,10 @@ namespace vsgCs
     public:
         GeoNode(const std::string& crs = "epsg:4979");
         void setOrigin(const vsg::dvec3& origin);
+        vsg::dvec3 getOrigin() const;
     protected:
         std::shared_ptr<CRS> _crs;
+        vsg::dvec3 _origin;
     };
 
     vsg::ref_ptr<vsg::StateGroup> VSGCS_EXPORT createModelRoot(const vsg::ref_ptr<RuntimeEnvironment>& env);
