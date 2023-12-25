@@ -542,7 +542,7 @@ namespace
                     vsg::debug("Tileset has no metadata?");
                 }
             })
-            .catchInMainThread([](std::exception& e)
+            .catchInMainThread([](std::exception&&)
             {
                 vsg::warn("exception getting metadata");
             });
