@@ -18,10 +18,11 @@ include("vsgCsMacros")
 # set the use of C++17 globally as all examples require it
 set(CMAKE_CXX_STANDARD 17)
 
-# template madness
-
 if (MSVC)
-    add_compile_options(/bigobj)
+  # template madness
+  add_compile_options(/bigobj)
+  # windows.h madness
+  add_compile_definitions(NOGDI)
 endif()
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
@@ -63,6 +64,7 @@ FetchContent_Declare(vsgImGui
 FetchContent_MakeAvailable(vsgImGui)
 
 # Wrangle Cesium's dependencies into shape i.e., install them!
+option(CESIUM_SPDLOG_HEADER_ONLY "Whether to use the header-only version of spdlog." OFF)
 option(GSL_INSTALL "Generate and install GSL target" ON)
 FetchContent_Declare(Cesium
   GIT_REPOSITORY https://github.com/timoore/cesium-native.git
