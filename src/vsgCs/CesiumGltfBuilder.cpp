@@ -41,9 +41,9 @@ SOFTWARE.
 #include <CesiumGltf/ExtensionTextureWebp.h>
 
 #include <CesiumGltfReader/GltfReader.h>
-#include <Cesium3DTilesSelection/GltfUtilities.h>
-#include <Cesium3DTilesSelection/RasterOverlayTile.h>
-#include <Cesium3DTilesSelection/RasterOverlay.h>
+#include <CesiumGltfContent/GltfUtilities.h>
+#include <CesiumRasterOverlays/RasterOverlayTile.h>
+#include <CesiumRasterOverlays/RasterOverlay.h>
 
 #include <vsg/utils/GraphicsPipelineConfigurator.h>
 #include <vsg/utils/ShaderSet.h>
@@ -251,8 +251,8 @@ vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::Tile
     Model& model = *pModel;
     glm::dmat4x4 rootTransform = transform;
 
-    rootTransform = Cesium3DTilesSelection::GltfUtilities::applyRtcCenter(model, rootTransform);
-    rootTransform = Cesium3DTilesSelection::GltfUtilities::applyGltfUpAxisTransform(model, rootTransform);
+    rootTransform = CesiumGltfContent::GltfUtilities::applyRtcCenter(model, rootTransform);
+    rootTransform = CesiumGltfContent::GltfUtilities::applyGltfUpAxisTransform(model, rootTransform);
     auto transformNode = vsg::MatrixTransform::create(glm2vsg(rootTransform));
     auto modelNode = load(pModel, modelOptions);
     auto tileStateGroup = vsg::StateGroup::create();
@@ -352,7 +352,7 @@ vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumGltf::ImageCes
 ModifyRastersResult CesiumGltfBuilder::attachRaster(const Cesium3DTilesSelection::Tile& tile,
                                                     const vsg::ref_ptr<vsg::Node>& node,
                                                     int32_t overlayTextureCoordinateID,
-                                                    const Cesium3DTilesSelection::RasterOverlayTile&,
+                                                    const CesiumRasterOverlays::RasterOverlayTile&,
                                                     void* pMainThreadRendererResources,
                                                     const glm::dvec2& translation,
                                                     const glm::dvec2& scale)
@@ -392,7 +392,7 @@ ModifyRastersResult
 CesiumGltfBuilder::detachRaster(const Cesium3DTilesSelection::Tile& tile,
                                 const vsg::ref_ptr<vsg::Node>& node,
                                 int32_t,
-                                const Cesium3DTilesSelection::RasterOverlayTile& rasterTile)
+                                const CesiumRasterOverlays::RasterOverlayTile& rasterTile)
 {
     ModifyRastersResult result;
     vsg::ref_ptr<Rasters> rasters = getOrCreateRasters(node);

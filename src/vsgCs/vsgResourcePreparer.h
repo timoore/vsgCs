@@ -92,23 +92,23 @@ namespace vsgCs
         void* prepareRasterInLoadThread(CesiumGltf::ImageCesium& image,
                                         const std::any& rendererOptions) override;
 
-        void* prepareRasterInMainThread(Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
+        void* prepareRasterInMainThread(CesiumRasterOverlays::RasterOverlayTile& rasterTile,
                                         void* rawLoadResult) override;
 
-        void freeRaster(const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
+        void freeRaster(const CesiumRasterOverlays::RasterOverlayTile& rasterTile,
                         void* pLoadThreadResult,
                         void* pMainThreadResult) noexcept override;
 
         void attachRasterInMainThread(const Cesium3DTilesSelection::Tile& tile,
                                       int32_t overlayTextureCoordinateID,
-                                      const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
+                                      const CesiumRasterOverlays::RasterOverlayTile& rasterTile,
                                       void* pMainThreadRendererResources,
                                       const glm::dvec2& translation,
                                       const glm::dvec2& scale) override;
 
         void detachRasterInMainThread(const Cesium3DTilesSelection::Tile& tile,
                                       int32_t overlayTextureCoordinateID,
-                                      const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
+                                      const CesiumRasterOverlays::RasterOverlayTile& rasterTile,
                                       void* pMainThreadRendererResources) noexcept override;
         vsg::observer_ptr<vsg::Viewer> viewer;
         vsg::ref_ptr<GraphicsEnvironment> genv;

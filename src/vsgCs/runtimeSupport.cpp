@@ -29,7 +29,7 @@ SOFTWARE.
 #include "runtimeSupport.h"
 #include "RuntimeEnvironment.h"
 
-#include <Cesium3DTilesSelection/registerAllTileContentTypes.h>
+#include <Cesium3DTilesContent/registerAllTileContentTypes.h>
 #include <Cesium3DTilesSelection/Tile.h>
 #include <CesiumAsync/IAssetResponse.h>
 #include <CesiumGltfReader/GltfReader.h>
@@ -39,7 +39,7 @@ namespace vsgCs
     using namespace Cesium3DTilesSelection;
     void startup()
     {
-        registerAllTileContentTypes();
+        Cesium3DTilesContent::registerAllTileContentTypes();
     }
 
     void shutdown()

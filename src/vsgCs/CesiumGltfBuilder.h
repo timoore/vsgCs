@@ -96,14 +96,14 @@ namespace vsgCs
         ModifyRastersResult attachRaster(const Cesium3DTilesSelection::Tile& tile,
                                          const vsg::ref_ptr<vsg::Node>& node,
                                          int32_t overlayTextureCoordinateID,
-                                         const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
+                                         const CesiumRasterOverlays::RasterOverlayTile& rasterTile,
                                          void* pMainThreadRendererResources,
                                          const glm::dvec2& translation,
                                          const glm::dvec2& scale);
         ModifyRastersResult detachRaster(const Cesium3DTilesSelection::Tile& tile,
                                          const vsg::ref_ptr<vsg::Node>& node,
                                          int32_t overlayTextureCoordinateID,
-                                         const Cesium3DTilesSelection::RasterOverlayTile& rasterTile);
+                                         const CesiumRasterOverlays::RasterOverlayTile& rasterTile);
         static vsg::ref_ptr<vsg::StateGroup> getTileStateGroup(const vsg::ref_ptr<vsg::Node>& node);
         static vsg::ref_ptr<vsg::Data> getTileData(const vsg::ref_ptr<vsg::Node>& node);
     protected:

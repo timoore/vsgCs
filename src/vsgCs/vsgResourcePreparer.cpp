@@ -29,7 +29,7 @@ SOFTWARE.
 #include "Styling.h"
 #include "Tracing.h"
 
-#include <Cesium3DTilesSelection/GltfUtilities.h>
+#include <CesiumGltfContent/GltfUtilities.h>
 #include <Cesium3DTilesSelection/Tile.h>
 #include <CesiumAsync/AsyncSystem.h>
 
@@ -230,7 +230,7 @@ vsgResourcePreparer::prepareRasterInLoadThread(CesiumGltf::ImageCesium& image,
 }
 
 void*
-vsgResourcePreparer::prepareRasterInMainThread(Cesium3DTilesSelection::RasterOverlayTile&,
+vsgResourcePreparer::prepareRasterInMainThread(CesiumRasterOverlays::RasterOverlayTile&,
                                                void* rawLoadResult)
 {
     VSGCS_ZONESCOPED;
@@ -245,7 +245,7 @@ vsgResourcePreparer::prepareRasterInMainThread(Cesium3DTilesSelection::RasterOve
 }
 
 void
-vsgResourcePreparer::freeRaster(const Cesium3DTilesSelection::RasterOverlayTile&,
+vsgResourcePreparer::freeRaster(const CesiumRasterOverlays::RasterOverlayTile&,
                                 void* loadThreadResult,
                                 void* mainThreadResult) noexcept
 {
@@ -293,7 +293,7 @@ void vsgResourcePreparer::compileAndDelete(ModifyRastersResult& result)
 void
 vsgResourcePreparer::attachRasterInMainThread(const Cesium3DTilesSelection::Tile& tile,
                                   int32_t overlayTextureCoordinateID,
-                                  const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
+                                  const CesiumRasterOverlays::RasterOverlayTile& rasterTile,
                                   void* pMainThreadRendererResources,
                                   const glm::dvec2& translation,
                                   const glm::dvec2& scale)
@@ -320,7 +320,7 @@ vsgResourcePreparer::attachRasterInMainThread(const Cesium3DTilesSelection::Tile
 void
 vsgResourcePreparer::detachRasterInMainThread(const Cesium3DTilesSelection::Tile& tile,
                                               int32_t overlayTextureCoordinateID,
-                                              const Cesium3DTilesSelection::RasterOverlayTile& rasterTile,
+                                              const CesiumRasterOverlays::RasterOverlayTile& rasterTile,
                                               void*) noexcept
 {
     VSGCS_ZONESCOPED;

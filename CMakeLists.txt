@@ -68,7 +68,7 @@ option(CESIUM_SPDLOG_HEADER_ONLY "Whether to use the header-only version of spdl
 option(GSL_INSTALL "Generate and install GSL target" ON)
 FetchContent_Declare(Cesium
   GIT_REPOSITORY https://github.com/timoore/cesium-native.git
-  GIT_TAG 383eabbe5966d6c4b40458a7498783bbc4b04e9d  # cmake-fixes
+  GIT_TAG 372701d882c42f29b7bf188d749627d29ced01d3  # cmake-fixes
   GIT_PROGRESS TRUE
 )
 

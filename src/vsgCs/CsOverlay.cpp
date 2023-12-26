@@ -28,7 +28,7 @@ SOFTWARE.
 #include "RuntimeEnvironment.h"
 #include "runtimeSupport.h"
 
-#include <Cesium3DTilesSelection/IonRasterOverlay.h>
+#include <CesiumRasterOverlays/IonRasterOverlay.h>
 #include <CesiumUtility/JsonHelpers.h>
 #include <vsg/all.h>
 
@@ -36,19 +36,19 @@ using namespace vsgCs;
 
 void CsOverlay::addToTileset(const vsg::ref_ptr<TilesetNode>& tilesetNode)
 {
-    Cesium3DTilesSelection::RasterOverlayOptions options{};
+    CesiumRasterOverlays::RasterOverlayOptions options{};
     options.maximumScreenSpaceError = this->MaximumScreenSpaceError;
     options.maximumSimultaneousTileLoads = this->MaximumSimultaneousTileLoads;
     options.maximumTextureSize = this->MaximumTextureSize;
     options.subTileCacheBytes = this->SubTileCacheBytes;
     options.showCreditsOnScreen = this->ShowCreditsOnScreen;
     options.loadErrorCallback =
-        [](const Cesium3DTilesSelection::RasterOverlayLoadFailureDetails&
+        [](const CesiumRasterOverlays::RasterOverlayLoadFailureDetails&
                  details) {
             assert(
                 int(details.type) <=
                 int(
-                    Cesium3DTilesSelection::RasterOverlayLoadType::TileProvider));
+                    CesiumRasterOverlays::RasterOverlayLoadType::TileProvider));
             vsg::warn(details.message);
         };
     options.rendererOptions = OverlayRendererOptions{layerNumber, alpha};
@@ -68,15 +68,15 @@ void CsOverlay::removeFromTileset(const vsg::ref_ptr<TilesetNode>& tilesetNode)
     _rasterOverlay = nullptr;
 }
 
-Cesium3DTilesSelection::RasterOverlay* CsIonRasterOverlay::createOverlay(
-            const Cesium3DTilesSelection::RasterOverlayOptions& options)
+CesiumRasterOverlays::RasterOverlay* CsIonRasterOverlay::createOverlay(
+            const CesiumRasterOverlays::RasterOverlayOptions& options)
 {
       if (this->IonAssetID <= 0)
       {
           // Don't create an overlay for an invalid asset ID.
           return nullptr;
       }
-      return new Cesium3DTilesSelection::IonRasterOverlay(
+      return new CesiumRasterOverlays::IonRasterOverlay(
           MaterialLayerKey,
           IonAssetID,
           IonAccessToken,

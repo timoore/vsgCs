@@ -25,15 +25,15 @@ SOFTWARE.
 #include "CsDebugColorizeTilesOverlay.h"
 
 #include "jsonUtils.h"
-#include <Cesium3DTilesSelection/DebugColorizeTilesRasterOverlay.h>
+#include <CesiumRasterOverlays/DebugColorizeTilesRasterOverlay.h>
 #include <CesiumUtility/JsonHelpers.h>
 
 using namespace vsgCs;
 
-Cesium3DTilesSelection::RasterOverlay* CsDebugColorizeTilesOverlay::createOverlay(
-    const Cesium3DTilesSelection::RasterOverlayOptions& options)
+CesiumRasterOverlays::RasterOverlay* CsDebugColorizeTilesOverlay::createOverlay(
+    const CesiumRasterOverlays::RasterOverlayOptions& options)
 {
-    return new Cesium3DTilesSelection::DebugColorizeTilesRasterOverlay(MaterialLayerKey, options);
+    return new CesiumRasterOverlays::DebugColorizeTilesRasterOverlay(MaterialLayerKey, options);
 }
 
 namespace vsgCs

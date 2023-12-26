@@ -395,7 +395,7 @@ std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> RuntimeEnvironment::ge
     }
     const CesiumAsync::AsyncSystem& asyncSystem = getAsyncSystem();
     auto resourcePreparer = std::make_shared<vsgResourcePreparer>(genv);
-    auto creditSystem = std::make_shared<Cesium3DTilesSelection::CreditSystem>();
+    auto creditSystem = std::make_shared<CesiumUtility::CreditSystem>();
     using TE = Cesium3DTilesSelection::TilesetExternals;
     return _externals
         = std::shared_ptr<TE>(new TE{assetAccessor, resourcePreparer, asyncSystem, creditSystem,

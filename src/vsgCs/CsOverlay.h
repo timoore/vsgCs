@@ -32,7 +32,7 @@ SOFTWARE.
 #define NOGDI
 #endif
 
-#include "Cesium3DTilesSelection/RasterOverlay.h"
+#include "CesiumRasterOverlays/RasterOverlay.h"
 #include "Export.h"
 #include "TilesetNode.h"
 
@@ -58,18 +58,18 @@ namespace vsgCs
         // have TilesetNode do this?
         void addToTileset(const vsg::ref_ptr<TilesetNode>& tilesetNode);
         void removeFromTileset(const vsg::ref_ptr<TilesetNode>& tilesetNode);
-        virtual Cesium3DTilesSelection::RasterOverlay* createOverlay(
-            const Cesium3DTilesSelection::RasterOverlayOptions& options = {}) = 0;
-        Cesium3DTilesSelection::RasterOverlay* getOverlay()
+        virtual CesiumRasterOverlays::RasterOverlay* createOverlay(
+            const CesiumRasterOverlays::RasterOverlayOptions& options = {}) = 0;
+        CesiumRasterOverlays::RasterOverlay* getOverlay()
         {
             return _rasterOverlay;
         }
-        const  Cesium3DTilesSelection::RasterOverlay* getOverlay() const
+        const  CesiumRasterOverlays::RasterOverlay* getOverlay() const
         {
             return _rasterOverlay;
         }
     protected:
-        Cesium3DTilesSelection::RasterOverlay* _rasterOverlay;
+        CesiumRasterOverlays::RasterOverlay* _rasterOverlay;
         int32_t _overlaysBeingDestroyed = 0;
     };
 
@@ -82,7 +82,7 @@ namespace vsgCs
         {}
         int64_t IonAssetID;
         std::string IonAccessToken;
-        Cesium3DTilesSelection::RasterOverlay* createOverlay(
-            const Cesium3DTilesSelection::RasterOverlayOptions& options) override;
+        CesiumRasterOverlays::RasterOverlay* createOverlay(
+            const CesiumRasterOverlays::RasterOverlayOptions& options) override;
     };
 }
