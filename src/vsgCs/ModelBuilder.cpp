@@ -750,10 +750,9 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         }
     };
     assignTexCoord("TEXCOORD_", 0);
-    if (isEnabled<Cs3DTilesExtension>())
-    {
-        assignTexCoord("_CESIUMOVERLAY_", 2);
-    }
+    // XXX The vertex shader assumes that the overlay texture coordinates exist, so we kinda need to
+    // bind something.
+    assignTexCoord("_CESIUMOVERLAY_", 2);
     vsg::ref_ptr<vsg::Command> drawCommand;
     if (indicesAccessor && !expansionIndices)
     {

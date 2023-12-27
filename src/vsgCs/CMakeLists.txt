@@ -13,6 +13,7 @@ set(LIB_PUBLIC_HEADERS
   ${CMAKE_CURRENT_BINARY_DIR}/Export.h
   GeoNode.h
   GeospatialServices.h
+  GltfLoader.h
   GraphicsEnvironment.h
   jsonUtils.h
   LoadGltfResult.h
@@ -35,6 +36,7 @@ set(SOURCES
   CompilableImage.cpp
   GeoNode.cpp
   GeospatialServices.cpp
+  GltfLoader.cpp
   GraphicsEnvironment.cpp
   jsonUtils.cpp
   ModelBuilder.cpp
