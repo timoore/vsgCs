@@ -66,14 +66,15 @@ FetchContent_MakeAvailable(vsgImGui)
 # Wrangle Cesium's dependencies into shape i.e., install them!
 option(CESIUM_SPDLOG_HEADER_ONLY "Whether to use the header-only version of spdlog." OFF)
 option(GSL_INSTALL "Generate and install GSL target" ON)
-FetchContent_Declare(Cesium
+# XXX Not ready for cesium-native as a package yet...
+FetchContent_Declare(cesium-native
   GIT_REPOSITORY https://github.com/timoore/cesium-native.git
-  GIT_TAG 372701d882c42f29b7bf188d749627d29ced01d3  # cmake-fixes
+  GIT_TAG 32309b09de1a9e0860e647fa4900c1491d74c85b  # cmake-fixes
   GIT_PROGRESS TRUE
 )
 
 message("Fetching cesium-native. This could take a while...")
-FetchContent_MakeAvailable(Cesium)
+FetchContent_MakeAvailable(cesium-native)
 
 find_package(PROJ REQUIRED)
 
