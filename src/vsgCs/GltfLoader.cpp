@@ -106,7 +106,14 @@ GltfLoader::read(const vsg::Path& path, vsg::ref_ptr<const vsg::Options> options
     auto absPath = std::filesystem::absolute(p);
     auto uriPath = "file://" + absPath.string();
     auto future = loadGltfNode(uriPath);
-    getAsyncSystem().dispatchMainThreadTasks();
+    if (isMainThread())
+    {
+        // Can't block the dispatch of main thread tasks
+        while (!future.isReady())
+        {
+            getAsyncSystem().dispatchMainThreadTasks();
+        }
+    }
 
     auto loadResult = future.wait();
 

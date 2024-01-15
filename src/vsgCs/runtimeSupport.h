@@ -336,4 +336,13 @@ namespace vsgCs
     std::string toLower(const std::string& input);
 
     std::string& replace_in_place(std::string& s, const std::string& sub, const std::string& other);
+
+    /** Returns true if code is running in the main thread i.e., the thread where cesium-native's
+     * dispatchMainThreadtasks() is called.
+     */
+    bool isMainThread();
+
+    /** Called in the thread that is in fact the main thread.
+     */
+    void setMainThread();
 }

@@ -526,5 +526,15 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMap
         return s;
     }
 
-}
+    static thread_local bool _isMainThread = false;
 
+    bool isMainThread()
+    {
+        return _isMainThread;
+    }
+
+    void setMainThread()
+    {
+        _isMainThread = true;
+    }
+}
