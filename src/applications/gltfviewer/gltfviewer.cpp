@@ -56,7 +56,6 @@ int main(int argc, char** argv)
     {
         auto span = vsg::length(bounds.max - bounds.min);
         auto group = vsg::Group::create();
-        group->addChild(scene);
 
         // ambient light
         if (add_amient)
