@@ -34,47 +34,69 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
+  SET(USE_FETCHCONTENT_DEFAULT ON)
+else()
+  SET(USE_FETCHCONTENT_DEFAULT OFF)
+endif()
+
+option(VSGCS_USE_FETCHCONTENT "Use FetchContent to build dependencies" ${USE_FETCHCONTENT_DEFAULT})
+
 set(VSG_MIN_VERSION 1.1.0)
 
-FetchContent_Declare(vsg
-  GIT_REPOSITORY https://github.com/vsg-dev/VulkanSceneGraph.git
-  GIT_TAG master
-  GIT_PROGRESS TRUE
-  FIND_PACKAGE_ARGS ${VSG_MIN_VERSION}
-)
+if(VSGCS_USE_FETCHCONTENT)
+  FetchContent_Declare(vsg
+    GIT_REPOSITORY https://github.com/vsg-dev/VulkanSceneGraph.git
+    GIT_TAG master
+    GIT_PROGRESS TRUE
+    FIND_PACKAGE_ARGS ${VSG_MIN_VERSION}
+  )
 
-FetchContent_MakeAvailable(vsg)
+  FetchContent_MakeAvailable(vsg)
+else()
+  find_package(vsg ${VSG_MIN_VERSION})
+endif()
+
 # find_package(vsg) includes vsgMacros
 if (vsg_SOURCE_DIR)
-  SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${vsg_SOURCE_DIR}/cmake")
-  include("vsgMacros")
+    SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${vsg_SOURCE_DIR}/cmake")
+    include("vsgMacros")
 endif()
 
 find_package(vsgXchange)
 
 set(VSGIMGUI_MIN_VERSION 0.1.0)
 
-FetchContent_Declare(vsgImGui
-  GIT_REPOSITORY https://github.com/vsg-dev/vsgImGui.git
-  GIT_TAG v0.1.0
-  GIT_PROGRESS TRUE
-  FIND_PACKAGE_ARGS ${VSGIMGUI_MIN_VERSION}
-)
+if(VSGCS_USE_FETCHCONTENT)
+  FetchContent_Declare(vsgImGui
+    GIT_REPOSITORY https://github.com/vsg-dev/vsgImGui.git
+    GIT_TAG v0.1.0
+    GIT_PROGRESS TRUE
+    FIND_PACKAGE_ARGS ${VSGIMGUI_MIN_VERSION}
+  )
 
-FetchContent_MakeAvailable(vsgImGui)
+  FetchContent_MakeAvailable(vsgImGui)
+else()
+  find_package(vsgImGui ${VSGIMGUI_MIN_VERSION})
+endif()
 
-# Wrangle Cesium's dependencies into shape i.e., install them!
-option(CESIUM_SPDLOG_HEADER_ONLY "Whether to use the header-only version of spdlog." OFF)
-option(GSL_INSTALL "Generate and install GSL target" ON)
-# XXX Not ready for cesium-native as a package yet...
-FetchContent_Declare(cesium-native
-  GIT_REPOSITORY https://github.com/timoore/cesium-native.git
-  GIT_TAG 32309b09de1a9e0860e647fa4900c1491d74c85b  # cmake-fixes
-  GIT_PROGRESS TRUE
-)
+if(VSGCS_USE_FETCHCONTENT)
+  # Wrangle Cesium's dependencies into shape i.e., install them!
+  option(CESIUM_SPDLOG_HEADER_ONLY "Whether to use the header-only version of spdlog." OFF)
+  option(GSL_INSTALL "Generate and install GSL target" ON)
+  # XXX Not ready for cesium-native as a package yet...
+  FetchContent_Declare(cesium-native
+    GIT_REPOSITORY https://github.com/timoore/cesium-native.git
+    GIT_TAG 32309b09de1a9e0860e647fa4900c1491d74c85b  # cmake-fixes
+    GIT_PROGRESS TRUE
+  )
 
-message("Fetching cesium-native. This could take a while...")
-FetchContent_MakeAvailable(cesium-native)
+  message("Fetching cesium-native. This could take a while...")
+  FetchContent_MakeAvailable(cesium-native)
+else()
+  # XXX This may not go well.
+  find_package(cesium-native)
+endif()
 
 find_package(PROJ REQUIRED)
 
