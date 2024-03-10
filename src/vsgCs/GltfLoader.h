@@ -50,5 +50,6 @@ namespace vsgCs
         CesiumAsync::Future<ReadGltfResult> loadGltfNode(std::string uri) const;
         vsg::ref_ptr<RuntimeEnvironment> env;
         CesiumGltfReader::GltfReader reader;
+        CesiumGltfReader::GltfReaderOptions readerOptions;
     };
 }

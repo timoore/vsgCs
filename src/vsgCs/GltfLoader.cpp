@@ -42,6 +42,7 @@ using namespace vsgCs;
 GltfLoader::GltfLoader(vsg::ref_ptr<RuntimeEnvironment> in_env)
     : env(in_env)
 {
+    readerOptions.ktx2TranscodeTargets = env->features.ktx2TranscodeTargets;
 }
 
 struct ParseGltfResult
@@ -74,7 +75,8 @@ CesiumAsync::Future<GltfLoader::ReadGltfResult> GltfLoader::loadGltfNode(std::st
 {
     std::vector<CesiumAsync::IAssetAccessor::THeader> headers;
     auto accessor = env-> getAssetAccessor();
-    return reader.loadGltf(getAsyncSystem(), uri, headers, accessor)
+    return reader.loadGltf(getAsyncSystem(), uri, headers, accessor,
+                           readerOptions)
         .thenInWorkerThread([this](CesiumGltfReader::GltfReaderResult&& gltfResult)
         {
             CreateModelOptions modelOptions{};

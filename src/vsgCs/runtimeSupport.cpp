@@ -376,22 +376,25 @@ namespace
     vsg::ref_ptr<vsg::Data>
     makeArray(uint32_t width, uint32_t height, void* data, vsg::Data::Properties in_properties)
     {
+        auto [block_width, block_height] = getBlockSize(in_properties.format);
+        auto mem_width = width / block_width;
+        auto mem_height = height / block_height;
         switch (in_properties.format)
         {
         case VK_FORMAT_R8_SRGB:
         case VK_FORMAT_R8_UNORM:
-            return vsg::ubyteArray2D::create(width, height,
+            return vsg::ubyteArray2D::create(mem_width, mem_height,
                                              reinterpret_cast<vsg::ubyteArray2D::value_type*>(data),
                                              in_properties);
         case VK_FORMAT_R8G8_SRGB:
         case VK_FORMAT_R8G8_UNORM:
-            return vsg::ubvec2Array2D::create(width, height,
+            return vsg::ubvec2Array2D::create(mem_width, mem_height,
                                              reinterpret_cast<vsg::ubvec2Array2D::value_type*>(data),
                                              in_properties);
 
         case VK_FORMAT_R8G8B8A8_SRGB:
         case VK_FORMAT_R8G8B8A8_UNORM:
-            return vsg::ubvec4Array2D::create(width, height,
+            return vsg::ubvec4Array2D::create(mem_width, mem_height,
                                              reinterpret_cast<vsg::ubvec4Array2D::value_type*>(data),
                                              in_properties);
         case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK:
@@ -402,7 +405,7 @@ namespace
         case VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG:
         case VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG:
         case VK_FORMAT_EAC_R11_UNORM_BLOCK:
-            return vsg::block64Array2D::create(width, height,
+            return vsg::block64Array2D::create(mem_width, mem_height,
                                                reinterpret_cast<vsg::block64Array2D::value_type*>(data),
                                                in_properties);
         case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
@@ -415,7 +418,7 @@ namespace
         case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
         case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
         case VK_FORMAT_EAC_R11G11_UNORM_BLOCK:
-            return vsg::block128Array2D::create(width, height,
+            return vsg::block128Array2D::create(mem_width, mem_height,
                                                 reinterpret_cast<vsg::block128Array2D::value_type*>(data),
                                                 in_properties);
         default:
