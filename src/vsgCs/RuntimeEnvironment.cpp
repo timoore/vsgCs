@@ -316,9 +316,12 @@ void RuntimeEnvironment::initGraphicsEnvironment(const vsg::ref_ptr<vsg::Device>
 {
     genv = GraphicsEnvironment::create(options, features, device);
     // Use the vsgCs shader set in vsgXchange
-    options->shaderSets["pbr"] = genv->shaderFactory->getShaderSet(MODEL, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
-    options->setValue("generate_sharp_normals", true);
-    options->setValue("sRGBTextures", true);
+    if (options->shaderSets.find("pbr") == options->shaderSets.end())
+    {
+        options->shaderSets["pbr"] = genv->shaderFactory->getShaderSet(MODEL, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST);
+        options->setValue("generate_sharp_normals", true);
+        options->setValue("sRGBTextures", true);
+    }
 }
 
 vsg::ref_ptr<vsg::Window> RuntimeEnvironment::openWindow(const std::string& name,

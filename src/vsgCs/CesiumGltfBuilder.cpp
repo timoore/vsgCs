@@ -218,7 +218,9 @@ vsg::ref_ptr<vsg::StateGroup> CesiumGltfBuilder::getTileStateGroup(const vsg::re
 vsg::ref_ptr<vsg::Data> CesiumGltfBuilder::getTileData(const vsg::ref_ptr<vsg::Node>& node)
 {
     auto tileSG = CesiumGltfBuilder::getTileStateGroup(node);
-    if (tileSG)
+    // How can state commands be empty? Seems like tiles can be in the updated view result and not
+    // be prepared yet ?!?
+    if (tileSG && !tileSG->stateCommands.empty())
     {
         // only 1 state command
         auto bindDesc = ref_ptr_cast<vsg::BindDescriptorSet>(tileSG->stateCommands[0]);
