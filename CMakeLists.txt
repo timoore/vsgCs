@@ -93,6 +93,13 @@ if(VSGCS_USE_FETCHCONTENT)
 
   message("Fetching cesium-native. This could take a while...")
   FetchContent_MakeAvailable(cesium-native)
+  target_compile_definitions(CesiumGltfReader PRIVATE
+    STB_IMAGE_STATIC
+    STB_IMAGE_RESIZE_STATIC)
+  target_compile_definitions(CesiumGltfContent PRIVATE
+    STB_IMAGE_RESIZE_STATIC
+    STB_IMAGE_RESIZE_IMPLEMENTATION
+    STB_IMAGE_WRITE_STATIC)
 else()
   # XXX This may not go well.
   find_package(cesium-native)
