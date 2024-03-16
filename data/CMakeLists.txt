@@ -1,5 +1,5 @@
 set(IMAGE_FILES
-  images/Cesium_ion_256.png)
+  images/LDR_LLL1_0.png)
 set(SHADER_FILES
   shaders/csstandard.vert
   shaders/cspoint.vert
