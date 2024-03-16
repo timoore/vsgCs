@@ -452,7 +452,8 @@ namespace vsgCs
     public:
         virtual vsg::dvec3 getECEF(const vsg::dvec3& coord) = 0;
         virtual vsg::dmat4 getENU(const vsg::dvec3& coord) = 0;
-
+        // The inverse operation
+        virtual vsg::dvec3 getCRSCoord(const vsg::dvec3& ecef) = 0;
     };
 
     // A no-op CRS. Either the coordinates are ECEF (x, y, z), or there isn't actually a globe.
@@ -468,14 +469,20 @@ namespace vsgCs
         {
             return vsg::translate(coord);
         }
-    };
 
+        vsg::dvec3 getCRSCoord(const vsg::dvec3& ecef) override
+        {
+            return ecef;
+        }
+    };
+    
     // Bog-standard WGS84 longitude, latitude, height to ECEF
     class EPSG4979 : public CRS::ConversionOperation
     {
     public:
         vsg::dvec3 getECEF(const vsg::dvec3& coord) override;
         vsg::dmat4 getENU(const vsg::dvec3& coord) override;
+        vsg::dvec3 getCRSCoord(const vsg::dvec3& ecef) override;
     };
 
 
@@ -494,6 +501,17 @@ namespace vsgCs
         return localMat;
     }
 
+    vsg::dvec3 EPSG4979::getCRSCoord(const vsg::dvec3& ecef)
+    {
+        using namespace CesiumGeospatial;
+        auto result = Ellipsoid::WGS84.cartesianToCartographic(vsg2glm(ecef));
+        if (!result)
+        {
+            return {0.0, 0.0, 0.0};
+        }
+        return {result->longitude, result->latitude, result->height};
+    }
+    
     // The meat of vsgCs::CRS: conversion operations implemented by PROJ. The actual PROJ operation
     // will need a thread context.
 
@@ -509,14 +527,9 @@ namespace vsgCs
 
         vsg::dvec3 getECEF(const vsg::dvec3& coord) override
         {
-            auto handle = g_srs_factory.get_or_create_operation(sourceCRS, "ecef");
-            if (!handle)
-            {
-                throw std::runtime_error("can't create conversion from " + sourceCRS + " to ECEF.");
-            }
-            proj_errno_reset((PJ*)handle);
-            PJ_COORD out = proj_trans((PJ*)handle, PJ_FWD, PJ_COORD{ coord.x, coord.y, coord.z });
-            int err = proj_errno((PJ*)handle);
+            auto handle = getHandle();
+            PJ_COORD out = proj_trans(handle, PJ_FWD, PJ_COORD{ coord.x, coord.y, coord.z });
+            int err = proj_errno(handle);
             vsg::dvec3 result(0.0, 0.0, 0.0);
             if (err != 0)
             {
@@ -540,15 +553,45 @@ namespace vsgCs
                                                  1.0, ellipsoid);
             return glm2vsg(lhcs.getLocalToEcefTransformation());
         }
+
+        vsg::dvec3 getCRSCoord(const vsg::dvec3& ecef) override
+        {
+            auto handle = getHandle();
+            PJ_COORD out = proj_trans(handle, PJ_INV, PJ_COORD{ ecef.x, ecef.y, ecef.z });
+            int err = proj_errno(handle);
+            vsg::dvec3 result(0.0, 0.0, 0.0);
+            if (err != 0)
+            {
+                throw std::runtime_error(std::string("PROJ error: ") + proj_errno_string(err));
+            }
+            else
+            {
+                result.set(out.xyz.x, out.xyz.y, out.xyz.z);
+            }
+            return result;
+        }
+
+    protected:
+        PJ* getHandle()
+        {
+            auto handle = g_srs_factory.get_or_create_operation(sourceCRS, "ecef");
+            if (!handle)
+            {
+                throw std::runtime_error("can't create conversion from " + sourceCRS + " to ECEF.");
+            }
+            proj_errno_reset(handle);
+            return handle;
+        }
     };
 
     CRS::CRS(const std::string& name)
+        : _name(name)
     {
         if (name == "epsg:4978" || name == "null")
         {
             _converter = std::make_shared<EPSG4978>();
         }
-        if (name == "epsg:4979" || name == "wgs84")
+        else if (name == "epsg:4979" || name == "wgs84")
         {
             _converter = std::make_shared<EPSG4979>();
         }

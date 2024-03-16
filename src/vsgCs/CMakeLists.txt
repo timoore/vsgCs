@@ -25,6 +25,7 @@ set(LIB_PUBLIC_HEADERS
   TilesetNode.h
   vsgResourcePreparer.h
   runtimeSupport.h
+  WorldAnchor.h
   WorldNode.h
 )
 
@@ -50,6 +51,7 @@ set(SOURCES
   runtimeSupport.cpp
   vsgResourcePreparer.cpp
   pbr.cpp
+  WorldAnchor.cpp
   WorldNode.cpp
 )
 

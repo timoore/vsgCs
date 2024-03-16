@@ -1,6 +1,6 @@
 /* <editor-fold desc="MIT License">
 
-Copyright(c) 2023 Timothy Moore
+Copyright(c) 2024 Timothy Moore
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,44 +24,36 @@ SOFTWARE.
 
 #pragma once
 
-/* A Coordinate Reference System, or CRS.
-   Very much like osgEarth's SRS (Spatial Reference System), but we choose a
-   synonym to avoid too much confusion. Also, we mostly care about going from geographic or
-   projected coordinates to Earth Centered Earth Fixed (ECEF) and back again.
-
-   A CRS' main function is to convert from its own coordinates to ECEF coordinates and calculate an
-   East North Up (ENU) tangent plane at that point.
-
-   It's assumed that the 3D tiles use the WGS84-based Cartesian system (EPSG
-   4979). It would be good to look at the tileset metadata and use the
-   TILESET_CRS_GEOCENTRIC, if any.
- */
-
+#include "CRS.h"
 #include "Export.h"
 
 #include <vsg/maths/vec3.h>
-#include <vsg/maths/mat4.h>
+#include <vsg/nodes/MatrixTransform.h>
 
-#include <memory>
 #include <string>
 
 namespace vsgCs
 {
-    class VSGCS_EXPORT CRS
+    // A node that serves as a parent to the world node, in order to bring the world into an
+    // application's coordinate system.
+    // crs - Coordinate Reference System
+    // in_worldOrigin : The geographic or projected coordinates of the world origin
+    // in_localOrigin :  The Cartesion coordinates that the world origin will have
+    //
+    // Specifying these two origins allows us to use round Earth terrain in an area of interest with
+    // minimized error
+
+    class VSGCS_EXPORT WorldAnchor : public vsg::Inherit<vsg::MatrixTransform, WorldAnchor>
     {
     public:
-    CRS(const std::string& name);
-    vsg::dvec3 getECEF(const vsg::dvec3& coord);
-    // Also known as "localToWorld"; is that a better name for any reason?
-    vsg::dmat4 getENU(const vsg::dvec3& coord);
-    vsg::dvec3 getCRSCoord(const vsg::dvec3& ecef);
-    const std::string& getName() const
-    {
-        return _name;
-    }
-    class ConversionOperation;
-    protected:
-    std::shared_ptr<ConversionOperation> _converter;
-    std::string _name;
+        WorldAnchor(const std::string& crs,
+                    const vsg::dvec3& in_worldOrigin,
+                    const vsg::dvec3& in_localOrigin = vsg::dvec3(0.0, 0.0, 0.0));
+        std::shared_ptr<CRS> crs;
+        const vsg::dvec3 worldOrigin;
+        const vsg::dvec3 localOrigin;
+        // The Earth North Up transform for the anchor point i.e., the inverse of the matrix transform.
+        vsg::dmat4 enu;
     };
 }
+

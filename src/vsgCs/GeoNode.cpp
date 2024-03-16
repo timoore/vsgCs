@@ -39,14 +39,29 @@ SOFTWARE.
 
 using namespace vsgCs;
 
-GeoNode::GeoNode(const std::string& crs)
+GeoNode::GeoNode(const std::string& crs, vsg::ref_ptr<WorldAnchor> worldAnchor)
+    : _worldAnchor(worldAnchor)
 {
     _crs = std::make_shared<CRS>(crs);
 }
 
+GeoNode::GeoNode(const std::shared_ptr<CRS>& crs, vsg::ref_ptr<WorldAnchor> worldAnchor)
+    : _crs(crs), _worldAnchor(worldAnchor)
+{
+}
+
 void GeoNode::setOrigin(const vsg::dvec3& origin)
 {
-    matrix = _crs->getENU(origin);
+    vsg::ref_ptr<WorldAnchor> ref_worldAnchor = _worldAnchor;
+    if (ref_worldAnchor)
+    {
+        auto enu = _crs->getENU(origin);
+        matrix = ref_worldAnchor->matrix * enu;
+    }
+    else
+    {
+        matrix = _crs->getENU(origin);
+    }
     _origin = origin;
 }
 
@@ -75,6 +90,11 @@ vsg::ref_ptr<vsg::StateGroup> vsgCs::createModelRoot(const vsg::ref_ptr<RuntimeE
     auto result = vsg::StateGroup::create();
     result->add(bindViewDescriptorSets);
     return result;
+}
+
+void GeoNode::setCRS(const std::string& crs)
+{
+    _crs = std::make_shared<CRS>(crs);
 }
 
 namespace
