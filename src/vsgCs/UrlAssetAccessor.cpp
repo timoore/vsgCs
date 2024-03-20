@@ -189,31 +189,6 @@ UrlAssetAccessor::~UrlAssetAccessor()
     curl_global_cleanup();
 }
 
-class CurlHandle
-{
-public:
-    explicit CurlHandle(UrlAssetAccessor* in_accessor)
-        : _accessor(in_accessor)
-
-    {
-        _curl = _accessor->curlCache.get();
-    }
-
-    ~CurlHandle()
-    {
-        _accessor->curlCache.release(_curl);
-    }
-
-    CURL* operator()() const
-    {
-        return _curl;
-    }
-
-private:
-    UrlAssetAccessor* _accessor;
-    CURL* _curl;
-};
-
 template <typename TC>
 curl_slist* setCommonOptions(CURL* curl, const std::string& url, const std::string& userAgent,
                              const TC& headers)
