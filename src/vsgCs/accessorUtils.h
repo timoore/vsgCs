@@ -28,6 +28,9 @@ SOFTWARE.
 
 #include <vsg/io/Logger.h>
 
+#include <limits>
+#include <type_traits>
+
 namespace vsgCs
 {
     // Convenience functions for accessing the elements of values in a vsg::Array, whether they are
@@ -145,17 +148,25 @@ namespace vsgCs
         return result;
     }
 
-    template<typename S, typename D>
+    template<typename D, typename S>
     D normalize(S val)
     {
-        return static_cast<D>(val * (1.0 / std::numeric_limits<S>::max()));
+        if constexpr (std::is_unsigned_v<S>)
+        {
+            return static_cast<D>(val) / std::numeric_limits<S>::max();
+        }
+        else
+        {
+            return std::max(static_cast<D>(val) / std::numeric_limits<S>::max(),
+                            static_cast<D>(-1));
+        }
     }
 
     template<typename TV, typename TA>
     vsg::ref_ptr<vsg::Data> createNormalized(const CesiumGltf::AccessorView<TA>& accessorView)
     {
         return createArrayAndTransform(accessorView,
-                                       normalize<typename AccessorViewTraits<TA>::element_type, TV>);
+                                       normalize<TV, typename AccessorViewTraits<TA>::element_type>);
 
     }
 
@@ -163,7 +174,7 @@ namespace vsgCs
     vsg::ref_ptr<vsg::Data> createNormalized(const CesiumGltf::AccessorView<TA>& accessorView, const CesiumGltf::AccessorView<TI>& indicesView)
     {
         return createArrayAndTransform(accessorView, indicesView,
-                                       normalize<typename AccessorViewTraits<TA>::element_type, TV>);
+                                       normalize<TV, typename AccessorViewTraits<TA>::element_type>);
 
     }
 

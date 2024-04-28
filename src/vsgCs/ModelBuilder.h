@@ -32,6 +32,8 @@ SOFTWARE.
 #include <vsg/io/Logger.h>
 #include <vsg/utils/GraphicsPipelineConfigurator.h>
 
+#include <array>
+
 namespace vsgCs
 {
     class Styling;
@@ -103,9 +105,12 @@ namespace vsgCs
         ~ModelBuilder();
         vsg::ref_ptr<vsg::Group> operator()();
         vsg::ref_ptr<vsg::Group> loadNode(const CesiumGltf::Node* node);
-        vsg::ref_ptr<vsg::Group> loadMesh(const CesiumGltf::Mesh* mesh);
+        using InstanceData = std::array<vsg::ref_ptr<vsg::vec4Array>, 3>;
+        vsg::ref_ptr<vsg::Group> loadMesh(const CesiumGltf::Mesh* mesh,
+                                          const InstanceData* instanceData = nullptr);
         vsg::ref_ptr<vsg::Node> loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
-                                              const CesiumGltf::Mesh* mesh = nullptr);
+                                              const CesiumGltf::Mesh* mesh = nullptr,
+                                              const InstanceData* instanceData = nullptr);
         struct CsMaterial;
         vsg::ref_ptr<CsMaterial> loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopology topology);
         vsg::ref_ptr<CsMaterial> loadMaterial(int i, VkPrimitiveTopology topology);

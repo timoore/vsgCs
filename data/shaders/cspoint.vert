@@ -15,7 +15,7 @@ layout(push_constant) uniform PushConstants {
 layout(location = 0) in vec3 vsg_Vertex;
 layout(location = 1) in vec3 vsg_Normal;
 layout(location = 2) in vec4 vsg_Color;
-layout(location = 4) in vec2 vsg_TexCoord[4];
+layout(location = 3) in vec2 vsg_TexCoord[4];
 
 layout(location = 0) out vec3 eyePos;
 layout(location = 1) out vec3 normalDir;
