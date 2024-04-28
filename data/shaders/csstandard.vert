@@ -2,7 +2,7 @@
 #extension GL_ARB_separate_shader_objects : enable
 #extension GL_GOOGLE_include_directive : enable 
 
-#pragma import_defines (VSG_INSTANCE_POSITIONS, VSG_DISPLACEMENT_MAP, VSGCS_FLAT_SHADING, VSGCS_BILLBOARD_NORMAL)
+#pragma import_defines (VSGCS_INSTANCES, VSG_DISPLACEMENT_MAP, VSGCS_FLAT_SHADING, VSGCS_BILLBOARD_NORMAL)
 
 #include "descriptor_defs.glsl"
 
@@ -18,10 +18,10 @@ layout(set = PRIMITIVE_DESCRIPTOR_SET, binding = 6) uniform sampler2D displaceme
 layout(location = 0) in vec3 vsg_Vertex;
 layout(location = 1) in vec3 vsg_Normal;
 layout(location = 2) in vec4 vsg_Color;
-#ifdef VSG_INSTANCE_POSITIONS
-layout(location = 3) in vec3 vsg_position;
+layout(location = 3) in vec2 vsg_TexCoord[4];
+#ifdef VSGCS_INSTANCES
+layout(location = 7) in mat3x4 vsgcs_InstanceMat;
 #endif
-layout(location = 4) in vec2 vsg_TexCoord[4];
 
 layout(location = 0) out vec3 eyePos;
 #ifdef VSGCS_FLAT_SHADING
@@ -84,8 +84,9 @@ void main()
     vec4 normal = vec4(vsg_Normal, 0.0);
     displaceGeometry(vsg_Vertex, vsg_Normal, vertex.xyz, normal.xyz);
 
-#ifdef VSG_INSTANCE_POSITIONS
-   vertex.xyz = vertex.xyz + vsg_position;
+#ifdef VSGCS_INSTANCES
+   vertex.xyz = transpose(vsgcs_InstanceMat) * vertex;
+   normal.xyz = transpose(vsgcs_InstanceMat) * normal; // XXX
 #endif
 
     gl_Position = (pc.projection * pc.modelView) * vertex;

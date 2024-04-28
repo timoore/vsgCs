@@ -32,13 +32,19 @@ SOFTWARE.
 #include "TracingCommandGraph.h"
 
 #include <CesiumGltf/ExtensionKhrTextureBasisu.h>
+#include <CesiumGltf/ExtensionExtMeshGpuInstancing.h>
 #include <CesiumGltf/ExtensionTextureWebp.h>
+
+#include <vsg/maths/transform.h>
 
 #include <algorithm>
 #include <iterator>
 
 using namespace vsgCs;
 using namespace CesiumGltf;
+
+std::array<vsg::ref_ptr<vsg::vec4Array>, 3> makeInstanceData(const Model& model,
+                                                             const ExtensionExtMeshGpuInstancing* pGpuInstancing);
 
 const std::string &Cs3DTilesExtension::getExtensionName() const
 {
@@ -247,7 +253,17 @@ ModelBuilder::loadNode(const CesiumGltf::Node* node)
 
     if (safeIndex(_model->meshes, node->mesh))
     {
-        result->addChild(loadMesh(&_model->meshes[node->mesh]));
+        InstanceData instanceData;
+        if (const auto* pGpuInstancingExtension =
+            node->getExtension<ExtensionExtMeshGpuInstancing>())
+        {
+            instanceData = makeInstanceData(*_model, pGpuInstancingExtension);
+            result->addChild(loadMesh(&_model->meshes[node->mesh], &instanceData));
+        }
+        else
+        {
+            result->addChild(loadMesh(&_model->meshes[node->mesh]));
+        }
     }
     for (int childNodeId : node->children)
     {
@@ -260,7 +276,7 @@ ModelBuilder::loadNode(const CesiumGltf::Node* node)
 }
 
 vsg::ref_ptr<vsg::Group>
-ModelBuilder::loadMesh(const CesiumGltf::Mesh* mesh)
+ModelBuilder::loadMesh(const CesiumGltf::Mesh* mesh, const InstanceData* instanceData)
 {
     auto result = vsg::Group::create();
     int primNum = 0;
@@ -268,7 +284,7 @@ ModelBuilder::loadMesh(const CesiumGltf::Mesh* mesh)
     {
         for (const CesiumGltf::MeshPrimitive& primitive : mesh->primitives)
         {
-            result->addChild(loadPrimitive(&primitive, mesh));
+            result->addChild(loadPrimitive(&primitive, mesh, instanceData));
             ++primNum;
         }
     }
@@ -611,9 +627,159 @@ namespace
     };
 }
 
+// Helpers for different instancing rotation formats
+
+template <typename T> struct is_float_quat : std::false_type {};
+
+template <>
+struct is_float_quat<CesiumGltf::AccessorTypes::VEC4<float>> : std::true_type {
+};
+
+template <typename T> struct is_int_quat : std::false_type {};
+
+template <typename T>
+struct is_int_quat<CesiumGltf::AccessorTypes::VEC4<T>>
+    : std::conjunction<std::is_integral<T>, std::is_signed<T>> {};
+
+template <typename T>
+inline constexpr bool is_float_quat_v = is_float_quat<T>::value;
+
+template <typename T>
+inline constexpr bool is_int_quat_v = is_int_quat<T>::value;
+
+// Create 3x4 (transposed 4x3) instance matrices from
+// ExtMeshGpuInstancing data vsg::ShaderSet et al. isn't up to the
+// task of binding the matrix data from one buffer, so we return three
+// arrays -- the columns of the matrices.
+std::array<vsg::ref_ptr<vsg::vec4Array>, 3>
+makeInstanceData(const Model& model,
+                 const ExtensionExtMeshGpuInstancing* pGpuInstancing)
+{
+    auto getInstanceAccessor = [&](const char* name) -> const Accessor*
+        {
+            if (auto accessorItr = pGpuInstancing->attributes.find(name);
+                accessorItr != pGpuInstancing->attributes.end())
+            {
+                return Model::getSafe(&model.accessors, accessorItr->second);
+            }
+            return nullptr;
+        };
+    const Accessor* translations = getInstanceAccessor("TRANSLATION");
+    const Accessor* rotations = getInstanceAccessor("ROTATION");
+    const Accessor* scales = getInstanceAccessor("SCALE");
+
+    int64_t count = 0;
+    if (translations)
+    {
+        count = translations->count;
+    }
+    if (rotations)
+    {
+        if (count == 0)
+        {
+            count = rotations->count;
+        }
+        else if (count != rotations->count)
+        {
+            vsg::warn("instance rotation count not consistent");
+            return {};
+        }
+    }
+    if (scales)
+    {
+        if (count == 0)
+        {
+            count = scales->count;
+        }
+        else if (count != scales->count)
+        {
+            vsg::warn("instance scale count not consistent");
+            return {};
+        }
+    }
+    if (count == 0)
+    {
+        vsg::warn("No valid instance data");
+        return {};
+    }
+    ModelBuilder::InstanceData result{vsg::vec4Array::create(count),
+            vsg::vec4Array::create(count),
+            vsg::vec4Array::create(count)};
+    std::vector<vsg::mat4> scratch(count);
+
+    if (translations)
+    {
+        // XXX Need to verify float scalar3.
+        AccessorView<CesiumGltf::AccessorTypes::VEC3<float>> translationAccessor(
+            model,
+            *translations);
+        for (int i = 0; i < count; ++i)
+        {
+            scratch[i] = vsg::translate(translationAccessor[i].value[0],
+                                        translationAccessor[i].value[1],
+                                        translationAccessor[i].value[2]);
+        }
+    }
+    if (rotations)
+    {
+        createAccessorView(model, *rotations, [&](auto&& quatView) -> void
+        {
+            using QuatType = decltype(quatView[0]);
+            using ValueType = std::decay_t<QuatType>;
+            if constexpr (is_float_quat_v<ValueType>)
+            {
+                for (int i = 0; i < count; ++i)
+                {
+                    scratch[i] = scratch[i]
+                        * vsg::rotate(vsg::quat(quatView[i].value[0],
+                                                quatView[i].value[1],
+                                                quatView[i].value[2],
+                                                quatView[i].value[3]));
+                }
+            }
+            else if constexpr (is_int_quat_v<ValueType>)
+            {
+                for (int i = 0; i < count; ++i)
+                {
+                    vsg::quat quatVal;
+                    for (int j = 0; j < 4; ++j)
+                    {
+                        quatVal.value[j] = normalize<float>(quatView[i].value[j]);
+                    }
+                    scratch[i] = scratch[i] * vsg::rotate(quatVal);
+                }
+            }
+        });
+    }
+    if (scales)
+    {
+        // XXX Need to Verify float scalar3.
+        AccessorView<CesiumGltf::AccessorTypes::VEC3<float>> scaleAccessor(
+            model,
+            *scales);
+        for (int i = 0; i < count; ++i)
+        {
+            scratch[i] = scratch[i] * vsg::scale(scaleAccessor[i].value[0],
+                                                 scaleAccessor[i].value[1],
+                                                 scaleAccessor[i].value[2]);
+        }
+    }
+    for (int i = 0; i < count; ++i)
+    {
+        for (int j = 0; j < 3; ++j)
+        {
+            vsg::vec4 row(scratch[i](0, j), scratch[i](1, j), scratch[i](2, j), scratch[i](3, j));
+            (*result[j])[i] = row;
+        }
+    }
+    return result;
+}
+
+
 vsg::ref_ptr<vsg::Node>
 ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
-                            const CesiumGltf::Mesh* mesh)
+                            const CesiumGltf::Mesh* mesh,
+                            const ModelBuilder::InstanceData* instanceData)
 {
     const Accessor* pPositionAccessor = getAccessor(_model, primitive, "POSITION");
     if (!pPositionAccessor)
@@ -753,6 +919,18 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     // XXX The vertex shader assumes that the overlay texture coordinates exist, so we kinda need to
     // bind something.
     assignTexCoord("_CESIUMOVERLAY_", 2);
+    uint32_t instanceCount = 1;
+    if (instanceData)
+    {
+        instanceCount = static_cast<uint32_t>((*instanceData)[0]->size());
+        pipelineConf->shaderHints->defines.insert("VSGCS_INSTANCES");
+        pipelineConf->assignArray(vertexArrays, "vsg_instance0", VK_VERTEX_INPUT_RATE_INSTANCE,
+                                  (*instanceData)[0]);
+        pipelineConf->assignArray(vertexArrays, "vsg_instance1", VK_VERTEX_INPUT_RATE_INSTANCE,
+                                  (*instanceData)[1]);
+        pipelineConf->assignArray(vertexArrays, "vsg_instance2", VK_VERTEX_INPUT_RATE_INSTANCE,
+                                  (*instanceData)[2]);
+    }
     vsg::ref_ptr<vsg::Command> drawCommand;
     if (indicesAccessor && !expansionIndices)
     {
@@ -761,7 +939,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         vid->assignArrays(vertexArrays);
         vid->assignIndices(indices);
         vid->indexCount = static_cast<uint32_t>(indices->valueCount());
-        vid->instanceCount = 1;
+        vid->instanceCount = instanceCount;
         drawCommand = vid;
     }
     else
@@ -769,7 +947,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         auto vd = vsg::VertexDraw::create();
         vd->assignArrays(vertexArrays);
         vd->vertexCount = static_cast<uint32_t>(positions->valueCount());
-        vd->instanceCount = 1;
+        vd->instanceCount = instanceCount;
         drawCommand = vd;
     }
     drawCommand->setValue("name", name);
