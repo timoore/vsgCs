@@ -81,12 +81,14 @@ void displaceGeometry(vec3 vertex, vec3 normal, out vec3 newVertex, out vec3 new
 void main()
 {
     vec4 vertex = vec4(vsg_Vertex, 1.0);
-    vec4 normal = vec4(vsg_Normal, 0.0);
-    displaceGeometry(vsg_Vertex, vsg_Normal, vertex.xyz, normal.xyz);
+    vec3 normal = vsg_Normal;
+    displaceGeometry(vsg_Vertex, vsg_Normal, vertex.xyz, normal);
 
 #ifdef VSGCS_INSTANCES
-   vertex.xyz = transpose(vsgcs_InstanceMat) * vertex;
-   normal.xyz = transpose(vsgcs_InstanceMat) * normal; // XXX
+   mat4x3 instanceMat = transpose(vsgcs_InstanceMat);
+   mat3 instanceNormalMat = inverse(mat3(vsgcs_InstanceMat));
+   vertex.xyz = instanceMat * vertex;
+   normal = instanceNormalMat * normal;
 #endif
 
     gl_Position = (pc.projection * pc.modelView) * vertex;
@@ -97,7 +99,8 @@ void main()
 #ifdef VSGCS_BILLBOARD_NORMAL
     normalDir = eyePos;         // -viewDir
 #else
-    normalDir = (pc.modelView * normal).xyz;
+    mat3 normalMat = inverse(transpose(mat3(pc.modelView)));
+    normalDir = (normalMat * normal);
 #endif
     vertexColor = vsg_Color;
     for (int i = 0; i < 4; i++)
