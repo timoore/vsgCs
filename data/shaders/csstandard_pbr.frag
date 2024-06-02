@@ -460,7 +460,7 @@ void main()
             vec4 shadowMapSettings = lightData.values[index++];
 
             float brightness = lightColor.a;
-
+#if 0
             // check shadow maps if required
             bool matched = false;
             while ((shadowMapSettings.r > 0.0 && brightness > brightnessCutoff) && !matched)
@@ -500,7 +500,7 @@ void main()
                 index += 4 * int(shadowMapSettings.r);
                 shadowMapIndex += int(shadowMapSettings.r);
             }
-
+#endif
             // if light is too dim/shadowed to effect the rendering skip it
             if (brightness <= brightnessCutoff ) continue;
 

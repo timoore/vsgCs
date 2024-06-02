@@ -52,8 +52,8 @@ void CsViewer::handleEvents()
     }
 }
 
-bool CsViewer::advanceToNextFrame()
+bool CsViewer::advanceToNextFrame(double simulationTime)
 {
     VSGCS_ZONESCOPED;
-    return Inherit::advanceToNextFrame();
+    return Inherit::advanceToNextFrame(simulationTime);
 }

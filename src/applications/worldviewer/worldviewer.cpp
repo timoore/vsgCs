@@ -133,7 +133,9 @@ int main(int argc, char** argv)
             }
         }
         bool useHeadlight = arguments.read({"--headlight"});
+#if 0
         auto shadowMaps = arguments.value<uint32_t>(0, "--shadow-maps");
+#endif
         auto maxShadowDistance = arguments.value<double>(10000.0, "--sd");
         bool debugManipulator = arguments.read({"--debug-manipulator"});
 
@@ -162,7 +164,9 @@ int main(int argc, char** argv)
             vsg::vec3 noon( -.9397, 0.0, -.340);
             vsg::vec3 atTime = hourRot * noon;
             directionalLight->direction.set(atTime.x, atTime.y, atTime.z);
+#if 0
             directionalLight->shadowMaps = shadowMaps;
+#endif
             vsg_scene->addChild(directionalLight);
         }
         vsg::ref_ptr<vsg::StateGroup> modelRoot;
