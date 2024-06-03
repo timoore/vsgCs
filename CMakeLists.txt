@@ -87,7 +87,7 @@ if(VSGCS_USE_FETCHCONTENT)
   # XXX Not ready for cesium-native as a package yet...
   FetchContent_Declare(cesium-native
     GIT_REPOSITORY https://github.com/timoore/cesium-native.git
-    GIT_TAG 32309b09de1a9e0860e647fa4900c1491d74c85b  # cmake-fixes
+    GIT_TAG cd4fec62444edf356083f64519de8da1cef4b5b2  # cmake-fixes
     GIT_PROGRESS TRUE
   )
 
