@@ -87,19 +87,12 @@ if(VSGCS_USE_FETCHCONTENT)
   # XXX Not ready for cesium-native as a package yet...
   FetchContent_Declare(cesium-native
     GIT_REPOSITORY https://github.com/timoore/cesium-native.git
-    GIT_TAG cd4fec62444edf356083f64519de8da1cef4b5b2  # cmake-fixes
+    GIT_TAG 791a85712cbbb22ef7cd8f13498997d45b108546 # cmake-fixes
     GIT_PROGRESS TRUE
   )
 
   message("Fetching cesium-native. This could take a while...")
   FetchContent_MakeAvailable(cesium-native)
-  target_compile_definitions(CesiumGltfReader PRIVATE
-    STB_IMAGE_STATIC
-    STB_IMAGE_RESIZE_STATIC)
-  target_compile_definitions(CesiumGltfContent PRIVATE
-    STB_IMAGE_RESIZE_STATIC
-    STB_IMAGE_RESIZE_IMPLEMENTATION
-    STB_IMAGE_WRITE_STATIC)
 else()
   # XXX This may not go well.
   find_package(cesium-native)

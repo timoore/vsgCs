@@ -521,7 +521,7 @@ Stylist::PrimitiveStyling Stylist::getStyling(const CesiumGltf::MeshPrimitive *p
     auto fIDIter = std::find_if(primExtFeatureMetadata->featureIds.begin(),
                                 primExtFeatureMetadata->featureIds.end(),
                                 [this](auto&& fid) {
-                                    return fid.propertyTable && *fid.propertyTable == propertyTableID;
+                                    return fid.propertyTable >= 0 && fid.propertyTable == propertyTableID;
                                     });
     if (fIDIter == primExtFeatureMetadata->featureIds.end())
     {
