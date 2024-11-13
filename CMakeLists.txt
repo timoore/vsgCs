@@ -40,7 +40,7 @@ else()
   SET(USE_FETCHCONTENT_DEFAULT OFF)
 endif()
 
-option(VSGCS_USE_FETCHCONTENT "Use FetchContent to build dependencies" ${USE_FETCHCONTENT_DEFAULT})
+option(VSGCS_USE_FETCHCONTENT "Use FetchContent to build dependencies" OFF)
 
 set(VSG_MIN_VERSION 1.1.0)
 
@@ -54,7 +54,7 @@ if(VSGCS_USE_FETCHCONTENT)
 
   FetchContent_MakeAvailable(vsg)
 else()
-  find_package(vsg ${VSG_MIN_VERSION})
+  find_package(vsg ${VSG_MIN_VERSION} REQUIRED)
 endif()
 
 # find_package(vsg) includes vsgMacros
@@ -77,7 +77,7 @@ if(VSGCS_USE_FETCHCONTENT)
 
   FetchContent_MakeAvailable(vsgImGui)
 else()
-  find_package(vsgImGui ${VSGIMGUI_MIN_VERSION})
+  find_package(vsgImGui ${VSGIMGUI_MIN_VERSION} REQUIRED)
 endif()
 
 if(VSGCS_USE_FETCHCONTENT)
@@ -95,7 +95,7 @@ if(VSGCS_USE_FETCHCONTENT)
   FetchContent_MakeAvailable(cesium-native)
 else()
   # XXX This may not go well.
-  find_package(cesium-native)
+  find_package(cesium-native REQUIRED)
 endif()
 
 find_package(PROJ REQUIRED)

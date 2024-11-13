@@ -1,0 +1,15 @@
+{
+    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+    "name": "vsgcs",
+    "version": "1.0.0",
+    "dependencies": [
+        "vcpkg-cmake",
+        "vcpkg-cmake-config",
+        "cesium-native",
+        "proj",
+        "vsg",
+        "vsgxchange",
+        "vsgimgui"
+    ]
+}
+
