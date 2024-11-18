@@ -14,7 +14,6 @@
         "spdlog",
         "stb",
         "uriparser",
-        "abseil",
         "draco",
         "ktx",
         "modp-base64",

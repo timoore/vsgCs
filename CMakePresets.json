@@ -3,11 +3,20 @@
   "configurePresets": [
     {
       "name": "vcpkg",
-       "binaryDir": "${sourceDir}/build",
+      "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
-          "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-          "VCPKG_MANIFEST_MODE": true,
-          "VCPKG_OVERLAY_PORTS": "extern/vcpkg-overlays/"
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_OVERLAY_PORTS": "extern/vcpkg-overlays/",
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "vcpkg-debug",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_OVERLAY_PORTS": "extern/vcpkg-overlays/",
+        "CMAKE_BUILD_TYPE": "Debug"
       }
     }
   ]
