@@ -326,12 +326,12 @@ vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumTextureSource&
                                                             bool useMipMaps,
                                                             bool sRGB)
 {
-    CesiumGltf::ImageCesium* pImage =
+    CesiumGltf::ImageAsset* pImage =
         std::visit(GetImageFromSource{}, imageSource);
     return loadTexture(*pImage, addressX, addressY, minFilter, maxFilter, useMipMaps, sRGB);
 }
 
-vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumGltf::ImageCesium& image,
+vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumGltf::ImageAsset& image,
                                                             VkSamplerAddressMode addressX,
                                                             VkSamplerAddressMode addressY,
                                                             VkFilter minFilter,

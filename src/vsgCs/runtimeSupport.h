@@ -159,7 +159,7 @@ namespace vsgCs
      */
     struct GltfImagePtr
     {
-        CesiumGltf::ImageCesium* pImage;
+        CesiumGltf::ImageAsset* pImage;
     };
 
     /**
@@ -177,7 +177,7 @@ namespace vsgCs
      */
     struct EmbeddedImageSource
     {
-        CesiumGltf::ImageCesium image;
+        CesiumGltf::ImageAsset image;
     };
 
     typedef std::variant<
@@ -188,18 +188,18 @@ namespace vsgCs
 
     struct GetImageFromSource
     {
-        CesiumGltf::ImageCesium*
+        CesiumGltf::ImageAsset*
         operator()(GltfImagePtr& imagePtr) {
             return imagePtr.pImage;
         }
 
-        CesiumGltf::ImageCesium*
+        CesiumGltf::ImageAsset*
         operator()(EmbeddedImageSource& embeddedImage) {
             return &embeddedImage.image;
         }
 
         template <typename TSource>
-        CesiumGltf::ImageCesium* operator()(TSource& /*source*/) {
+        CesiumGltf::ImageAsset* operator()(TSource& /*source*/) {
             return nullptr;
         }
     };
@@ -220,7 +220,7 @@ namespace vsgCs
      * This returns vsg::Data because the vsg::Array2D template class does not have a more specific
      * superclass.
      */
-    vsg::ref_ptr<vsg::Data> VSGCS_EXPORT loadImage(CesiumGltf::ImageCesium& image, bool useMipMaps, bool sRGB);
+    vsg::ref_ptr<vsg::Data> VSGCS_EXPORT loadImage(CesiumGltf::ImageAsset& image, bool useMipMaps, bool sRGB);
 
     int samplerLOD(const vsg::ref_ptr<vsg::Data>& data, bool generateMipMaps);
 

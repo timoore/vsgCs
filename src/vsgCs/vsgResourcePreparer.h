@@ -89,7 +89,7 @@ namespace vsgCs
                   void* pLoadThreadResult,
                   void* pMainThreadResult) noexcept override;
 
-        void* prepareRasterInLoadThread(CesiumGltf::ImageCesium& image,
+        void* prepareRasterInLoadThread(CesiumGltf::ImageAsset& image,
                                         const std::any& rendererOptions) override;
 
         void* prepareRasterInMainThread(CesiumRasterOverlays::RasterOverlayTile& rasterTile,

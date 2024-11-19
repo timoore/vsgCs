@@ -1109,7 +1109,7 @@ ModelBuilder::operator()()
 
 vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRGB)
 {
-    CesiumGltf::ImageCesium& image = _model->images[i].cesium;
+    auto image = _model->images[i].pAsset;
     ImageData& imageData = _loadedImages[i];
     if ((imageData.image.valid() || imageData.imageWithMipmap.valid())
         && sRGB != imageData.sRGB)
@@ -1124,7 +1124,7 @@ vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRG
     {
         return imageData.image;
     }
-    auto data = vsgCs::loadImage(image, useMipMaps, sRGB);
+    auto data = vsgCs::loadImage(*image, useMipMaps, sRGB);
     imageData.sRGB = sRGB;
     if (useMipMaps)
     {

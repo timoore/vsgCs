@@ -78,7 +78,7 @@ namespace vsgCs
                                          const CreateModelOptions& options);
         AttachTileDataResult attachTileData(Cesium3DTilesSelection::Tile& tile,
                                             const vsg::ref_ptr<vsg::Node>& node);
-        vsg::ref_ptr<vsg::ImageInfo> loadTexture(CesiumGltf::ImageCesium& image,
+        vsg::ref_ptr<vsg::ImageInfo> loadTexture(CesiumGltf::ImageAsset& image,
                                                  VkSamplerAddressMode addressX,
                                                  VkSamplerAddressMode addressY,
                                                  VkFilter minFilter,

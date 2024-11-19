@@ -32,7 +32,7 @@ SOFTWARE.
 #include <Cesium3DTilesContent/registerAllTileContentTypes.h>
 #include <Cesium3DTilesSelection/Tile.h>
 #include <CesiumAsync/IAssetResponse.h>
-#include <CesiumGltfReader/GltfReader.h>
+#include <CesiumGltfReader/ImageDecoder.h>
 
 namespace vsgCs
 {
@@ -169,8 +169,8 @@ namespace vsgCs
     {
         auto env = RuntimeEnvironment::get();
         CesiumGltfReader::ImageReaderResult result
-            = CesiumGltfReader::GltfReader::readImage(data, env->features.ktx2TranscodeTargets);
-        if (!result.image.has_value())
+            = CesiumGltfReader::ImageDecoder::readImage(data, env->features.ktx2TranscodeTargets);
+        if (!result.pImage)
         {
             vsg::warn("Could not read image data :");
             for (auto& msg : result.errors)
@@ -179,7 +179,7 @@ namespace vsgCs
             }
             return {};
         }
-        auto imageData = loadImage(result.image.value(), useMipMaps, sRGB);
+        auto imageData = loadImage(*result.pImage, useMipMaps, sRGB);
         auto sampler = makeSampler(addressX, addressY, minFilter, maxFilter,
                                    samplerLOD(imageData, useMipMaps));
         env->options->sharedObjects->share(sampler);
@@ -281,7 +281,7 @@ namespace vsgCs
 
 namespace
 {
-    VkFormat cesiumToVk(const CesiumGltf::ImageCesium& image, bool sRGB)
+    VkFormat cesiumToVk(const CesiumGltf::ImageAsset& image, bool sRGB)
     {
         using namespace CesiumGltf;
         auto chooseSRGB = [sRGB](VkFormat sRGBFormat, VkFormat normFormat)
@@ -426,7 +426,7 @@ namespace
         }
     }
 
-    void* rgbExpand(CesiumGltf::ImageCesium& image)
+    void* rgbExpand(CesiumGltf::ImageAsset& image)
     {
         VSGCS_ZONESCOPED;
         size_t sourceSize = image.pixelData.size();
@@ -453,7 +453,7 @@ namespace
 namespace vsgCs
 {
 
-vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageCesium& image, bool useMipMaps, bool sRGB)
+vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageAsset& image, bool useMipMaps, bool sRGB)
 {
     VSGCS_ZONESCOPED;
     if (image.pixelData.empty() || image.width == 0 || image.height == 0)

@@ -205,7 +205,7 @@ void vsgResourcePreparer::free(Cesium3DTilesSelection::Tile&,
 }
 
 void*
-vsgResourcePreparer::prepareRasterInLoadThread(CesiumGltf::ImageCesium& image,
+vsgResourcePreparer::prepareRasterInLoadThread(CesiumGltf::ImageAsset& image,
                                                const std::any& rendererOptions)
 {
     VSGCS_ZONESCOPED;
