@@ -99,6 +99,9 @@ else()
 endif()
 
 find_package(PROJ REQUIRED)
+find_package(imgui REQUIRED)
+find_package(tinyxml2 REQUIRED)
+find_package(spdlog REQUIRED)
 
 if (RUN_CLANG_TIDY)
   find_program(CLANG_TIDY_EXE NAMES "clang-tidy")

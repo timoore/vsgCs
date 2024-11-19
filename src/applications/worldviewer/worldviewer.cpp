@@ -35,7 +35,7 @@ SOFTWARE.
 
 #include <vsgImGui/RenderImGui.h>
 #include <vsgImGui/SendEventsToImGui.h>
-#include <vsgImGui/imgui.h>
+#include <imgui.h>
 
 #include <gsl/util>
 

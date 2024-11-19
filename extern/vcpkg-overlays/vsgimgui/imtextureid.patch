@@ -1,0 +1,12 @@
+diff --git a/include/vsgImGui/Export.h b/include/vsgImGui/Export.h
+index f6a3b2e..adf159c 100644
+--- a/include/vsgImGui/Export.h
++++ b/include/vsgImGui/Export.h
+@@ -39,4 +39,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ #define IMPLOT_API VSGIMGUI_DECLSPEC
+ 
+ #include <vulkan/vulkan.h>
+-#define ImTextureID VkDescriptorSet
++
++typedef void* vsgimguiImTextureID;
++#define ImTextureID vsgimguiImTextureID

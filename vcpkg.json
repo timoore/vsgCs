@@ -1,15 +1,26 @@
 {
-    "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
-    "name": "vsgcs",
-    "version": "1.0.0",
-    "dependencies": [
-        "vcpkg-cmake",
-        "vcpkg-cmake-config",
-        "cesium-native",
-        "proj",
-        "vsg",
-        "vsgxchange",
-        "vsgimgui"
-    ]
+  "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
+  "name": "vsgcs",
+  "version": "1.0.0",
+  "dependencies": [
+    "vcpkg-cmake",
+    "vcpkg-cmake-config",
+    "cesium-native",
+    {
+      "name": "imgui",
+      "features": [
+        "vulkan-binding"
+      ]
+    },
+    {
+      "name": "proj",
+      "default-features": false
+    },
+    "spdlog",
+    "tinyxml2",
+    "vsg",
+    "vsgxchange",
+    "vsgimgui"
+  ]
 }
 

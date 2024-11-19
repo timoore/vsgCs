@@ -24,7 +24,7 @@ SOFTWARE.
 
 #include <vsg/all.h>
 #include <vsgImGui/Texture.h>
-#include <vsgImGui/imgui.h>
+#include <imgui.h>
 
 #include "CreditComponent.h"
 #include "vsgCs/Config.h"

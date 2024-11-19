@@ -29,7 +29,7 @@ else()
   target_compile_definitions(${LIB_NAME} PUBLIC VSGCS_LIBRARY_STATIC)
 endif()
 
-target_link_libraries(${LIB_NAME} PUBLIC vsgCs vsg::vsg vsgImGui::vsgImGui Cesium3DTilesSelection CesiumGltfReader CesiumGltf tinyxml2)
+target_link_libraries(${LIB_NAME} PUBLIC vsgCs vsg::vsg vsgImGui::vsgImGui Cesium3DTilesSelection CesiumGltfReader CesiumGltf tinyxml2::tinyxml2 imgui::imgui)
 
 if(BUILD_TRACY)
   target_link_libraries(${LIB_NAME} PUBLIC Tracy::TracyClient)

@@ -83,7 +83,7 @@ target_link_libraries(${LIB_NAME} PUBLIC
 if(CESIUM_SPDLOG_HEADER_ONLY)
   target_link_libraries(${LIB_NAME} PUBLIC spdlog::spdlog_header_only)
 else()
-  target_link_libraries(${LIB_NAME} PUBLIC spdlog)
+  target_link_libraries(${LIB_NAME} PUBLIC spdlog::spdlog)
 endif()
 target_link_libraries(${LIB_NAME} PRIVATE CURL::libcurl PROJ::proj)
 
