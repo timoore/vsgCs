@@ -98,9 +98,5 @@ install(TARGETS ${LIB_NAME} EXPORT vsgCsTargets
   PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIB_NAME}"
   )
 
-if(WIN32)
-  install(IMPORTED_RUNTIME_ARTIFACTS CURL::libcurl_shared)
-endif()
-
 include(GenerateExportHeader)
 generate_export_header(vsgCs EXPORT_FILE_NAME Export.h)

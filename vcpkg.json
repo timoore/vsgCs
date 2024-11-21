@@ -6,6 +6,7 @@
     "vcpkg-cmake",
     "vcpkg-cmake-config",
     "cesium-native",
+    "curl",
     {
       "name": "imgui",
       "features": [
@@ -21,6 +22,23 @@
     "vsg",
     "vsgxchange",
     "vsgimgui"
-  ]
+  ],
+  "vcpkg-configuration": {
+    "default-registry": {
+      "kind": "git",
+      "baseline": "9b5cb8e554487f3edb5d50b80188883846f81e14",
+      "repository": "https://github.com/microsoft/vcpkg"
+    },
+    "registries": [
+      {
+        "kind": "artifact",
+        "location": "https://github.com/microsoft/vcpkg-ce-catalog/archive/refs/heads/main.zip",
+        "name": "microsoft"
+      }
+    ],
+    "overlay-ports": [
+      "extern/vcpkg-overlays"
+    ]
+  }
 }
 
