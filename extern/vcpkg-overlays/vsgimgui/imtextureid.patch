@@ -1,12 +1,25 @@
 diff --git a/include/vsgImGui/Export.h b/include/vsgImGui/Export.h
-index f6a3b2e..adf159c 100644
+index f6a3b2e..05884c5 100644
 --- a/include/vsgImGui/Export.h
 +++ b/include/vsgImGui/Export.h
-@@ -39,4 +39,6 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+@@ -39,4 +39,8 @@ CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  #define IMPLOT_API VSGIMGUI_DECLSPEC
  
  #include <vulkan/vulkan.h>
 -#define ImTextureID VkDescriptorSet
-+
-+typedef void* vsgimguiImTextureID;
-+#define ImTextureID vsgimguiImTextureID
++namespace vsgImGui
++{
++    typedef unsigned long long ImTextureID_t;
++}
++#define ImTextureID vsgImGui::ImTextureID_t
+diff --git a/src/vsgImGui/Texture.cpp b/src/vsgImGui/Texture.cpp
+index ca5e3d7..31a268b 100644
+--- a/src/vsgImGui/Texture.cpp
++++ b/src/vsgImGui/Texture.cpp
+@@ -84,5 +84,5 @@ void Texture::compile(vsg::Context& context)
+ 
+ ImTextureID Texture::id(uint32_t deviceID) const
+ {
+-    return descriptorSet ? static_cast<ImTextureID>(descriptorSet->vk(deviceID)) : ImTextureID{};
++    return descriptorSet ? reinterpret_cast<ImTextureID>(descriptorSet->vk(deviceID)) : ImTextureID{};
+ }
