@@ -440,7 +440,7 @@ Stylist::Stylist(Styling* in_styling, ModelBuilder* builder)
     {
         return;
     }
-    std::optional<Schema> schema = metadata->schema;
+    auto schema = metadata->schema;
     if (!schema)
     {
         return;
@@ -548,7 +548,8 @@ Stylist::PrimitiveStyling Stylist::getStyling(const CesiumGltf::MeshPrimitive *p
             for (int i = 0; i < featureView.size(); ++i)
             {
                 auto featureIDNum = featureView[i].value[0];
-                if ((featureID.nullFeatureId && featureIDNum == *featureID.nullFeatureId)
+                if ((featureID.nullFeatureId && static_cast<int64_t>(featureIDNum)
+                     == *featureID.nullFeatureId)
                     || !featureColors.at(static_cast<size_t>(featureIDNum)))
                 {
                     (*result)[i] = colorWhite;

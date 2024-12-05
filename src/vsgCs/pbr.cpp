@@ -33,7 +33,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace vsgCs::pbr
 {
     vsg::ref_ptr<vsg::Data> makeTileData(float geometricError, float maxPointSize,
-                                         const gsl::span<OverlayParams> overlayUniformMem,
+                                         const std::span<OverlayParams> overlayUniformMem,
                                          float fadeValue, bool fadeOut)
     {
         // All this hair with memcpy is to avoid using reinterpret_cast with a struct, apparently

@@ -3,7 +3,7 @@
   "configurePresets": [
     {
       "name": "vcpkg-debug",
-      "binaryDir": "${sourceDir}/build",
+      "binaryDir": "${sourceDir}/build-debug",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
         "CMAKE_BUILD_TYPE": "Debug"
@@ -12,6 +12,7 @@
     {
       "name": "vcpkg",
       "inherits": "vcpkg-debug",
+      "binaryDir": "${sourceDir}/build-release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
@@ -48,5 +49,5 @@
       "configurePreset": "Windows-Devel-Release",
       "configuration": "Release"
     }
-    ]
+  ]
 }

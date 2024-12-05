@@ -208,7 +208,7 @@ namespace vsgCs
      * @brief Create an image from binary data.
      */
     vsg::ref_ptr<vsg::ImageInfo> VSGCS_EXPORT
-    makeImage(gsl::span<const std::byte> data, bool useMipMaps, bool sRGB,
+    makeImage(std::span<const std::byte> data, bool useMipMaps, bool sRGB,
               VkSamplerAddressMode addressX = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
               VkSamplerAddressMode addressY = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
               VkFilter minFilter = VK_FILTER_LINEAR,

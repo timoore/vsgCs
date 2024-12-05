@@ -43,7 +43,7 @@ namespace vsgCs
         const unsigned maxOverlays = 4;
 
         vsg::ref_ptr<vsg::Data> makeTileData(float geometricError, float maxPointSize,
-                                             const gsl::span<OverlayParams> overlayUniformMem,
+                                             const std::span<OverlayParams> overlayUniformMem,
                                              float fadeValue = 1.0f, bool fadeOut = false);
         // Flesh out this API  a bit?
         std::pair<float, bool> getFadeValue(const vsg::ref_ptr<vsg::Data>& tileData);
