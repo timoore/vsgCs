@@ -1,8 +1,8 @@
 vcpkg_from_github(
         OUT_SOURCE_PATH SOURCE_PATH
         REPO timoore/cesium-native
-        REF 67336f4c3183bd1e27298a44b88b9bb90badb5f8
-        SHA512 5e2967b5341593d17b8062f8f2e80265797d55e57f1f7983b497b5c32faf4dad33ab3c1637b18ae1a1e54502b2c4e9ae13bd6de2ff855687080771529344f737
+        REF 6c1b1edd4ee388f6372dcfe1c33de6839696e5b4
+        SHA512 1dd74feefe20dc0363c42f5b1a03d271de5d37cc86078ecc1090fa1c3517284c04ee0ae9f6c622f2b6391a48bccbf59a9b0f342e4e21f33a78c1cb85845b8b98
         HEAD_REF vcpkg-pkg
         )
 

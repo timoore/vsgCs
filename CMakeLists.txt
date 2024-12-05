@@ -15,8 +15,8 @@ SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${vsgCs_SOURCE_DIR}/CMakeModules")
 
 include("vsgCsMacros")
 
-# set the use of C++17 globally as all examples require it
-set(CMAKE_CXX_STANDARD 17)
+# set the use of C++20 as Cesium Native requires it
+set(CMAKE_CXX_STANDARD 20)
 
 if (MSVC)
   # template madness

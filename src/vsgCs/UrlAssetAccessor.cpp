@@ -52,7 +52,7 @@ public:
         return _headers;
     }
     
-    gsl::span<const std::byte> data() const override
+    std::span<const std::byte> data() const override
     {
         return {const_cast<const std::byte*>(_result.data()), _result.size()};
     }
@@ -263,7 +263,7 @@ UrlAssetAccessor::request(const CesiumAsync::AsyncSystem& asyncSystem,
                           const std::string& verb,
                           const std::string& url,
                           const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers,
-                          const gsl::span<const std::byte>& contentPayload)
+                          const std::span<const std::byte>& contentPayload)
 {
     return asyncSystem.createFuture<std::shared_ptr<CesiumAsync::IAssetRequest>>(
         [&](const auto& promise)

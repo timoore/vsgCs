@@ -109,7 +109,7 @@ namespace vsgCs
                 const std::string& verb,
                 const std::string& url,
                 const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers,
-                const gsl::span<const std::byte>& contentPayload) override;
+                const std::span<const std::byte>& contentPayload) override;
 
         virtual void tick() noexcept override;
         CurlCache curlCache;

@@ -161,7 +161,7 @@ namespace vsgCs
         return result;
     }
 
-    vsg::ref_ptr<vsg::ImageInfo> makeImage(gsl::span<const std::byte> data, bool useMipMaps, bool sRGB,
+    vsg::ref_ptr<vsg::ImageInfo> makeImage(std::span<const std::byte> data, bool useMipMaps, bool sRGB,
                                            VkSamplerAddressMode addressX,
                                            VkSamplerAddressMode addressY,
                                            VkFilter minFilter,
