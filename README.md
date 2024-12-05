@@ -77,6 +77,9 @@ application (worldviewer) on Linux:
 The `cmake` part may take a long time to download the Cesium Native library and its dependencies. If
 you encounter a git error, see [the install instructions](INSTALL.md) for possible workarounds.
 
+## vcpkg
+
+Install `xorg-macros`, `xproto`, xcb-proto`, `libXdmcp-devel`, `libXau-devel`
 ---
 
 
