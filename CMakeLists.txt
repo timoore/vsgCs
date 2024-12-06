@@ -1,9 +1,7 @@
 cmake_minimum_required(VERSION 3.22)
 
-include(FetchContent)
-
 project(vsgCs
-    VERSION 0.2.0
+    VERSION 0.9.0
     DESCRIPTION "VSG library for rendering 3D Tiles and Cesium ion assets"
     LANGUAGES CXX C
 )
@@ -34,28 +32,9 @@ if (VULKAN_SDK)
     set(ENV{VULKAN_SDK} ${VULKAN_SDK})
 endif()
 
-if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.24)
-  SET(USE_FETCHCONTENT_DEFAULT ON)
-else()
-  SET(USE_FETCHCONTENT_DEFAULT OFF)
-endif()
-
-option(VSGCS_USE_FETCHCONTENT "Use FetchContent to build dependencies" OFF)
-
 set(VSG_MIN_VERSION 1.1.0)
 
-if(VSGCS_USE_FETCHCONTENT)
-  FetchContent_Declare(vsg
-    GIT_REPOSITORY https://github.com/vsg-dev/VulkanSceneGraph.git
-    GIT_TAG master
-    GIT_PROGRESS TRUE
-    FIND_PACKAGE_ARGS ${VSG_MIN_VERSION}
-  )
-
-  FetchContent_MakeAvailable(vsg)
-else()
-  find_package(vsg ${VSG_MIN_VERSION} REQUIRED)
-endif()
+find_package(vsg ${VSG_MIN_VERSION} REQUIRED)
 
 # find_package(vsg) includes vsgMacros
 if (vsg_SOURCE_DIR)
@@ -67,36 +46,9 @@ find_package(vsgXchange)
 
 set(VSGIMGUI_MIN_VERSION 0.1.0)
 
-if(VSGCS_USE_FETCHCONTENT)
-  FetchContent_Declare(vsgImGui
-    GIT_REPOSITORY https://github.com/vsg-dev/vsgImGui.git
-    GIT_TAG v0.1.0
-    GIT_PROGRESS TRUE
-    FIND_PACKAGE_ARGS ${VSGIMGUI_MIN_VERSION}
-  )
+find_package(vsgImGui ${VSGIMGUI_MIN_VERSION} REQUIRED)
 
-  FetchContent_MakeAvailable(vsgImGui)
-else()
-  find_package(vsgImGui ${VSGIMGUI_MIN_VERSION} REQUIRED)
-endif()
-
-if(VSGCS_USE_FETCHCONTENT)
-  # Wrangle Cesium's dependencies into shape i.e., install them!
-  option(CESIUM_SPDLOG_HEADER_ONLY "Whether to use the header-only version of spdlog." OFF)
-  option(GSL_INSTALL "Generate and install GSL target" ON)
-  # XXX Not ready for cesium-native as a package yet...
-  FetchContent_Declare(cesium-native
-    GIT_REPOSITORY https://github.com/timoore/cesium-native.git
-    GIT_TAG 791a85712cbbb22ef7cd8f13498997d45b108546 # cmake-fixes
-    GIT_PROGRESS TRUE
-  )
-
-  message("Fetching cesium-native. This could take a while...")
-  FetchContent_MakeAvailable(cesium-native)
-else()
-  # XXX This may not go well.
-  find_package(cesium-native REQUIRED)
-endif()
+find_package(cesium-native REQUIRED)
 
 find_package(PROJ REQUIRED)
 find_package(imgui REQUIRED)

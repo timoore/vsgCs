@@ -1,16 +1,8 @@
 # Build and Installation
 
 ## Prerequisites
-vsgCs uses the `FetchContent` package of `cmake` to download most
-dependencies. This is convenient for casual users, but might be too
-inflexible if you want to use your own version of those
-dependencies. You can force `FetchContent` to use the source code in a
-certain location by setting the corresponding
-`FETCHCONTENT_SOURCE_DIR_` variable e.g., to use your own version of
-Cesium Native sources, set `FETCHCONTENT_SOURCE_DIR_CESIUM`.
 
-These dependencies are not downloaded via `FetchContent` and should be
-installed manually:
+These dependencies and should be installed manually:
 
 - `libcurl` This is best installed via a package manager.
 - the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) from LunarG. Follow installation instructions
