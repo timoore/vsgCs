@@ -32,7 +32,7 @@ SOFTWARE.
 #include <Cesium3DTilesSelection/Tileset.h>
 #include <gsl/span>
 
-#include "Export.h"
+#include "vsgCs/Export.h"
 #include "runtimeSupport.h"
 #include "jsonUtils.h"
 

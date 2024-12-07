@@ -33,7 +33,7 @@ SOFTWARE.
 #include <vsg/io/Options.h>
 #include <vsg/state/DescriptorSetLayout.h>
 
-#include "Export.h"
+#include "vsgCs/Export.h"
 #include "GraphicsEnvironment.h"
 #include "ModelBuilder.h"
 #include "RuntimeEnvironment.h"

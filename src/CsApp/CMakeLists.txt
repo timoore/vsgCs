@@ -29,6 +29,8 @@ else()
   target_compile_definitions(${LIB_NAME} PUBLIC VSGCS_LIBRARY_STATIC)
 endif()
 
+target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>)
+
 target_link_libraries(${LIB_NAME} PUBLIC vsgCs vsg::vsg vsgImGui::vsgImGui Cesium3DTilesSelection CesiumGltfReader CesiumGltf tinyxml2::tinyxml2 imgui::imgui)
 
 if(BUILD_TRACY)

@@ -24,7 +24,7 @@ SOFTWARE.
 
 #pragma once
 
-#include "Export.h"
+#include "vsgCs/Export.h"
 
 #include <vsg/core/Inherit.h>
 #include <vsg/maths/box.h>

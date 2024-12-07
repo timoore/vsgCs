@@ -5,7 +5,7 @@
  */
 #pragma once
 
-#include "Export.h"
+#include "vsgCs/Export.h"
 #include "vsgCs/GeospatialServices.h"
 #include "vsgCs/runtimeSupport.h"
 

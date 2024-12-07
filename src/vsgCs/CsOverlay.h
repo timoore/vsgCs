@@ -33,7 +33,7 @@ SOFTWARE.
 #endif
 
 #include "CesiumRasterOverlays/RasterOverlay.h"
-#include "Export.h"
+#include "vsgCs/Export.h"
 #include "TilesetNode.h"
 
 namespace vsgCs

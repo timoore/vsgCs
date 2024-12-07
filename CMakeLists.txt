@@ -66,13 +66,8 @@ vsgCs_setup_build_vars()
 # This does include(GNUInstallDirs), which sets up all the correct install directories.
 vsg_setup_dir_vars()
 
-set(GENERATED_HEADERS_DIR "${PROJECT_BINARY_DIR}/include")
-
 set(VSGCS_DATA_DIR "${CMAKE_INSTALL_DATADIR}/vsgCs")
 set(VSGCS_FULL_DATA_DIR "${CMAKE_INSTALL_FULL_DATADIR}/vsgCs")
-
-configure_file("${CMAKE_CURRENT_SOURCE_DIR}/src/vsgCs/Config.h.in"
-  "${GENERATED_HEADERS_DIR}/vsgCs/Config.h")
 
 vsg_add_target_clobber()
 vsg_add_target_docs(
@@ -85,10 +80,6 @@ vsg_add_option_maintainer(
     PREFIX ${PROJECT_NAME}
     RCLEVEL ${VSGCS_RELEASE_CANDIDATE}
 )
-
-# Make the headers visible to everything. This is not OSG / VSG style,
-# but we prefer that include files live next to their source files.
-include_directories(${vsgCs_SOURCE_DIR}/src ${GENERATED_HEADERS_DIR})
 
 if(WIN32)
   set(CMAKE_INSTALL_UCRT_LIBRARIES YES)

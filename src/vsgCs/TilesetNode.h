@@ -19,7 +19,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 #endif
 #include "Cesium3DTilesSelection/Tileset.h"
 #include "Cesium3DTilesSelection/ViewUpdateResult.h"
-#include "Export.h"
+#include "vsgCs/Export.h"
 #include "RuntimeEnvironment.h"
 #include "Styling.h"
 #include "runtimeSupport.h"
