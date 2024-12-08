@@ -34,6 +34,12 @@
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
       }
+    },
+    {
+      "name": "Strict",
+      "cacheVariables": {
+        "CMAKE_COMPILE_WARNING_AS_ERROR": "YES"
+      }
     }
   ],
   "buildPresets": [

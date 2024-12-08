@@ -36,12 +36,6 @@ set(VSG_MIN_VERSION 1.1.0)
 
 find_package(vsg ${VSG_MIN_VERSION} REQUIRED)
 
-# find_package(vsg) includes vsgMacros
-if (vsg_SOURCE_DIR)
-    SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${vsg_SOURCE_DIR}/cmake")
-    include("vsgMacros")
-endif()
-
 find_package(vsgXchange)
 
 set(VSGIMGUI_MIN_VERSION 0.1.0)
@@ -63,23 +57,11 @@ if (RUN_CLANG_TIDY)
 endif()
 
 vsgCs_setup_build_vars()
-# This does include(GNUInstallDirs), which sets up all the correct install directories.
-vsg_setup_dir_vars()
+
+include(GNUInstallDirs)
 
 set(VSGCS_DATA_DIR "${CMAKE_INSTALL_DATADIR}/vsgCs")
 set(VSGCS_FULL_DATA_DIR "${CMAKE_INSTALL_FULL_DATADIR}/vsgCs")
-
-vsg_add_target_clobber()
-vsg_add_target_docs(
-    FILES
-        ${CMAKE_SOURCE_DIR}/include
-)
-vsg_add_target_uninstall()
-
-vsg_add_option_maintainer(
-    PREFIX ${PROJECT_NAME}
-    RCLEVEL ${VSGCS_RELEASE_CANDIDATE}
-)
 
 if(WIN32)
   set(CMAKE_INSTALL_UCRT_LIBRARIES YES)
@@ -92,7 +74,8 @@ endif()
 add_subdirectory(src)
 add_subdirectory(data)
 
-vsg_add_feature_summary()
+include(FeatureSummary)
+feature_summary(WHAT ALL)
 
 option(BUILD_TRACY "build with tracy profiling and server" OFF)
 
