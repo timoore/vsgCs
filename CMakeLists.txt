@@ -49,10 +49,18 @@ find_package(imgui REQUIRED)
 find_package(tinyxml2 REQUIRED)
 find_package(spdlog REQUIRED)
 
-if (RUN_CLANG_TIDY)
-  find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
-  if(CLANG_TIDY_EXE)
-    set(CMAKE_CXX_CLANG_TIDY clang-tidy -checks=google-*,performance-*,portability-*,readability-*,modernize-*,-google-build-using-namespace,-readability-identifier-length,-readability-uppercase-literal-suffix,-google-readability-namespace-comments,-readability-named-parameter,-readability-implicit-bool-conversion,-readability-magic-numbers,-modernize-use-trailing-return-type)
+if(PROJECT_IS_TOP_LEVEL)
+  set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
+
+  find_program(CLANG_TIDY_EXECUTABLE clang-tidy)
+  find_program(RUN_CLANG_TIDY_EXECUTABLE run-clang-tidy)
+
+  if(CLANG_TIDY_EXECUTABLE AND RUN_CLANG_TIDY_EXECUTABLE)
+    add_custom_target(run-clang-tidy
+      COMMAND ${RUN_CLANG_TIDY_EXECUTABLE}
+      -clang-tidy-binary ${CLANG_TIDY_EXECUTABLE}
+      -p ${CMAKE_BINARY_DIR}
+    )
   endif()
 endif()
 
