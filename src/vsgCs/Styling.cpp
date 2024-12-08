@@ -326,7 +326,7 @@ std::optional<vsg::vec4> parseColorSpec(const std::string_view expr)
     }
     if (*match.second == '\'' || *match.second == '"')
     {
-        auto closing = std::find(match.second + 1, expr.end(), *match.second);
+        const auto* closing = std::find(match.second + 1, expr.end(), *match.second);
         if (closing == expr.end())
         {
             return {};

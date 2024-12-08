@@ -169,7 +169,7 @@ MapManipulator::Action::init()
 bool
 MapManipulator::Action::getBoolOption(int option, bool defaultValue) const
 {
-    for (auto& i : _options)
+    for (const auto& i : _options)
         if (i.option == option)
             return i.boolValue;
 
@@ -179,7 +179,7 @@ MapManipulator::Action::getBoolOption(int option, bool defaultValue) const
 int
 MapManipulator::Action::getIntOption(int option, int defaultValue) const
 {
-    for (auto& i : _options)
+    for (const auto& i : _options)
         if (i.option == option)
             return i.intValue;
 
@@ -189,7 +189,7 @@ MapManipulator::Action::getIntOption(int option, int defaultValue) const
 double
 MapManipulator::Action::getDoubleOption(int option, double defaultValue) const
 {
-    for (auto& i : _options)
+    for (const auto& i : _options)
         if (i.option == option)
             return i.doubleValue;
 
@@ -2229,7 +2229,7 @@ MapManipulator::cameraRenderAreaCoordinates(const vsg::PointerEvent& pointerEven
         auto itr = _windowOffsets.find(pointerEvent.window);
         if (itr != _windowOffsets.end())
         {
-            auto& offset = itr->second;
+            const auto& offset = itr->second;
             return { pointerEvent.x + offset.x, pointerEvent.y + offset.y };
         }
     }

@@ -125,7 +125,7 @@ namespace vsgCs
         //! like "spherical-mercator" or "wgs84".
         SRSEntry& get_or_create(const std::string& def)
         {
-            auto ctx = threading_context();
+            auto* ctx = threading_context();
 
             auto iter = umap.find(def);
             if (iter == umap.end())
@@ -311,7 +311,7 @@ namespace vsgCs
         //! retrieve or create a transformation object
         PJ* get_or_create_operation(const std::string& firstDef, const std::string& secondDef)
         {
-            auto ctx = threading_context();
+            auto* ctx = threading_context();
 
             PJ* pj = nullptr;
             std::string proj;
@@ -527,7 +527,7 @@ namespace vsgCs
 
         vsg::dvec3 getECEF(const vsg::dvec3& coord) override
         {
-            auto handle = getHandle();
+            auto* handle = getHandle();
             PJ_COORD out = proj_trans(handle, PJ_FWD, PJ_COORD{ coord.x, coord.y, coord.z });
             int err = proj_errno(handle);
             vsg::dvec3 result(0.0, 0.0, 0.0);
@@ -546,7 +546,7 @@ namespace vsgCs
         {
             using namespace CesiumGeospatial;
             vsg::dvec3 origin = getECEF(coord);
-            auto& ellipsoid = g_srs_factory.get_ellipsoid(sourceCRS);
+            const auto& ellipsoid = g_srs_factory.get_ellipsoid(sourceCRS);
             LocalHorizontalCoordinateSystem lhcs(vsg2glm(origin),
                                                  LocalDirection::East, LocalDirection::North,
                                                  LocalDirection::Up,
@@ -556,7 +556,7 @@ namespace vsgCs
 
         vsg::dvec3 getCRSCoord(const vsg::dvec3& ecef) override
         {
-            auto handle = getHandle();
+            auto* handle = getHandle();
             PJ_COORD out = proj_trans(handle, PJ_INV, PJ_COORD{ ecef.x, ecef.y, ecef.z });
             int err = proj_errno(handle);
             vsg::dvec3 result(0.0, 0.0, 0.0);
@@ -574,7 +574,7 @@ namespace vsgCs
     protected:
         PJ* getHandle()
         {
-            auto handle = g_srs_factory.get_or_create_operation(sourceCRS, "ecef");
+            auto* handle = g_srs_factory.get_or_create_operation(sourceCRS, "ecef");
             if (!handle)
             {
                 throw std::runtime_error("can't create conversion from " + sourceCRS + " to ECEF.");
