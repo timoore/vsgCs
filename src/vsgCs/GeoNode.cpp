@@ -39,13 +39,13 @@ SOFTWARE.
 
 using namespace vsgCs;
 
-GeoNode::GeoNode(const std::string& crs, vsg::ref_ptr<WorldAnchor> worldAnchor)
+GeoNode::GeoNode(const std::string& crs, const vsg::ref_ptr<WorldAnchor>& worldAnchor)
     : _worldAnchor(worldAnchor)
 {
     _crs = std::make_shared<CRS>(crs);
 }
 
-GeoNode::GeoNode(const std::shared_ptr<CRS>& crs, vsg::ref_ptr<WorldAnchor> worldAnchor)
+GeoNode::GeoNode(const std::shared_ptr<CRS>& crs, const vsg::ref_ptr<WorldAnchor>& worldAnchor)
     : _crs(crs), _worldAnchor(worldAnchor)
 {
 }

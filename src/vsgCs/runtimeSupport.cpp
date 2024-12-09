@@ -522,7 +522,7 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageAsset& image, bool useMipMaps
         for (; ; )
         {
             b = s.find(sub, b);
-            if (b == s.npos) break;
+            if (b == std::string::npos) break;
             s.replace(b, sub.size(), other);
             b += other.size();
         }

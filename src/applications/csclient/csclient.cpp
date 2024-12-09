@@ -142,11 +142,11 @@ int main(int argc, char** argv)
             }
             else if (object)
             {
-                std::cout << "Unable to view object of type " << object->className() << std::endl;
+                std::cout << "Unable to view object of type " << object->className() << '\n';
             }
             else
             {
-                std::cout << "Unable to load file " << filename << std::endl;
+                std::cout << "Unable to load file " << filename << '\n';
             }
         }
         vsgCs::startup();
@@ -173,7 +173,7 @@ int main(int argc, char** argv)
         auto viewer = vsg::Viewer::create();
         if (!window)
         {
-            std::cout << "Could not create windows." << std::endl;
+            std::cout << "Could not create windows.\n";
             return 1;
         }
         Cesium3DTilesSelection::TilesetOptions tileOptions;
@@ -291,7 +291,7 @@ int main(int argc, char** argv)
         {
             std::cerr << argv[i] << " ";
         }
-        std::cerr << "\n[Exception] - " << ve.message << " result = " << ve.result << std::endl;
+        std::cerr << "\n[Exception] - " << ve.message << " result = " << ve.result << '\n';
         return 1;
     }
 

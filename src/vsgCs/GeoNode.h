@@ -42,8 +42,8 @@ namespace vsgCs
     class VSGCS_EXPORT GeoNode : public vsg::Inherit<vsg::MatrixTransform, GeoNode>
     {
     public:
-        GeoNode(const std::string& crs = "epsg:4979", vsg::ref_ptr<WorldAnchor> worldAnchor = {});
-        GeoNode(const std::shared_ptr<CRS>& crs, vsg::ref_ptr<WorldAnchor> worldAnchor = {});
+        GeoNode(const std::string& crs = "epsg:4979", const vsg::ref_ptr<WorldAnchor>& worldAnchor = {});
+        GeoNode(const std::shared_ptr<CRS>& crs, const vsg::ref_ptr<WorldAnchor>& worldAnchor = {});
         void setOrigin(const vsg::dvec3& origin);
         vsg::dvec3 getOrigin() const;
         void setCRS(const std::string& crs);

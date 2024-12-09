@@ -39,7 +39,7 @@ SOFTWARE.
 
 using namespace vsgCs;
 
-GltfLoader::GltfLoader(vsg::ref_ptr<RuntimeEnvironment> in_env)
+GltfLoader::GltfLoader(const vsg::ref_ptr<RuntimeEnvironment>& in_env)
     : env(in_env)
 {
     readerOptions.ktx2TranscodeTargets = env->features.ktx2TranscodeTargets;
@@ -47,20 +47,18 @@ GltfLoader::GltfLoader(vsg::ref_ptr<RuntimeEnvironment> in_env)
 
 struct ParseGltfResult
 {
-    ParseGltfResult(const std::string& error, std::shared_ptr<CesiumAsync::IAssetRequest> in_request)
+    ParseGltfResult(const std::string& error, const std::shared_ptr<CesiumAsync::IAssetRequest>& in_request)
         : request(in_request)
     {
         gltfResult.errors.push_back(error);
     }
     ParseGltfResult(CesiumGltfReader::GltfReaderResult&& result,
-        std::shared_ptr<CesiumAsync::IAssetRequest> in_request)
+        const std::shared_ptr<CesiumAsync::IAssetRequest>& in_request)
         : gltfResult(std::move(result)) ,request(in_request)
     {
     }
 
-    ParseGltfResult()
-    {
-    }
+    ParseGltfResult() = default;
     CesiumGltfReader::GltfReaderResult gltfResult;
     std::shared_ptr<CesiumAsync::IAssetRequest> request;
 };
@@ -71,7 +69,7 @@ struct ReadGltfResult
     std::vector<std::string> errors;
 };
 
-CesiumAsync::Future<GltfLoader::ReadGltfResult> GltfLoader::loadGltfNode(std::string uri) const
+CesiumAsync::Future<GltfLoader::ReadGltfResult> GltfLoader::loadGltfNode(const std::string& uri) const
 {
     std::vector<CesiumAsync::IAssetAccessor::THeader> headers;
     auto accessor = env-> getAssetAccessor();

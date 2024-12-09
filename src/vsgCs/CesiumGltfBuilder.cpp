@@ -189,7 +189,7 @@ CesiumGltfBuilder::load(CesiumGltf::Model* model, const CreateModelOptions& opti
     ExtensionList tilesExtensions{csExtension};
     if (options.styling.valid())
     {
-        tilesExtensions.push_back(stylingExtension);
+        tilesExtensions.emplace_back(stylingExtension);
     }
     ModelBuilder builder(_genv, model, options, tilesExtensions);
     return builder();
@@ -245,7 +245,7 @@ vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::Tile
                                                     const CreateModelOptions& modelOptions)
 {
     VSGCS_ZONESCOPED;
-    CesiumGltf::Model* pModel = std::get_if<CesiumGltf::Model>(&tileLoadResult.contentKind);
+    auto* pModel = std::get_if<CesiumGltf::Model>(&tileLoadResult.contentKind);
     if (!pModel)
     {
         return {};

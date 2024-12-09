@@ -38,16 +38,16 @@ namespace vsgCs
     class VSGCS_EXPORT GltfLoader : public vsg::Inherit<vsg::ReaderWriter, GltfLoader>
     {
     public:
-        GltfLoader(vsg::ref_ptr<RuntimeEnvironment> in_env = RuntimeEnvironment::get());
+        GltfLoader(const vsg::ref_ptr<RuntimeEnvironment>& in_env = RuntimeEnvironment::get());
         vsg::ref_ptr<vsg::Object>
-            read(const vsg::Path& /*filename*/, vsg::ref_ptr<const vsg::Options> = {}) const override;
+            read(const vsg::Path& /*filename*/, vsg::ref_ptr<const vsg::Options>) const override;
     protected:
         struct ReadGltfResult
         {
             vsg::ref_ptr<vsg::Node> node;
             std::vector<std::string> errors;
         };
-        CesiumAsync::Future<ReadGltfResult> loadGltfNode(std::string uri) const;
+        CesiumAsync::Future<ReadGltfResult> loadGltfNode(const std::string& uri) const;
         vsg::ref_ptr<RuntimeEnvironment> env;
         CesiumGltfReader::GltfReader reader;
         CesiumGltfReader::GltfReaderOptions readerOptions;

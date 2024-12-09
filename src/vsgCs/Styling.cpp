@@ -92,11 +92,7 @@ struct CaseInsensitiveComparator
         }
         if (pa == a.end())
         {
-            if (pb == b.end())
-            {
-                return false;
-            }
-            return true;
+            return pb != b.end();
         }
         return false;
     }
@@ -309,7 +305,7 @@ std::optional<vsg::vec4> parseColorString(const std::string_view &color)
 
 std::optional<vsg::vec4> parseColorSpec(const std::string_view expr)
 {
-    const vsg::vec4 white(1.0f, 1.0f, 1.0f, 1.0f);
+    static const vsg::vec4 white(1.0f, 1.0f, 1.0f, 1.0f);
     const std::string colorFunc("color(");
     if (expr.size() <= colorFunc.size())
     {

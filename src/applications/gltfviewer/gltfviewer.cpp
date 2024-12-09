@@ -43,7 +43,7 @@ int main(int argc, char** argv)
         auto model = vsgCs::ref_ptr_cast<vsg::Node>(loader->read(filename, vsgCs::RuntimeEnvironment::get()->options));
         if (!model)
         {
-            std::cout<<"Faled to load "<<filename<<std::endl;
+            std::cout<<"Faled to load "<<filename<<'\n';
             return 1;
         }
         scene->addChild(model);
@@ -147,7 +147,7 @@ int main(int argc, char** argv)
 
     if (!window)
     {
-        std::cout << "Could not create windows." << std::endl;
+        std::cout << "Could not create windows.\n";
         return 1;
     }
 
@@ -202,7 +202,7 @@ int main(int argc, char** argv)
     auto duration = std::chrono::duration<double, std::chrono::seconds::period>(vsg::clock::now() - startTime).count();
     if (numFramesCompleted > 0.0)
     {
-        std::cout << "Average frame rate = " << (numFramesCompleted / duration) << std::endl;
+        std::cout << "Average frame rate = " << (numFramesCompleted / duration) << '\n';
     }
 
     return 0;

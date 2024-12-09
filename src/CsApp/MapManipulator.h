@@ -55,10 +55,10 @@ namespace vsgCs
     public:
         //! Construct a new manipulator
         MapManipulator(
-            vsg::ref_ptr<WorldNode> mapNode,
-            vsg::ref_ptr<vsg::Camera> camera);
+            const vsg::ref_ptr<WorldNode>& mapNode,
+            const vsg::ref_ptr<vsg::Camera>& camera);
 
-        virtual ~MapManipulator();
+        virtual ~MapManipulator() = default;
 
         //! Go to the home position.
         virtual void home();
@@ -190,7 +190,7 @@ namespace vsgCs
         struct InputSpec
         {
             InputSpec(int event_type, int input_mask, int modkey_mask);
-            InputSpec(const InputSpec& rhs);
+            InputSpec(const InputSpec& rhs) = default;
             bool operator == (const InputSpec& rhs) const;
             bool operator < (const InputSpec& rhs) const;
             int _event_type;
@@ -550,7 +550,7 @@ namespace vsgCs
             // to matching binding.
             const Action& getAction(int event_type, int input_mask, int modkey_mask) const;
 
-            void expandSpec(const InputSpec& input, InputSpecs& output) const;
+            static void expandSpec(const InputSpec& input, InputSpecs& output);
             void bind(const InputSpec& spec, const Action& action);
 
         private:
@@ -590,7 +590,7 @@ namespace vsgCs
 
         std::shared_ptr<Settings> _settings;
 
-        void applySettings(std::shared_ptr<Settings>);
+        void applySettings(const std::shared_ptr<Settings>& settings);
 
         std::shared_ptr<Settings> getSettings() const;
 

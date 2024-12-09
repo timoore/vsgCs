@@ -37,6 +37,8 @@ SOFTWARE.
 
 #include <spdlog/spdlog.h>
 
+#include <memory>
+
 using namespace vsgCs;
 
 namespace
@@ -401,8 +403,8 @@ std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> RuntimeEnvironment::ge
     auto creditSystem = std::make_shared<CesiumUtility::CreditSystem>();
     using TE = Cesium3DTilesSelection::TilesetExternals;
     return _externals
-        = std::shared_ptr<TE>(new TE{assetAccessor, resourcePreparer, asyncSystem, creditSystem,
-                                     logger, nullptr}); // NOLINT make_shared doesn't take intializer list
+        = std::make_shared<TE>(TE{assetAccessor, resourcePreparer, asyncSystem, creditSystem,
+                                  logger, nullptr});
 }
 
 void RuntimeEnvironment::update()

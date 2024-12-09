@@ -366,7 +366,7 @@ namespace
                                            const AccessorView<TI>& indexView)
     {
         vsg::ref_ptr<vsg::Data> result;
-        if constexpr (std::is_same<T, float>::value)
+        if constexpr (std::is_same_v<T, float>)
         {
             if (indexView.status() == AccessorViewStatus::Valid)
             {
@@ -398,7 +398,7 @@ namespace
                                            const AccessorView<TI>& indexView)
     {
         vsg::ref_ptr<vsg::Data> result;
-        if constexpr (std::is_same<T, float>::value)
+        if constexpr (std::is_same_v<T, float>)
         {
             if (indexView.status() == AccessorViewStatus::Valid)
             {
@@ -445,7 +445,7 @@ namespace
                                          const AccessorView<TI>& indexView)
     {
         vsg::ref_ptr<vsg::Data> result;
-        if constexpr (std::is_same<T, float>::value)
+        if constexpr (std::is_same_v<T, float>)
         {
             if (indexView.status() == AccessorViewStatus::Valid)
             {
@@ -601,11 +601,11 @@ namespace
               depthClamp(in_depth_clamp)
         {
         }
-        void apply(vsg::Object& object)
+        void apply(vsg::Object& object) override
         {
             object.traverse(*this);
         }
-        void apply(vsg::RasterizationState& rs)
+        void apply(vsg::RasterizationState& rs) override
         {
             if (two_sided)
             {
@@ -616,11 +616,11 @@ namespace
                 rs.depthClampEnable = VK_TRUE;
             }
         }
-        void apply(vsg::InputAssemblyState& ias)
+        void apply(vsg::InputAssemblyState& ias) override
         {
             ias.topology = topology;
         }
-        void apply(vsg::ColorBlendState& cbs)
+        void apply(vsg::ColorBlendState& cbs) override
         {
             cbs.configureAttachments(blending);
         }

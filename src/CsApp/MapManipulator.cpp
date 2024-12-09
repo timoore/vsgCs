@@ -54,7 +54,8 @@ namespace
     // normalized linear intep
     template<class DVEC3>
     vsg::dvec3 nlerp(const DVEC3& a, const DVEC3& b, double t) {
-        double am = length(a), bm = length(b);
+        double am = length(a);
+        double bm = length(b);
         vsg::dvec3 c = a*(1.0-t) + b*t;
         c = normalize(c);
         c *= (1.0-t)*am + t*bm;
@@ -202,7 +203,7 @@ MapManipulator::Action MapManipulator::NullAction( MapManipulator::ACTION_NULL )
 
 namespace
 {
-    static std::string s_actionNames[] = {
+    std::string s_actionNames[] = {
         "null",
         "home",
         "goto",
@@ -222,7 +223,7 @@ namespace
         "earth-drag"
     };
 
-    static std::string s_actionOptionNames[] = {
+     std::string s_actionOptionNames[] = {
         "scale-x",
         "scale-y",
         "continuous",
@@ -242,9 +243,6 @@ namespace
 MapManipulator::InputSpec::InputSpec(int event_type, int input_mask, int modkey_mask)
     : _event_type(event_type), _input_mask(input_mask), _modkey_mask(modkey_mask) { }
 
-MapManipulator::InputSpec::InputSpec(const InputSpec& rhs)
-    : _event_type(rhs._event_type), _input_mask(rhs._input_mask), _modkey_mask(rhs._modkey_mask) { }
-
 bool
 MapManipulator::InputSpec::operator == (const InputSpec& rhs) const {
     return
@@ -256,10 +254,10 @@ MapManipulator::InputSpec::operator == (const InputSpec& rhs) const {
 bool
 MapManipulator::InputSpec::operator < (const InputSpec& rhs) const {
     if (_event_type < rhs._event_type) return true;
-    else if (_event_type > rhs._event_type) return false;
-    else if (_input_mask < rhs._input_mask) return true;
-    else if (_input_mask > rhs._input_mask) return false;
-    else return (_modkey_mask < rhs._modkey_mask);
+    if (_event_type > rhs._event_type) return false;
+    if (_input_mask < rhs._input_mask) return true;
+    if (_input_mask > rhs._input_mask) return false;
+    return (_modkey_mask < rhs._modkey_mask);
 }
 
 
@@ -325,7 +323,7 @@ MapManipulator::Settings::Settings(const MapManipulator::Settings& rhs) :
 
 // expands one input spec into many if necessary, to deal with modifier key combos.
 void
-MapManipulator::Settings::expandSpec(const InputSpec& input, InputSpecs& output) const
+MapManipulator::Settings::expandSpec(const InputSpec& input, InputSpecs& output)
 {
 #if 0
     int e = input._event_type;
@@ -368,7 +366,7 @@ MapManipulator::Settings::bind(const InputSpec& spec, const Action& action)
 {
     InputSpecs specs;
     expandSpec(spec, specs);
-    for (InputSpecs::const_iterator i = specs.begin(); i != specs.end(); i++)
+    for (auto i = specs.begin(); i != specs.end(); i++)
     {
         _bindings[*i] = action;
     }
@@ -463,7 +461,7 @@ MapManipulator::Settings::getAction(int event_type, int input_mask, int modkey_m
     //if they are on.  So if you bind an action like SCROLL to a modkey mask of 0 or a modkey mask of ctrl it will never match the spec exactly b/c
     //the modkey mask also includes capslock and numlock.
     InputSpec spec(event_type, input_mask, modkey_mask & ~vsg::MODKEY_NumLock & ~vsg::MODKEY_CapsLock);
-    ActionBindings::const_iterator i = _bindings.find(spec);
+    auto i = _bindings.find(spec);
     return i != _bindings.end() ? i->second : NullAction;
 }
 
@@ -515,14 +513,16 @@ MapManipulator::Settings::setAutoViewpointDurationLimits(double minSeconds, doub
 
 /************************************************************************/
 
-MapManipulator::MapManipulator(vsg::ref_ptr<WorldNode> mapNode, vsg::ref_ptr<vsg::Camera> camera) :
-    Inherit(),
+MapManipulator::MapManipulator(const vsg::ref_ptr<WorldNode>& mapNode,
+                               const vsg::ref_ptr<vsg::Camera>& camera) :
     _mapNode(mapNode),
     _camera(camera),
     _lastAction(ACTION_NULL)
 {
     if (mapNode.valid())
+    {
         _geoServices = CsGeospatialServices::create(mapNode);
+    }
         //_srs = mapNode->mapSRS();
 
     reinitialize();
@@ -539,15 +539,6 @@ MapManipulator::MapManipulator(vsg::ref_ptr<WorldNode> mapNode, vsg::ref_ptr<vsg
 
     //if (_settings)
     //    _lastTetherMode = _settings->getTetherMode();
-}
-
-MapManipulator::~MapManipulator()
-{
-    //vsg::ref_ptr<MapNode> mapNode = _mapNode;
-    //if (mapNode.valid() && _terrainCallback && mapNode->getTerrain())
-    //{
-    //    mapNode->getTerrain()->removeTerrainCallback( _terrainCallback.get() );
-    //}
 }
 
 void
@@ -619,7 +610,7 @@ MapManipulator::configureDefaultSettings()
 }
 
 void
-MapManipulator::applySettings(std::shared_ptr<Settings> settings)
+MapManipulator::applySettings(const std::shared_ptr<Settings>& settings)
 {
     if ( settings )
     {
@@ -1128,7 +1119,7 @@ void
 MapManipulator::resetLookAt()
 {
     double pitch;
-    getEulerAngles(_localRotation, 0L, &pitch );
+    getEulerAngles(_localRotation, nullptr, &pitch );
 
     double maxPitch = vsg::radians(-10.0);
     if ( pitch > maxPitch )
@@ -1562,7 +1553,7 @@ MapManipulator::isMouseClick() const
     float dy = up.y - down.y;
     float len = sqrtf(dx * dx + dy * dy);
     auto dtmillis = std::chrono::duration_cast<std::chrono::milliseconds>(_buttonRelease->time - _buttonPress->time);
-    float dt = (float)dtmillis.count() * 0.001f;
+    float dt = static_cast<float>(dtmillis.count()) * 0.001f;
     return (len < dt* velocity);
 }
 
@@ -1589,7 +1580,7 @@ MapManipulator::recalculateCenterFromLookVector()
             // simple line/plane intersection
             vsg::dvec3 P0(0, 0, 0); // point on the plane
             vsg::dvec3 N(0, 0, 1); // normal to the plane
-            vsg::dvec3 L = look; // unit direction of the line
+            const vsg::dvec3& L = look; // unit direction of the line
             vsg::dvec3 L0 = lookat.eye; // point on the line
             auto LdotN = vsg::dot(L, N);
             if (equiv(LdotN, 0)) return false; // parallel
@@ -1701,7 +1692,7 @@ MapManipulator::rotate(double dx, double dy)
 
     // clamp pitch range:
     double oldPitch;
-    getEulerAngles(_state.localRotation, 0L, &oldPitch);
+    getEulerAngles(_state.localRotation, nullptr, &oldPitch);
 
     if ( dy + oldPitch > maxp || dy + oldPitch < minp )
         dy = 0;
@@ -1729,7 +1720,7 @@ MapManipulator::zoom(double, double dy)
     //    return;
     //}
 
-    if (_settings->getZoomToMouse() == false)
+    if (!_settings->getZoomToMouse())
     {
         double scale = 1.0f + dy;
         setDistance(_state.distance * scale);
