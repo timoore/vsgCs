@@ -19,6 +19,7 @@
 #include <limits>
 #include <memory>
 #include <optional>
+#include <utility>
 
 namespace vsg
 {
@@ -62,6 +63,12 @@ namespace vsgCs
 
         //! Go to the home position.
         virtual void home();
+
+        //! Set home position and distance.
+        virtual void setHome(const vsg::dvec3& position, double distance);
+
+        //! Get current home position and distance.
+        virtual std::pair<vsg::dvec3, double> getHome();
 
         //! Move the focal point of the camera using deltas (normalized screen coords).
         virtual void pan(double dx, double dy);
@@ -741,7 +748,7 @@ namespace vsgCs
 
 
         // This stuff is borrowed from vsg manips, but it's not implemented here (yet):
-        /// list of windows and theire xy offsets
+        /// list of windows and their xy offsets
         std::map<vsg::observer_ptr<vsg::Window>, vsg::ivec2> _windowOffsets;
 
         /// add a Window to respond events for, with mouse coordinate offset to treat all associated windows
@@ -754,6 +761,14 @@ namespace vsgCs
         vsg::dvec2 ndc(const vsg::PointerEvent&) const;
 
         vsg::dvec3 adjustToSameHeight(const vsg::dvec3& reference, const vsg::dvec3& point);
+
+        // Home position and distance.
+        // Hopefully a temporary measure, to be subsumed by viewpoints
+        vsg::dvec3 _homePosition;
+        double _homeDistance;
+
+        void reinitializeHome();
+
         // For graphical debugging
         friend class UpdateCenterOperation;
     };

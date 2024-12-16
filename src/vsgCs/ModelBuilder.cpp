@@ -775,6 +775,45 @@ makeInstanceData(const Model& model,
     return result;
 }
 
+namespace
+{
+    vsg::dsphere computeBoundsFromGltf(const Accessor* pPositionAccessor, const ModelBuilder::InstanceData* pInstanceData)
+    {
+        if (pPositionAccessor->min.size() != 3 || pPositionAccessor->max.size() != 3)
+        {
+            return {};
+        }
+        vsg::vec3 posMin(pPositionAccessor->min[0], pPositionAccessor->min[1], pPositionAccessor->min[2]);
+        vsg::vec3 posMax(pPositionAccessor->max[0], pPositionAccessor->max[1], pPositionAccessor->max[2]);
+        vsg::box bounds;
+        if (!pInstanceData)
+        {
+            bounds.add(posMin);
+            bounds.add(posMax);
+        } else {
+            const size_t numInstances = (*pInstanceData)[0]->size();
+            for (size_t i = 0; i < numInstances; ++i)
+            {
+                vsg::mat4 instanceTranspose((*pInstanceData)[0]->at(i),
+                                            (*pInstanceData)[1]->at(i),
+                                            (*pInstanceData)[2]->at(i),
+                                            vsg::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+                vsg::vec3 minPt = posMin * instanceTranspose;
+                bounds.add(minPt);
+                vsg::vec3 maxPt = posMax * instanceTranspose;
+                bounds.add(maxPt);
+            }
+        }
+        if (!bounds.valid())
+        {
+            return {};
+        }
+        vsg::dvec3 center((bounds.min + bounds.max) * 0.5f);
+        double radius = length(bounds.max - bounds.min) * 0.5;
+
+        return {center, radius};
+    }
+}
 
 vsg::ref_ptr<vsg::Node>
 ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
@@ -971,24 +1010,18 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         = pipelineConf->shaderSet->getSuitableArrayState(pipelineConf->shaderHints->defines);
 
     stateGroup->addChild(drawCommand);
-
-    vsg::ComputeBounds computeBounds;
-    drawCommand->accept(computeBounds);
-    vsg::dvec3 center = (computeBounds.bounds.min + computeBounds.bounds.max) * 0.5;
-    double radius = vsg::length(computeBounds.bounds.max - computeBounds.bounds.min) * 0.5;
-
+    vsg::dsphere boundingSphere = computeBoundsFromGltf(pPositionAccessor, instanceData);
     if (descConf->blending)
     {
-        auto depthSorted = vsg::DepthSorted::create();
-        depthSorted->binNumber = 10;
-        depthSorted->bound.set(center[0], center[1], center[2], radius);
-        depthSorted->child = stateGroup;
-
-        return depthSorted;
+        // XXX Not sure what to do if the boundingSphere isn't valid; emit a warning?
+        return vsg::DepthSorted::create(10, boundingSphere, stateGroup);
     }
-    auto cullNode = vsg::CullNode::create(vsg::dsphere(center[0], center[1], center[2], radius),
-                                          stateGroup);
-    return cullNode;
+
+    if (boundingSphere.valid())
+    {
+        return vsg::CullNode::create(boundingSphere, stateGroup);
+    }
+    return stateGroup;
 }
 
 vsg::ref_ptr<ModelBuilder::CsMaterial>

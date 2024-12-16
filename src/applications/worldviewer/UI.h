@@ -53,7 +53,6 @@ namespace vsgCs
 
         vsg::ref_ptr<vsgImGui::RenderImGui> _renderImGui;
         vsg::ref_ptr<CsApp::CreditComponent> _ionIconComponent;
-        vsg::ref_ptr<vsg::Trackball> _trackball;
         vsg::ref_ptr<MapManipulator> _mapManipulator;
     };
 }

@@ -115,11 +115,9 @@ namespace vsgCs
         return _renderImGui;
     }
 
-    void UI::setViewpoint(const vsg::ref_ptr<vsg::LookAt>& lookAt, float duration)
+    void UI::setViewpoint(const vsg::ref_ptr<vsg::LookAt>& lookAt, float)
     {
-        if (_trackball)
-        {
-            _trackball->setViewpoint(lookAt, duration);
-        }
+      _mapManipulator->setHome(lookAt->center, length( lookAt->center - lookAt->eye));
+      _mapManipulator->home();
     }
 }

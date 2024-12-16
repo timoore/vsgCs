@@ -30,6 +30,7 @@ SOFTWARE.
 #include "RuntimeEnvironment.h"
 
 #include <Cesium3DTilesContent/registerAllTileContentTypes.h>
+#include <Cesium3DTilesSelection/BoundingVolume.h>
 #include <Cesium3DTilesSelection/Tile.h>
 #include <CesiumAsync/IAssetResponse.h>
 #include <CesiumGltfReader/ImageDecoder.h>
@@ -51,10 +52,10 @@ namespace vsgCs
                                                  double distance)
     {
         auto boundingVolume = tile->getBoundingVolume();
-        const auto* boundingRegion = getBoundingRegionFromBoundingVolume(boundingVolume);
-        if (boundingRegion)
+        auto globeRectangle = estimateGlobeRectangle(boundingVolume);
+        if (globeRectangle)
         {
-            auto cartoCenter = boundingRegion->getRectangle().computeCenter();
+            auto cartoCenter = globeRectangle->computeCenter();
             // The geographic coordinates specify a normal to the ellipsoid. How convenient!
             auto normal = CesiumGeospatial::Ellipsoid::WGS84.geodeticSurfaceNormal(cartoCenter);
             auto position = CesiumGeospatial::Ellipsoid::WGS84.cartographicToCartesian(cartoCenter);
