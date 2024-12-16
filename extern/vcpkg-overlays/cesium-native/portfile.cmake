@@ -1,3 +1,14 @@
+vcpkg_check_features(OUT_FEATURE_OPTIONS FEATURE_OPTIONS
+  FEATURES
+  dependencies-only CESIUM_NATIVE_DEPS_ONLY
+)
+
+if(CESIUM_NATIVE_DEPS_ONLY)
+  message(STATUS "skipping installation of cesium-native")
+  set(VCPKG_POLICY_EMPTY_PACKAGE enabled)
+  return()
+endif()
+
 vcpkg_from_github(
         OUT_SOURCE_PATH SOURCE_PATH
         REPO timoore/cesium-native

@@ -26,6 +26,7 @@ endif()
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)
 
 option(RUN_CLANG_TIDY "run the clang-tidy checker" OFF)
+set(VSGCS_CESIUM_NATIVE_DIRECTORY "" CACHE PATH "directory for Cesium Native source if not installed")
 
 # Find Vulkan and the VSG
 if (VULKAN_SDK)
@@ -42,7 +43,11 @@ set(VSGIMGUI_MIN_VERSION 0.1.0)
 
 find_package(vsgImGui ${VSGIMGUI_MIN_VERSION} REQUIRED)
 
-find_package(cesium-native REQUIRED)
+if(VSGCS_CESIUM_NATIVE_DIRECTORY)
+  add_subdirectory(${VSGCS_CESIUM_NATIVE_DIRECTORY} cesium-native)
+else()
+  find_package(cesium-native REQUIRED)
+endif()
 
 find_package(PROJ REQUIRED)
 find_package(imgui REQUIRED)

@@ -1,6 +1,11 @@
 {
   "name": "cesium-native",
   "version-string": "0.41.0",
+  "features": {
+    "dependencies-only": {
+      "description": "install port's dependencies without the port"
+    }
+  },
   "dependencies": [
     "vcpkg-cmake",
     "vcpkg-cmake-config",

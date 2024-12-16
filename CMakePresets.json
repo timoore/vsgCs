@@ -40,6 +40,13 @@
       "cacheVariables": {
         "CMAKE_COMPILE_WARNING_AS_ERROR": "YES"
       }
+    },
+    {
+      "name": "local-cesium-native",
+      "cacheVariables": {
+        "VCPKG_MANIFEST_NO_DEFAULT_FEATURES": true,
+        "VCPKG_MANIFEST_FEATURES": "cesium-native-local"
+      }
     }
   ],
   "buildPresets": [
