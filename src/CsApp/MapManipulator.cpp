@@ -522,9 +522,11 @@ MapManipulator::MapManipulator(vsg::ref_ptr<WorldNode> mapNode, vsg::ref_ptr<vsg
     _lastAction(ACTION_NULL)
 {
     if (mapNode.valid())
+    {
         _geoServices = CsGeospatialServices::create(mapNode);
-        //_srs = mapNode->mapSRS();
-
+        /// XXX Otherwise what? Should we even try to continue?
+    }
+    reinitializeHome();
     reinitialize();
 
     configureDefaultSettings();
@@ -1288,25 +1290,43 @@ MapManipulator::intersectAlongLookVector() const
     return {};
 }
 
-void
-MapManipulator::home()
+std::pair<vsg::dvec3, double>
+MapManipulator::getHome()
 {
-    _state.localRotation.set(0, 0, 0, 1);
+    return {_homePosition, _homeDistance};
+}
 
+void
+MapManipulator::setHome(const vsg::dvec3& position, double distance)
+{
+    _homePosition = position;
+    _homeDistance = distance;
+}
+
+void
+MapManipulator::reinitializeHome()
+{
     double radius;
     if (_geoServices->isGeocentric())
     {
         radius = _geoServices->semiMajorAxis();
-        setCenter(vsg::dvec3(radius, 0, 0));
     }
     else
     {
         const auto bounds = _geoServices->bounds();
         radius = (bounds.max.x - bounds.min.x) * 0.5;
-        setCenter(vsg::dvec3(0, 0, 0));
     }
+    _homePosition = vsg::dvec3(radius, 0, 0);
+    _homeDistance = radius * 3.5;
+}
 
-    setDistance(radius * 3.5);
+void
+MapManipulator::home()
+{
+    _state.localRotation.set(0, 0, 0, 1);
+
+    setCenter(_homePosition);
+    setDistance(_homeDistance);
 
     clearEvents();
 }
