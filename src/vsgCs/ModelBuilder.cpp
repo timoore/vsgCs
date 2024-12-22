@@ -783,25 +783,28 @@ namespace
         {
             return {};
         }
-        vsg::vec3 posMin(pPositionAccessor->min[0], pPositionAccessor->min[1], pPositionAccessor->min[2]);
-        vsg::vec3 posMax(pPositionAccessor->max[0], pPositionAccessor->max[1], pPositionAccessor->max[2]);
+        vsg::box posBox(vsg::vec3(pPositionAccessor->min[0], pPositionAccessor->min[1], pPositionAccessor->min[2]),
+                 vsg::vec3(pPositionAccessor->max[0], pPositionAccessor->max[1], pPositionAccessor->max[2]));
         vsg::box bounds;
         if (!pInstanceData)
         {
-            bounds.add(posMin);
-            bounds.add(posMax);
-        } else {
+            bounds.add(posBox);
+        } else
+        {
             const size_t numInstances = (*pInstanceData)[0]->size();
             for (size_t i = 0; i < numInstances; ++i)
             {
-                vsg::mat4 instanceTranspose((*pInstanceData)[0]->at(i),
-                                            (*pInstanceData)[1]->at(i),
-                                            (*pInstanceData)[2]->at(i),
-                                            vsg::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-                vsg::vec3 minPt = posMin * instanceTranspose;
-                bounds.add(minPt);
-                vsg::vec3 maxPt = posMax * instanceTranspose;
-                bounds.add(maxPt);
+                const vsg::mat4 instanceTranspose((*pInstanceData)[0]->at(i),
+                                                  (*pInstanceData)[1]->at(i),
+                                                  (*pInstanceData)[2]->at(i),
+                                                  vsg::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+                mapBox(posBox,
+                       [&bounds, &instanceTranspose](float x, float y, float z)
+                       {
+                           const vsg::vec3 boxPoint(x, y, z);
+                           const vsg::vec3 instancePoint = boxPoint * instanceTranspose;
+                           bounds.add(instancePoint);
+                       });
             }
         }
         if (!bounds.valid())

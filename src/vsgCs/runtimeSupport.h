@@ -262,6 +262,7 @@ namespace vsgCs
      *
      * The VSG cast() member function templates use typeid, so they won't work if the actual object
      * is a sublcass of the desired cast.
+     * XXX This comment is rather sus and needs further investigation...
      * @param TSubclass the target subclass
      * @param p the source ref_ptr
      * @return a ref_ptr that is valid if the cast succeeds, otherwise not.
@@ -313,6 +314,19 @@ namespace vsgCs
         }
     }
 
+    template<typename F, typename BoxType>
+    void mapBox(const BoxType& box, F&& f)
+    {
+        f(box.min.x, box.min.y, box.min.z);
+        f(box.min.x, box.min.y, box.max.z);
+        f(box.min.x, box.max.y, box.min.z);
+        f(box.min.x, box.max.y, box.max.z);        
+        f(box.max.x, box.min.y, box.min.z);
+        f(box.max.x, box.min.y, box.max.z);
+        f(box.max.x, box.max.y, box.min.z);
+        f(box.max.x, box.max.y, box.max.z);
+    }
+    
     std::optional<uint32_t> getUintSuffix(const std::string& prefix, const std::string& data);
 
     // For debugging
