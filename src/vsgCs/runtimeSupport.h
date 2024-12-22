@@ -173,38 +173,6 @@ namespace vsgCs
     };
 
     /**
-     * @brief An embedded image resource.
-     */
-    struct EmbeddedImageSource
-    {
-        CesiumGltf::ImageAsset image;
-    };
-
-    typedef std::variant<
-        GltfImagePtr,
-        GltfImageIndex,
-        EmbeddedImageSource>
-    CesiumTextureSource;
-
-    struct GetImageFromSource
-    {
-        CesiumGltf::ImageAsset*
-        operator()(GltfImagePtr& imagePtr) {
-            return imagePtr.pImage;
-        }
-
-        CesiumGltf::ImageAsset*
-        operator()(EmbeddedImageSource& embeddedImage) {
-            return &embeddedImage.image;
-        }
-
-        template <typename TSource>
-        CesiumGltf::ImageAsset* operator()(TSource& /*source*/) {
-            return nullptr;
-        }
-    };
-
-    /**
      * @brief Create an image from binary data.
      */
     vsg::ref_ptr<vsg::ImageInfo> VSGCS_EXPORT

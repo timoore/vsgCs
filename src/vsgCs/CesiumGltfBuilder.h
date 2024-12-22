@@ -85,14 +85,6 @@ namespace vsgCs
                                                  VkFilter maxFilter,
                                                  bool useMipMaps,
                                                  bool sRGB);
-        vsg::ref_ptr<vsg::ImageInfo> loadTexture(CesiumTextureSource&& imageSource,
-                                                 VkSamplerAddressMode addressX,
-                                                 VkSamplerAddressMode addressY,
-                                                 VkFilter minFilter,
-                                                 VkFilter maxFilter,
-                                                 bool useMipMaps,
-                                                 bool sRGB);
-
         ModifyRastersResult attachRaster(const Cesium3DTilesSelection::Tile& tile,
                                          const vsg::ref_ptr<vsg::Node>& node,
                                          int32_t overlayTextureCoordinateID,
