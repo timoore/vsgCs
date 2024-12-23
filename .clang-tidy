@@ -5,6 +5,7 @@ Checks: >
   portability-*,
   readability-*,
   modernize-*,
+  misc-include-cleaner,
   -google-build-using-namespace,
   -readability-identifier-length,
   -readability-math-missing-parentheses,

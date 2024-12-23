@@ -55,8 +55,10 @@ namespace vsgCs
         void shutdown();
         // hack for supporting zoom after load
         const Cesium3DTilesSelection::Tile* getRootTile(size_t tileset = 0);
-        protected:
-        vsg::Group::Children& worldNodes()
+        /**
+         * @brief Access to the tileset array; not safe!
+         */
+        vsg::Group::Children& tilesetNodes()
         {
             auto stateGroup = ref_ptr_cast<vsg::StateGroup>(children[0]);
             return stateGroup->children;

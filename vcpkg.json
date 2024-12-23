@@ -42,7 +42,12 @@
     "spdlog",
     "tinyxml2",
     "vsg",
-    "vsgxchange",
+    {
+      "name": "vsgxchange",
+      "features": [
+        "assimp"
+      ]
+    },
     "vsgimgui"
   ]
 }

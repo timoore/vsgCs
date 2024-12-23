@@ -41,12 +41,14 @@ SOFTWARE.
 
 #include <algorithm>
 #include <chrono>
+#include <filesystem>
 #include <iomanip>
 #include <iostream>
 #include <thread>
 
 #include "vsgCs/GeoNode.h"
 #include "vsgCs/jsonUtils.h"
+#include "vsgCs/TilesetNode.h"
 #include "vsgCs/Tracing.h"
 #include "vsgCs/TracingCommandGraph.h"
 #include "vsgCs/RuntimeEnvironment.h"
@@ -54,6 +56,8 @@ SOFTWARE.
 #include "UI.h"
 #include "CsApp/CsViewer.h"
 
+namespace
+{
 void usage(const char* name)
 {
     std::cout
@@ -69,6 +73,105 @@ void usage(const char* name)
         << "--distance dist\t\t distance from point of interest\n"
         << "--time HH::MM\t\t time in UTC (default 12:00)\n"
         << "--help\t\t\t print this message\n";
+}
+
+class VsgCsScenegraphBuilder
+{
+public:
+    VsgCsScenegraphBuilder(vsg::CommandLine& arguments_, vsg::ref_ptr<vsgCs::RuntimeEnvironment> env_)
+        : arguments(arguments_), env(env_)
+    {
+        createScenegraph();
+    }
+    vsg::ref_ptr<vsgCs::WorldNode> worldNode;
+    vsg::ref_ptr<vsg::StateGroup> xchangeModels;
+    void createScenegraph()
+    {
+        std::vector<vsg::ref_ptr<vsgCs::TilesetNode>> tilesetNodes;
+        for (int i = 1; i < arguments.argc(); ++i)
+        {
+            std::string argString(arguments[i]);
+            if (argString == "--world-file")
+            {
+                continue;
+            }
+            if (argString.ends_with("tileset.json"))
+            {
+                if (auto tilesetNode  = createTileset(argString))
+                {
+                    tilesetNodes.push_back(tilesetNode);
+                }
+            }
+            else if (argString.ends_with(".json"))
+            {
+                auto node = createVsgCsObject(arguments[i]);
+                if (auto maybeWorldNode = vsgCs::ref_ptr_cast<vsgCs::WorldNode>(node))
+                {
+                    worldNode = maybeWorldNode;
+                }
+                else if (auto modelNode = vsgCs::ref_ptr_cast<vsg::Node>(node))
+                {
+                    if (!xchangeModels)
+                    {
+                        xchangeModels = vsgCs::createModelRoot(env);
+                    }
+                    xchangeModels->addChild(modelNode);
+                }
+            }
+        }
+        if (!worldNode && !tilesetNodes.empty())
+        {
+            worldNode = vsgCs::WorldNode::create();
+        }
+        worldNode->tilesetNodes().insert(worldNode->tilesetNodes().end(),
+                                         tilesetNodes.begin(), tilesetNodes.end());
+    }
+
+private:
+    vsg::ref_ptr<vsg::Node> createVsgCsObject(const std::string& fileName)
+    {
+        auto jsonSource = vsgCs::readFile(fileName, env->options);
+        auto object = vsgCs::JSONObjectFactory::get()->buildFromSource(jsonSource);
+        auto node = vsgCs::ref_ptr_cast<vsg::Node>(object);
+        if (!node)
+        {
+            std::cout << "Unable to load file " << fileName << '\n';
+        }
+        return node;
+    }
+    vsg::ref_ptr<vsgCs::TilesetNode> createTileset(const std::string& argString)
+    {
+        std::string url;
+        if (argString.starts_with("https:") || argString.starts_with("http:")
+            || argString.starts_with("file:"))
+        {
+            url = argString;
+        }
+        else
+        {
+            // It's a file, so construct an absolute file url.
+            auto realPath = vsg::findFile(argString, env->options);
+            if (realPath.empty())
+            {
+                vsg::fatal("Can't find file ", argString);
+            }
+            std::filesystem::path p = realPath.string();
+            auto absPath = std::filesystem::absolute(p);
+            url = "file://" + absPath.string();
+        }
+        std::string tilesetJson(R"({"Type": "Tileset", "tilesetUrl": ")");
+        tilesetJson += url + R"("})";
+        auto object = vsgCs::JSONObjectFactory::get()->buildFromSource(tilesetJson);
+        auto maybeTileset = vsgCs::ref_ptr_cast<vsgCs::TilesetNode>(object);
+        if (!maybeTileset)
+        {
+            std::cout << "Can't create tileset for " << argString << "\n";
+        }
+        return maybeTileset;
+    }
+    vsg::CommandLine& arguments;
+    vsg::ref_ptr<vsgCs::RuntimeEnvironment> env;
+};
 }
 
 int main(int argc, char** argv)
@@ -95,8 +198,6 @@ int main(int argc, char** argv)
         environment->options->add(vsgXchange::all::create());
         arguments.read(environment->options);
 #endif
-        // The world file specifies the tilesets to display.
-        auto worldFile = arguments.value(std::string(), "--world-file");
         // numFrames and pathFilename come from vsgViewer. They provide a way to display a
         // "flythrough." At the moment they are not useful because a scene will usually take some
         // time to load.
@@ -169,35 +270,7 @@ int main(int argc, char** argv)
 #endif
             vsg_scene->addChild(directionalLight);
         }
-        vsg::ref_ptr<vsg::StateGroup> modelRoot;
-        if (argc > 1)
-        {
-            modelRoot = createModelRoot(environment);
-        }
-        // Read GeoNode json files
-        for (int i = 1; i < argc; ++i)
-        {
-            vsg::Path filename = arguments[i];
-            auto jsonSource = vsgCs::readFile(filename, environment->options);
-            auto object = vsgCs::JSONObjectFactory::get()->buildFromSource(jsonSource);
-            if (auto node = vsgCs::ref_ptr_cast<vsg::Node>(object))
-            {
-                modelRoot->addChild(node);
-            }
-            else if (object)
-            {
-                std::cout << "Unable to view object of type " << object->className() << '\n';
-            }
-            else
-            {
-                std::cout << "Unable to load file " << filename << '\n';
-            }
-        }
-        if (worldFile.empty())
-        {
-            vsg::fatal("no world file");
-        }
-        auto worldJson = vsgCs::readFile(worldFile);
+
         // Do early cesium-native initialization
         vsgCs::startup();
         // create the VSG viewer and assign window(s) to it
@@ -208,10 +281,9 @@ int main(int argc, char** argv)
             std::cout << "Could not create windows.\n";
             return 1;
         }
-        // Create the World with its tilesets
-        auto worldNode
-            = vsgCs::ref_ptr_cast<vsgCs::WorldNode>(vsgCs::JSONObjectFactory::get()
-                                                    ->buildFromSource(worldJson));
+        VsgCsScenegraphBuilder graphBuilder(arguments, environment);
+        auto worldNode = graphBuilder.worldNode;
+        auto modelRoot = graphBuilder.xchangeModels;
         // VSG's EllipsoidModel provides ellipsoid parameters (e.g. WGS84), mostly for the benefit
         // of the trackball manipulator.
         auto ellipsoidModel = vsg::EllipsoidModel::create();
