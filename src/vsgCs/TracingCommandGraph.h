@@ -14,14 +14,14 @@ namespace vsgCs
     class TracingCollectCommand : public vsg::Inherit<vsg::Command, TracingCollectCommand>
     {
     public:
-        TracingCollectCommand(const vsg::ref_ptr<TracyContextValue>& in_tracyCtx);
+        explicit TracingCollectCommand(const vsg::ref_ptr<TracyContextValue>& in_tracyCtx);
         void record(vsg::CommandBuffer& cmd) const override;
         vsg::ref_ptr<TracyContextValue> tracyCtx;
     };
     
     class TracingCommandGraph : public vsg::Inherit<vsg::CommandGraph, TracingCommandGraph>
     {
-        public:
+    public:
         explicit TracingCommandGraph(const vsg::ref_ptr<RuntimeEnvironment>& in_env, const vsg::ref_ptr<vsg::Window>& in_window, const vsg::ref_ptr<vsg::Node>& child = {});
         void record(vsg::ref_ptr<vsg::RecordedCommandBuffers> recordedCommandBuffers, vsg::ref_ptr<vsg::FrameStamp> frameStamp, vsg::ref_ptr<vsg::DatabasePager> databasePager) override;
         const DeviceFeatures features;

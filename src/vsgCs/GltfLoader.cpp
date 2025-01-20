@@ -96,15 +96,21 @@ vsg::ref_ptr<vsg::Object>
 GltfLoader::read(const vsg::Path& path, vsg::ref_ptr<const vsg::Options> options) const
 {
     using namespace CesiumGltfReader;
-    auto realPath = vsg::findFile(path, options);
-    if (realPath.empty())
-    {
-        vsg::fatal("Can't find file ", path);
+    std::string uriPath;
+    std::string pathString = path.string();
+    if (pathString.starts_with("http:") || pathString.starts_with("https:")) {
+        uriPath = pathString;
+    } else {
+        auto realPath = vsg::findFile(path, options);
+        if (realPath.empty())
+        {
+            vsg::fatal("Can't find file ", path);
+        }
+        // Really need an absolute path in order to make a URI
+        std::filesystem::path p = realPath.string();
+        auto absPath = std::filesystem::absolute(p);
+        uriPath = "file://" + absPath.string();
     }
-    // Really need an absolute path in order to make a URI
-    std::filesystem::path p = realPath.string();
-    auto absPath = std::filesystem::absolute(p);
-    auto uriPath = "file://" + absPath.string();
     auto future = loadGltfNode(uriPath);
     if (isMainThread())
     {

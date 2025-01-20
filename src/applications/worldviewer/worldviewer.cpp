@@ -47,6 +47,7 @@ SOFTWARE.
 #include <thread>
 
 #include "vsgCs/GeoNode.h"
+#include "vsgCs/GltfLoader.h"
 #include "vsgCs/jsonUtils.h"
 #include "vsgCs/TilesetNode.h"
 #include "vsgCs/Tracing.h"
@@ -78,16 +79,18 @@ void usage(const char* name)
 class VsgCsScenegraphBuilder
 {
 public:
-    VsgCsScenegraphBuilder(vsg::CommandLine& arguments_, vsg::ref_ptr<vsgCs::RuntimeEnvironment> env_)
+    VsgCsScenegraphBuilder(vsg::CommandLine& arguments_,
+                           const vsg::ref_ptr<vsgCs::RuntimeEnvironment>& env_)
         : arguments(arguments_), env(env_)
     {
         createScenegraph();
     }
     vsg::ref_ptr<vsgCs::WorldNode> worldNode;
     vsg::ref_ptr<vsg::StateGroup> xchangeModels;
+    std::vector<vsg::ref_ptr<vsgCs::TilesetNode>> tilesetNodes;
+
     void createScenegraph()
     {
-        std::vector<vsg::ref_ptr<vsgCs::TilesetNode>> tilesetNodes;
         for (int i = 1; i < arguments.argc(); ++i)
         {
             std::string argString(arguments[i]);
@@ -104,18 +107,14 @@ public:
             }
             else if (argString.ends_with(".json"))
             {
-                auto node = createVsgCsObject(arguments[i]);
-                if (auto maybeWorldNode = vsgCs::ref_ptr_cast<vsgCs::WorldNode>(node))
+                addVsgCsObject(arguments[i]);
+            }
+            else
+            {
+                vsg::Path filename = arguments[i];
+                if (auto node = vsgCs::ref_ptr_cast<vsg::Node>(vsg::read(filename, env->options)))
                 {
-                    worldNode = maybeWorldNode;
-                }
-                else if (auto modelNode = vsgCs::ref_ptr_cast<vsg::Node>(node))
-                {
-                    if (!xchangeModels)
-                    {
-                        xchangeModels = vsgCs::createModelRoot(env);
-                    }
-                    xchangeModels->addChild(modelNode);
+                    addToXchangeModels(node);
                 }
             }
         }
@@ -128,17 +127,41 @@ public:
     }
 
 private:
-    vsg::ref_ptr<vsg::Node> createVsgCsObject(const std::string& fileName)
+    void addToXchangeModels(const vsg::ref_ptr<vsg::Node>& node)
+    {
+        if (!xchangeModels)
+        {
+            xchangeModels = createModelRoot(env);
+        }
+        xchangeModels->addChild(node);
+    }
+
+    void addVsgCsObject(const std::string& fileName)
     {
         auto jsonSource = vsgCs::readFile(fileName, env->options);
         auto object = vsgCs::JSONObjectFactory::get()->buildFromSource(jsonSource);
-        auto node = vsgCs::ref_ptr_cast<vsg::Node>(object);
-        if (!node)
+        if (!object)
         {
             std::cout << "Unable to load file " << fileName << '\n';
         }
-        return node;
+        if (auto maybeWorldNode = vsgCs::ref_ptr_cast<vsgCs::WorldNode>(object))
+        {
+            worldNode = maybeWorldNode;
+        }
+        else if (auto maybeTilesetNode = vsgCs::ref_ptr_cast<vsgCs::TilesetNode>(object))
+        {
+            tilesetNodes.push_back(maybeTilesetNode);
+        }
+        else if (auto modelNode = vsgCs::ref_ptr_cast<vsg::Node>(object))
+        {
+            addToXchangeModels(modelNode);
+        }
+        else
+        {
+            std::cout << "Unrecognized command line argument " << fileName << '\n';
+        }
     }
+
     vsg::ref_ptr<vsgCs::TilesetNode> createTileset(const std::string& argString)
     {
         std::string url;
@@ -192,9 +215,10 @@ int main(int argc, char** argv)
         // Vulkan environment, and the Cesium ion token (if any).
         auto environment = vsgCs::RuntimeEnvironment::get();
         auto window = environment->openWindow(arguments, "worldviewer");
+        environment->options->add(vsgCs::GltfLoader::create(environment));
 #ifdef vsgXchange_FOUND
         // add vsgXchange's support for reading and writing 3rd party file formats. If vsgXchange
-        // isn't found, then we will only be able to read .vsgt models.
+        // isn't found, then we will only be able to read .vsgt models and glTF files.
         environment->options->add(vsgXchange::all::create());
         arguments.read(environment->options);
 #endif
