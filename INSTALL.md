@@ -2,36 +2,65 @@
 
 ## Prerequisites
 
-These dependencies and should be installed manually:
+vsgCs manages its dependencies using the
+[vcpkg](https://github.com/microsoft/vcpkg) package manager. You
+should clone that repository and follow the steps described in [vcpkg
+with CMake](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started?pivots=shell-bash).
 
-- `libcurl` This is best installed via a package manager.
-- the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) from LunarG. Follow installation instructions
-  for your operating system.
-- The `git-lfs` component of git. This comes with Git for Windows but is not installed by default on Linux.
-
-The following are downloaded by `cmake`:
-
-- [VulkanSceneGraph](https://github.com/vsg-dev/VulkanSceneGraph)
-- [vsgImGui](https://github.com/vsg-dev/vsgImGui)
-
-- Cesium Native vsgCs uses a fork of Cesium Native that is better
-  integrated with `cmake`. See [CMakeLists.txt](./CMakeLists.txt) for
-  details. `cmake` may take a long time to download the Cesium Native
-  library and its dependencies, and occaisionally there are errors
-  from which `FetchContent` cannot recover. A workaround is to clone
-  Cesium Native yourself, using the repository and tag in
-  `CmakeLists.txt`, and then set the `FETCHCONTENT_SOURCE_DIR_CESIUM`
-  cache variable.
+On Linux, vcpkg will complain if some development packages aren't
+installed in the system, although it's unclear if this makes any
+practical difference. On Fedora, to take an example, you can install
+them with:
+```
+sudo dnf install xorg-macros xproto xcb-proto libXdmcp-devel libXau-devel
+```
 
 ## Command line build instructions:
 
-To build and install the static library (libvsgCs.a / libvsgCs.lib) and sample
-application (worldviewer):
+Once you have set the `VCPKG_ROOT` environment variable, you can build
+vsgCS using a CMake preset defined in `CMakePresets.json`, for example:
+
 ```
-    git clone https://github.com/timoore/vsgCs.git
-    mkdir build # or wherever you like
-    cd build
-    cmake ../vsgCs.git
-    make -j 8
-    sudo make install
+export VCPKG_ROOT=<location of vcpkg repository>
+cmake --preset vcpkg-debug
+cmake --build build-debug --target install -j 10
+```
+
+The `cmake` files for vsgCs don't explicitly depend on vcpkg, so you
+can install vsgCs' dependencies yourself e.g., using your system's
+package manager. Look in vsgCs' `CMakeLists.txt` files for calls to
+`find_package` for prerequisites, as well as in the `vcpkg.json` files
+in the `extern/vcpkg-overlays` subdirectories.
+
+## Cesium Native
+
+For this release candidate, vsgCs is using a private fork of the
+Cesium Native library which is better integrated with `cmake`. This
+branch is quite close to a [pullrequest](https://github.com/CesiumGS/cesium-native/pull/1026) in
+the offical Cesium Native repository, and we intend to use Cesium
+Native releases once that PR is merged.
+
+vsgCs is often used as a vehicle for developing Cesium Native, and it
+would be quite painful to create a vcpkg port and package for each
+incremental change. You can include Cesium Native as a CMake
+subdirectory from its source subdirectory using the
+`VSGCS_CESIUM_NATIVE_DIRECTORY` cache variable. The CMake
+`local-cesium-native` preset in `CMakePresets.json` uses vcpkg to get
+Cesium Native's dependencies without Cesium Native itself, and so is
+ideal for this usage. You can create a preset in a local
+`CMakeUserPresets.json` file that configures this case:
+```
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "my-local-native",
+        "inherits": ["vcpkg-debug", "local-cesium-native"],
+      "binaryDir": "${sourceDir}/build-debug",
+      "cacheVariables": {
+        "VSGCS_CESIUM_NATIVE_DIRECTORY": "/home/foo/CesiumGS/cesium-native"
+      }
+    }
+  ]
+}
 ```
