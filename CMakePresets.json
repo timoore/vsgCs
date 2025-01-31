@@ -2,16 +2,22 @@
   "version": 3,
   "configurePresets": [
     {
+      "name": "vcpkg",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
       "name": "vcpkg-debug",
+      "inherits": "vcpkg",
       "binaryDir": "${sourceDir}/build-debug",
       "cacheVariables": {
-        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
         "CMAKE_BUILD_TYPE": "Debug"
       }
     },
     {
-      "name": "vcpkg",
-      "inherits": "vcpkg-debug",
+      "name": "vcpkg-release",
+      "inherits": "vcpkg",
       "binaryDir": "${sourceDir}/build-release",
       "cacheVariables": {
         "CMAKE_BUILD_TYPE": "Release"
@@ -19,20 +25,13 @@
     },
     {
       "name": "Windows-Devel",
-      "inherits": "vcpkg-debug",
+      "inherits": "vcpkg",
       "generator": "Visual Studio 17 2022",
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
         "VCPKG_TARGET_TRIPLET": "x64-windows-static-md",
         "VCPKG_TRIPLET": "x64-windows-static-md"
-      }
-    },
-    {
-      "name": "Windows-Devel-Release",
-      "inherits": "Windows-Devel",
-      "cacheVariables": {
-        "CMAKE_BUILD_TYPE": "Release"
       }
     },
     {
@@ -59,7 +58,7 @@
     {
       "name": "Windows-Release",
       "displayName": "Windows Release",
-      "configurePreset": "Windows-Devel-Release",
+      "configurePreset": "Windows-Devel",
       "configuration": "Release"
     }
   ]
