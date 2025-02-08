@@ -20,7 +20,7 @@ if (MSVC)
   # template madness
   add_compile_options(/bigobj)
   # windows.h madness
-  add_compile_definitions(NOGDI)
+  add_compile_definitions(NOGDI NOMINMAX)
 endif()
 
 option(BUILD_SHARED_LIBS "Build using shared libraries" OFF)

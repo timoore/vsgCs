@@ -25,10 +25,6 @@ SOFTWARE.
 #pragma once
 
 #include <vsg/nodes/Group.h>
-// See comments elsewhere about this Windows brokeness.
-#ifndef NOGDI
-#define NOGDI
-#endif
 #include <Cesium3DTilesSelection/Tileset.h>
 #include <gsl/span>
 

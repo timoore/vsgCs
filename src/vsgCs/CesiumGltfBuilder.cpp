@@ -30,12 +30,6 @@ SOFTWARE.
 #include "runtimeSupport.h"
 #include "Tracing.h"
 
-// Some include file in Cesium (actually, it's spdlog.h) unleashes the hell of windows.h. We need to
-// turn off GDI defines to avoid a redefinition of the GLSL constant OPAQUE.
-#ifndef NOGDI
-#define NOGDI
-#endif
-
 #include <CesiumGltf/AccessorView.h>
 #include <CesiumGltf/ExtensionKhrTextureBasisu.h>
 #include <CesiumGltf/ExtensionTextureWebp.h>
