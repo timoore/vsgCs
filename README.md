@@ -32,6 +32,8 @@ package, which also "powers Cesium's runtime integrations for
 ---
 
 ## News
+- February 10, 2025: vsgCs now uses vcpkg for managing its dependencies. See [INSTALL.md](INSTALL.md)
+  for details.
 - June 12, 2023: Version 0.4 is released! This release is dedicated to the memory of Alicia Hills
   Moore (1930-2023). My mother was fascinated by computer graphics and interviewed many of its
   pioneers during a long career as a journalist.
@@ -56,10 +58,6 @@ package, which also "powers Cesium's runtime integrations for
 
 See [the install instructions](INSTALL.md).
 
-
-## vcpkg
-
-Install `xorg-macros`, `xproto`, xcb-proto`, `libXdmcp-devel`, `libXau-devel`
 ---
 
 
