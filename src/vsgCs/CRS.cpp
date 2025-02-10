@@ -66,7 +66,7 @@ namespace vsgCs
     //! Per thread proj threading context.
     thread_local PJ_CONTEXT* g_pj_thread_local_context = nullptr;
 
-        //! Entry in the per-thread SRS data cache
+    //! Entry in the per-thread SRS data cache
     struct SRSEntry
     {
         PJ* pj = nullptr;
@@ -99,7 +99,9 @@ namespace vsgCs
             }
 
             if (g_pj_thread_local_context)
-                proj_context_destroy(g_pj_thread_local_context);
+            {
+                    proj_context_destroy(g_pj_thread_local_context);
+            }
         }
 
         static PJ_CONTEXT* threading_context()
@@ -130,95 +132,101 @@ namespace vsgCs
             auto* ctx = threading_context();
 
             auto iter = umap.find(def);
-            if (iter == umap.end())
+            if (iter != umap.end())
             {
-                PJ* pj = nullptr;
-
-                std::string to_try = def;
-                std::string ndef = toLower(def);
-
-                //TODO: Think about epsg:4979, which is supposedly a 3D version of epsg::4326.
-
-                // process some common aliases
-                if (ndef == "wgs84" || ndef == "global-geodetic")
-                    to_try = "EPSG:4979";
-                else if (ndef == "spherical-mercator")
-                    to_try = "EPSG:3785";
-                else if (ndef == "geocentric" || ndef == "ecef")
-                    to_try = "EPSG:4978";
-                else if (ndef == "plate-carree" || ndef == "plate-carre")
-                    to_try = "EPSG:32663";
-
-                // try to determine whether this ia WKT so we can use the right create function
-                auto wkt_dialect = proj_context_guess_wkt_dialect(ctx, to_try.c_str());
-                if (wkt_dialect != PJ_GUESSED_NOT_WKT)
-                {
-                    pj = proj_create_from_wkt(ctx, to_try.c_str(), nullptr, nullptr, nullptr);
-                }
-                else
-                {
-                    // if it's a PROJ string, be sure to add the +type=crs
-                    if (contains(ndef, "+proj"))
-                    {
-                        if (!contains(ndef, "proj=pipeline") && !contains(ndef, "type=crs"))
-                        {
-                            to_try += " +type=crs";
-                        }
-                    }
-                    pj = proj_create(ctx, to_try.c_str());
-                }
-
-                // store in the cache (even if it failed)
-                SRSEntry& new_entry = umap[def];
-                new_entry.pj = pj;
-
-                if (pj == nullptr)
-                {
-                    // store any error in the cache entry
-                    auto err_no = proj_context_errno(ctx);
-                    new_entry.error = proj_errno_string(err_no);
-                }
-                else
-                {
-                    // extract the type
-                    PJ_TYPE type = proj_get_type(pj);
-                    if (type == PJ_TYPE_COMPOUND_CRS)
-                    {
-                        PJ* horiz = proj_crs_get_sub_crs(ctx, pj, 0);
-                        if (horiz)
-                            new_entry.horiz_crs_type = proj_get_type(horiz);
-                    }
-                    else new_entry.horiz_crs_type = type;
-
-                    // extract the ellipsoid parameters.
-                    // if this fails, the entry will contain the default WGS84 ellipsoid, and that is ok.
-                    PJ* ellps = proj_get_ellipsoid(ctx, pj);
-                    if (ellps)
-                    {
-                        double semi_major;
-                        double semi_minor;
-                        double inv_flattening;
-                        int is_semi_minor_computed;
-                        proj_ellipsoid_get_parameters(ctx, ellps, &semi_major, &semi_minor, &is_semi_minor_computed, &inv_flattening);
-                        proj_destroy(ellps);
-                        new_entry.ellipsoid = CesiumGeospatial::Ellipsoid(semi_major, semi_major, semi_minor);
-                    }
-
-                    // extract the WKT
-                    const char* wkt = proj_as_wkt(ctx, pj, PJ_WKT2_2019, nullptr);
-                    if (wkt)
-                        new_entry.wkt = wkt;
-
-                    // extract the PROJ string
-                    const char* proj = proj_as_proj_string(ctx, pj, PJ_PROJ_5, nullptr);
-                    if (proj)
-                        new_entry.proj = proj;
-                }
-
-                return new_entry;
+                return iter->second;
             }
-            
-            return iter->second;
+            PJ* pj = nullptr;
+            std::string to_try = def;
+            std::string ndef = toLower(def);
+
+            // process some common aliases
+            // 4979 and 4978 are 3D coordinate systems, the others are 2D; what
+            // does that mean?
+            if (ndef == "wgs84" || ndef == "global-geodetic")
+                to_try = "EPSG:4979";
+            else if (ndef == "spherical-mercator")
+                to_try = "EPSG:3785";
+            else if (ndef == "geocentric" || ndef == "ecef")
+                to_try = "EPSG:4978";
+            else if (ndef == "plate-carree" || ndef == "plate-carre")
+                to_try = "EPSG:32663";
+
+            // try to determine whether this ia WKT so we can use the right create function
+            auto wkt_dialect = proj_context_guess_wkt_dialect(ctx, to_try.c_str());
+            if (wkt_dialect != PJ_GUESSED_NOT_WKT)
+            {
+                pj = proj_create_from_wkt(ctx, to_try.c_str(), nullptr, nullptr, nullptr);
+            }
+            else
+            {
+                // if it's a PROJ string, be sure to add the +type=crs
+                if (contains(ndef, "+proj"))
+                {
+                    if (!contains(ndef, "proj=pipeline") && !contains(ndef, "type=crs"))
+                    {
+                        to_try += " +type=crs";
+                    }
+                }
+                pj = proj_create(ctx, to_try.c_str());
+            }
+
+            // store in the cache (even if it failed)
+            SRSEntry& new_entry = umap[def];
+            new_entry.pj = pj;
+
+            if (pj == nullptr)
+            {
+                // store any error in the cache entry
+                auto err_no = proj_context_errno(ctx);
+                new_entry.error = proj_errno_string(err_no);
+            }
+            else
+            {
+                // extract the type
+                PJ_TYPE type = proj_get_type(pj);
+                if (type == PJ_TYPE_COMPOUND_CRS)
+                {
+                    PJ* horiz = proj_crs_get_sub_crs(ctx, pj, 0);
+                    if (horiz)
+                    {
+                        new_entry.horiz_crs_type = proj_get_type(horiz);
+                    }
+                }
+                else
+                {
+                    new_entry.horiz_crs_type = type;
+                }
+                // extract the ellipsoid parameters.
+                // if this fails, the entry will contain the default WGS84 ellipsoid, and that is ok.
+                PJ* ellps = proj_get_ellipsoid(ctx, pj);
+                if (ellps)
+                {
+                    double semi_major;
+                    double semi_minor;
+                    double inv_flattening;
+                    int is_semi_minor_computed;
+                    proj_ellipsoid_get_parameters(ctx, ellps, &semi_major, &semi_minor, &is_semi_minor_computed, &inv_flattening);
+                    proj_destroy(ellps);
+                    new_entry.ellipsoid = CesiumGeospatial::Ellipsoid(semi_major, semi_major, semi_minor);
+                }
+
+                // extract the WKT
+                const char* wkt = proj_as_wkt(ctx, pj, PJ_WKT2_2019, nullptr);
+                if (wkt)
+                {
+                    new_entry.wkt = wkt;
+                }
+                // extract the PROJ string
+                const char* proj = proj_as_proj_string(ctx, pj, PJ_PROJ_5, nullptr);
+                if (proj)
+                {
+                    new_entry.proj = proj;
+                }
+            }
+
+            return new_entry;
+
            
         }
 
@@ -306,7 +314,9 @@ namespace vsgCs
                 get_or_create(def);
                 iter = umap.find(def);
                 if (iter == umap.end())
+                {
                     return empty_string;
+                }
             }
             return iter->second.wkt;
         }

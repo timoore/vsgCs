@@ -35,10 +35,7 @@
         "vulkan-binding"
       ]
     },
-    {
-      "name": "proj",
-      "default-features": false
-    },
+    "proj",
     "spdlog",
     "tinyxml2",
     "vsg",
