@@ -24,7 +24,7 @@ SOFTWARE.
 
 #pragma once
 
-#include "Export.h"
+#include "vsgCs/Export.h"
 #include "GraphicsEnvironment.h"
 #include "runtimeSupport.h"
 

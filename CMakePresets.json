@@ -1,0 +1,65 @@
+{
+  "version": 3,
+  "configurePresets": [
+    {
+      "name": "vcpkg",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake"
+      }
+    },
+    {
+      "name": "vcpkg-debug",
+      "inherits": "vcpkg",
+      "binaryDir": "${sourceDir}/build-debug",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug"
+      }
+    },
+    {
+      "name": "vcpkg-release",
+      "inherits": "vcpkg",
+      "binaryDir": "${sourceDir}/build-release",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release"
+      }
+    },
+    {
+      "name": "Windows-Devel",
+      "inherits": "vcpkg",
+      "generator": "Visual Studio 17 2022",
+      "binaryDir": "${sourceDir}/build",
+      "cacheVariables": {
+        "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static-md",
+        "VCPKG_TRIPLET": "x64-windows-static-md"
+      }
+    },
+    {
+      "name": "Strict",
+      "cacheVariables": {
+        "CMAKE_COMPILE_WARNING_AS_ERROR": "YES"
+      }
+    },
+    {
+      "name": "local-cesium-native",
+      "cacheVariables": {
+        "VCPKG_MANIFEST_NO_DEFAULT_FEATURES": true,
+        "VCPKG_MANIFEST_FEATURES": "cesium-native-local"
+      }
+    }
+  ],
+  "buildPresets": [
+    {
+      "name": "Windows-Debug",
+      "displayName": "Windows Debug",
+      "configurePreset": "Windows-Devel",
+      "configuration": "Debug"
+    },
+    {
+      "name": "Windows-Release",
+      "displayName": "Windows Release",
+      "configurePreset": "Windows-Devel",
+      "configuration": "Release"
+    }
+  ]
+}

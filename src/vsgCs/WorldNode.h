@@ -25,14 +25,10 @@ SOFTWARE.
 #pragma once
 
 #include <vsg/nodes/Group.h>
-// See comments elsewhere about this Windows brokeness.
-#ifndef NOGDI
-#define NOGDI
-#endif
 #include <Cesium3DTilesSelection/Tileset.h>
 #include <gsl/span>
 
-#include "Export.h"
+#include "vsgCs/Export.h"
 #include "runtimeSupport.h"
 #include "jsonUtils.h"
 
@@ -55,8 +51,10 @@ namespace vsgCs
         void shutdown();
         // hack for supporting zoom after load
         const Cesium3DTilesSelection::Tile* getRootTile(size_t tileset = 0);
-        protected:
-        vsg::Group::Children& worldNodes()
+        /**
+         * @brief Access to the tileset array; not safe!
+         */
+        vsg::Group::Children& tilesetNodes()
         {
             auto stateGroup = ref_ptr_cast<vsg::StateGroup>(children[0]);
             return stateGroup->children;

@@ -92,11 +92,7 @@ struct CaseInsensitiveComparator
         }
         if (pa == a.end())
         {
-            if (pb == b.end())
-            {
-                return false;
-            }
-            return true;
+            return pb != b.end();
         }
         return false;
     }
@@ -309,7 +305,7 @@ std::optional<vsg::vec4> parseColorString(const std::string_view &color)
 
 std::optional<vsg::vec4> parseColorSpec(const std::string_view expr)
 {
-    const vsg::vec4 white(1.0f, 1.0f, 1.0f, 1.0f);
+    static const vsg::vec4 white(1.0f, 1.0f, 1.0f, 1.0f);
     const std::string colorFunc("color(");
     if (expr.size() <= colorFunc.size())
     {
@@ -326,7 +322,7 @@ std::optional<vsg::vec4> parseColorSpec(const std::string_view expr)
     }
     if (*match.second == '\'' || *match.second == '"')
     {
-        auto closing = std::find(match.second + 1, expr.end(), *match.second);
+        const auto closing = std::find(match.second + 1, expr.end(), *match.second);
         if (closing == expr.end())
         {
             return {};
@@ -440,7 +436,7 @@ Stylist::Stylist(Styling* in_styling, ModelBuilder* builder)
     {
         return;
     }
-    std::optional<Schema> schema = metadata->schema;
+    auto schema = metadata->schema;
     if (!schema)
     {
         return;
@@ -538,6 +534,7 @@ Stylist::PrimitiveStyling Stylist::getStyling(const CesiumGltf::MeshPrimitive *p
     if (!featureAccessor)
     {
         vsg::info("No feature accessor: ", *featureID.attribute);
+        return result;
     }
     auto colorResult = CesiumGltf::createAccessorView(
         *modelBuilder->_model,
@@ -548,7 +545,8 @@ Stylist::PrimitiveStyling Stylist::getStyling(const CesiumGltf::MeshPrimitive *p
             for (int i = 0; i < featureView.size(); ++i)
             {
                 auto featureIDNum = featureView[i].value[0];
-                if ((featureID.nullFeatureId && featureIDNum == *featureID.nullFeatureId)
+                if ((featureID.nullFeatureId && static_cast<int64_t>(featureIDNum)
+                     == *featureID.nullFeatureId)
                     || !featureColors.at(static_cast<size_t>(featureIDNum)))
                 {
                     (*result)[i] = colorWhite;

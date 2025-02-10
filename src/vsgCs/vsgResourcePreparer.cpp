@@ -137,7 +137,7 @@ vsgResourcePreparer::prepareInLoadThread(const CesiumAsync::AsyncSystem& asyncSy
                                          const std::any& rendererOptions)
 {
     VSGCS_ZONESCOPED;
-    CesiumGltf::Model* pModel = std::get_if<CesiumGltf::Model>(&tileLoadResult.contentKind);
+    auto* pModel = std::get_if<CesiumGltf::Model>(&tileLoadResult.contentKind);
     if (!pModel)
     {
         return asyncSystem.createResolvedFuture(
@@ -205,7 +205,7 @@ void vsgResourcePreparer::free(Cesium3DTilesSelection::Tile&,
 }
 
 void*
-vsgResourcePreparer::prepareRasterInLoadThread(CesiumGltf::ImageCesium& image,
+vsgResourcePreparer::prepareRasterInLoadThread(CesiumGltf::ImageAsset& image,
                                                const std::any& rendererOptions)
 {
     VSGCS_ZONESCOPED;

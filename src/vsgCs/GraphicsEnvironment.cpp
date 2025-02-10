@@ -96,8 +96,7 @@ vsg::CompileResult GraphicsEnvironment::miniCompile(vsg::ref_ptr<vsg::Object> ob
     result.maxSlot = requirements.maxSlot;
     result.containsPagedLOD = requirements.containsPagedLOD;
     result.views = requirements.views;
-    result.earlyDynamicData = requirements.earlyDynamicData;
-    result.lateDynamicData = requirements.lateDynamicData;
+    result.dynamicData= requirements.dynamicData;
 
     auto run_compile_traversal = [&]() -> void {
         for (auto& context : miniCompileTraversal->contexts)

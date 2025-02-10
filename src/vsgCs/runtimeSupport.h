@@ -31,7 +31,7 @@ SOFTWARE.
 
 #include <Cesium3DTilesSelection/Tile.h>
 
-#include "Export.h"
+#include "vsgCs/Export.h"
 #include "vsgCs/Config.h"
 
 #include <algorithm>
@@ -159,7 +159,7 @@ namespace vsgCs
      */
     struct GltfImagePtr
     {
-        CesiumGltf::ImageCesium* pImage;
+        CesiumGltf::ImageAsset* pImage;
     };
 
     /**
@@ -173,42 +173,10 @@ namespace vsgCs
     };
 
     /**
-     * @brief An embedded image resource.
-     */
-    struct EmbeddedImageSource
-    {
-        CesiumGltf::ImageCesium image;
-    };
-
-    typedef std::variant<
-        GltfImagePtr,
-        GltfImageIndex,
-        EmbeddedImageSource>
-    CesiumTextureSource;
-
-    struct GetImageFromSource
-    {
-        CesiumGltf::ImageCesium*
-        operator()(GltfImagePtr& imagePtr) {
-            return imagePtr.pImage;
-        }
-
-        CesiumGltf::ImageCesium*
-        operator()(EmbeddedImageSource& embeddedImage) {
-            return &embeddedImage.image;
-        }
-
-        template <typename TSource>
-        CesiumGltf::ImageCesium* operator()(TSource& /*source*/) {
-            return nullptr;
-        }
-    };
-
-    /**
      * @brief Create an image from binary data.
      */
     vsg::ref_ptr<vsg::ImageInfo> VSGCS_EXPORT
-    makeImage(gsl::span<const std::byte> data, bool useMipMaps, bool sRGB,
+    makeImage(std::span<const std::byte> data, bool useMipMaps, bool sRGB,
               VkSamplerAddressMode addressX = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
               VkSamplerAddressMode addressY = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
               VkFilter minFilter = VK_FILTER_LINEAR,
@@ -220,7 +188,7 @@ namespace vsgCs
      * This returns vsg::Data because the vsg::Array2D template class does not have a more specific
      * superclass.
      */
-    vsg::ref_ptr<vsg::Data> VSGCS_EXPORT loadImage(CesiumGltf::ImageCesium& image, bool useMipMaps, bool sRGB);
+    vsg::ref_ptr<vsg::Data> VSGCS_EXPORT loadImage(CesiumGltf::ImageAsset& image, bool useMipMaps, bool sRGB);
 
     int samplerLOD(const vsg::ref_ptr<vsg::Data>& data, bool generateMipMaps);
 
@@ -262,6 +230,7 @@ namespace vsgCs
      *
      * The VSG cast() member function templates use typeid, so they won't work if the actual object
      * is a sublcass of the desired cast.
+     * XXX This comment is rather sus and needs further investigation...
      * @param TSubclass the target subclass
      * @param p the source ref_ptr
      * @return a ref_ptr that is valid if the cast succeeds, otherwise not.
@@ -313,6 +282,19 @@ namespace vsgCs
         }
     }
 
+    template<typename F, typename BoxType>
+    void mapBox(const BoxType& box, F&& f)
+    {
+        f(box.min.x, box.min.y, box.min.z);
+        f(box.min.x, box.min.y, box.max.z);
+        f(box.min.x, box.max.y, box.min.z);
+        f(box.min.x, box.max.y, box.max.z);        
+        f(box.max.x, box.min.y, box.min.z);
+        f(box.max.x, box.min.y, box.max.z);
+        f(box.max.x, box.max.y, box.min.z);
+        f(box.max.x, box.max.y, box.max.z);
+    }
+    
     std::optional<uint32_t> getUintSuffix(const std::string& prefix, const std::string& data);
 
     // For debugging

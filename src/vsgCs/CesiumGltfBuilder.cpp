@@ -30,12 +30,6 @@ SOFTWARE.
 #include "runtimeSupport.h"
 #include "Tracing.h"
 
-// Some include file in Cesium (actually, it's spdlog.h) unleashes the hell of windows.h. We need to
-// turn off GDI defines to avoid a redefinition of the GLSL constant OPAQUE.
-#ifndef NOGDI
-#define NOGDI
-#endif
-
 #include <CesiumGltf/AccessorView.h>
 #include <CesiumGltf/ExtensionKhrTextureBasisu.h>
 #include <CesiumGltf/ExtensionTextureWebp.h>
@@ -189,7 +183,7 @@ CesiumGltfBuilder::load(CesiumGltf::Model* model, const CreateModelOptions& opti
     ExtensionList tilesExtensions{csExtension};
     if (options.styling.valid())
     {
-        tilesExtensions.push_back(stylingExtension);
+        tilesExtensions.emplace_back(stylingExtension);
     }
     ModelBuilder builder(_genv, model, options, tilesExtensions);
     return builder();
@@ -245,7 +239,7 @@ vsg::ref_ptr<vsg::Node> CesiumGltfBuilder::loadTile(Cesium3DTilesSelection::Tile
                                                     const CreateModelOptions& modelOptions)
 {
     VSGCS_ZONESCOPED;
-    CesiumGltf::Model* pModel = std::get_if<CesiumGltf::Model>(&tileLoadResult.contentKind);
+    auto* pModel = std::get_if<CesiumGltf::Model>(&tileLoadResult.contentKind);
     if (!pModel)
     {
         return {};
@@ -318,20 +312,7 @@ CesiumGltfBuilder::attachTileData(Cesium3DTilesSelection::Tile& tile,
     return {tileStateCommand, node};
 }
 
-vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumTextureSource&& imageSource,
-                                                            VkSamplerAddressMode addressX,
-                                                            VkSamplerAddressMode addressY,
-                                                            VkFilter minFilter,
-                                                            VkFilter maxFilter,
-                                                            bool useMipMaps,
-                                                            bool sRGB)
-{
-    CesiumGltf::ImageCesium* pImage =
-        std::visit(GetImageFromSource{}, imageSource);
-    return loadTexture(*pImage, addressX, addressY, minFilter, maxFilter, useMipMaps, sRGB);
-}
-
-vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumGltf::ImageCesium& image,
+vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumGltf::ImageAsset& image,
                                                             VkSamplerAddressMode addressX,
                                                             VkSamplerAddressMode addressY,
                                                             VkFilter minFilter,

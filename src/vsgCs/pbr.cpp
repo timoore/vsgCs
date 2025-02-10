@@ -33,7 +33,7 @@ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLI
 namespace vsgCs::pbr
 {
     vsg::ref_ptr<vsg::Data> makeTileData(float geometricError, float maxPointSize,
-                                         const gsl::span<OverlayParams> overlayUniformMem,
+                                         const std::span<OverlayParams> overlayUniformMem,
                                          float fadeValue, bool fadeOut)
     {
         // All this hair with memcpy is to avoid using reinterpret_cast with a struct, apparently
@@ -67,7 +67,7 @@ namespace vsgCs::pbr
         memcpy(tileBufData->data() + sizeof(float) * 3, &floatFadeOut, sizeof(float));
     }
 
-    void addBindings(vsg::ref_ptr<vsg::ShaderSet> shaderSet)
+    void addBindings(const vsg::ref_ptr<vsg::ShaderSet>& shaderSet)
     {
         shaderSet->addAttributeBinding("vsg_Vertex", "", 0, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
         shaderSet->addAttributeBinding("vsg_Normal", "", 1, VK_FORMAT_R32G32B32_SFLOAT, vsg::vec3Array::create(1));
@@ -115,7 +115,7 @@ namespace vsgCs::pbr
         shaderSet->customDescriptorSetBindings.push_back(vsg::ViewDependentStateBinding::create(VIEW_DESCRIPTOR_SET));
     }
 
-    void addTileBindings(vsg::ref_ptr<vsg::ShaderSet> shaderSet)
+    void addTileBindings(const vsg::ref_ptr<vsg::ShaderSet>& shaderSet)
     {
         // XXX Want a VSGCS_LOD_FADE define here, but that to messes up the descriptor defaulting mechanism.
         shaderSet->addDescriptorBinding("blueNoise", "", WORLD_DESCRIPTOR_SET, 0,

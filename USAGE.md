@@ -1,6 +1,6 @@
 # vsgCs Usage
 
-## JSON input files
+## JSON World files
 
 vsgCs and the `worldviwer` program can read a simple JSON description
 of the tilesets and overlays to include in a scene. The simplest example is [tests/csterrain.json](tests/csterrain.json):
@@ -23,7 +23,7 @@ of the tilesets and overlays to include in a scene. The simplest example is [tes
 ```
 
 This file specifies that the Cesium World Terrain will be draped with
-Bing imagery. These assets will be downloaded (or forwarded) from the
+Bing imagery. These assets will be streamed (or forwarded) from the
 Cesium ion server.
 
 See the
@@ -41,6 +41,7 @@ See the
   the Bing overlay, so that the colors from the `cesium#color` feature
   attribute are used to shade the buildings.
 * [agi.json](tests/agi.json) The ion tutorial tileset
+* [GMaps-ion.json](tests/GMaps-ion.json) Google Photorealistic 3D Tiles provisioned by Cesium ion
 
 
 ### Cesium ion
@@ -62,32 +63,22 @@ be useful.
 
 Any interaction with a Cesium ion server requires an access token. On
 the "Access Tokens" page of Cesium ion, copy your token. while it can
-be passed on the command line to csclient, it is more convenient to
+be passed on the command line to `worldviewer`, it is more convenient to
 store it in a file e.g., `.cesiumiontoken` in your home directory.
 
 ### `worldviewer`
 
 The `worldviewer` program demonstrates the basic features of vsgCs. To
-view the world:
+view the world file shown above:
 
 ```
-worldviewer --ion-token-file ~/.cesiumiontoken --world-file vsgCs/tests/csterrain.json
+worldviewer --ion-token-file ~/.cesiumiontoken vsgCs/tests/csterrain.json
 ```
 
 which should produce:
 
 <img src="doc/img/world.png" alt="the world">
 
-`worldviewer` also displays discrete 3D Tiles tilesets. In my Cesium ion
-account the AGI building has asset id 1418857, so:
-
-```
-worldviewer --ion-asset 1418857 --ion-token-file ~/.cesiumiontoken
-```
-
-produces
-
-<img src="doc/img/agi.png" alt="AGI">
 
 ## Google Maps Photorealistic 3D Tiles
 
@@ -98,7 +89,10 @@ Maps API key, which I found complicated to create. My recommendation
 is to follow [Cesium's Photorealistic Tiles
 tutorials](https://cesium.com/learn/photorealistic-3d-tiles-learn/);
 the process for creating an API key is the same as for Cesium's
-products. Then insert the key in `GMaps-sample.json`.
+products. Then insert the key in `GMaps-sample.json`. An easier
+alternative is to use Cesium ion to automatically supply an API
+key. The Photorealistic Tiles are just another ion asset; see [GMaps-ion.json](tests/GMaps-ion.json)
+for usage.
 
 <img src="doc/img/gmaps.png" alt="Google Photorealistic 3D Tiles">
 

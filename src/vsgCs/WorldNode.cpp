@@ -57,7 +57,7 @@ bool WorldNode::initialize(const vsg::ref_ptr<vsg::Viewer>& viewer)
 {
     bool result = true;
     setMainThread();
-    for (const auto& node : worldNodes())
+    for (const auto& node : tilesetNodes())
     {
         auto tilesetNode = ref_ptr_cast<TilesetNode>(node);
         if (!tilesetNode)
@@ -92,7 +92,7 @@ bool WorldNode::initialize(const vsg::ref_ptr<vsg::Viewer>& viewer)
 
 void WorldNode::shutdown()
 {
-    for (const auto& node : worldNodes())
+    for (const auto& node : tilesetNodes())
     {
         auto tilesetNode = ref_ptr_cast<TilesetNode>(node);
         if (!tilesetNode)
@@ -108,7 +108,7 @@ void WorldNode::shutdown()
 
 const Cesium3DTilesSelection::Tile* WorldNode::getRootTile(size_t tileset)
 {
-    auto tilesetNode = ref_ptr_cast<TilesetNode>(worldNodes().at(tileset));
+    auto tilesetNode = ref_ptr_cast<TilesetNode>(tilesetNodes().at(tileset));
     if (tilesetNode)
     {
         return tilesetNode->getTileset()->getRootTile();

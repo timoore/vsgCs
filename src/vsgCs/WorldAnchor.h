@@ -25,7 +25,7 @@ SOFTWARE.
 #pragma once
 
 #include "CRS.h"
-#include "Export.h"
+#include "vsgCs/Export.h"
 
 #include <vsg/maths/vec3.h>
 #include <vsg/nodes/MatrixTransform.h>

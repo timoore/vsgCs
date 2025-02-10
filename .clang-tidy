@@ -1,0 +1,17 @@
+---
+Checks: >
+  google-*,
+  performance-*,
+  portability-*,
+  readability-*,
+  modernize-*,
+  misc-include-cleaner,
+  -google-build-using-namespace,
+  -readability-identifier-length,
+  -readability-math-missing-parentheses,
+  -readability-uppercase-literal-suffix,
+  -google-readability-namespace-comments,
+  -readability-named-parameter,
+  -readability-implicit-bool-conversion,
+  -readability-magic-numbers,
+  -modernize-use-trailing-return-type

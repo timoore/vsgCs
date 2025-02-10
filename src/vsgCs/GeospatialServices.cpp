@@ -91,7 +91,7 @@ QuadraticResult solveQuadratic(double a, double b, double c)
         result.roots[1] = c / result.roots[0];
         return result;
     }
-    else if (d == 0.0)
+    if (d == 0.0)
     {
         return {1, {-b / (2.0 * a), 0.0}};
     }
@@ -157,9 +157,9 @@ vsg::dvec3 CsGeospatialServices::toCartographic(const vsg::dvec3 &worldPos)
     auto csResult = CesiumGeospatial::Ellipsoid::WGS84.cartesianToCartographic(vsgCs::vsg2glm(worldPos));
     if (csResult)
     {
-        return vsg::dvec3(csResult->longitude, csResult->latitude, csResult->height);
+        return {csResult->longitude, csResult->latitude, csResult->height};
     }
-    return vsg::dvec3(0, 0, 0); // XXX Real error result
+    return {0, 0, 0}; // XXX Real error result
 }
 
 vsg::dvec3 CsGeospatialServices::toWorld(const vsg::dvec3& cartographic)

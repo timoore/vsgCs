@@ -42,6 +42,7 @@ SOFTWARE.
 #include <proj.h>
 
 #include <stdexcept>
+#include <utility>
 
 namespace vsgCs
 {
@@ -89,11 +90,11 @@ namespace vsgCs
             //Instance::log().debug << "SRSRepo: destructor in thread " << util::getCurrentThreadId()
             //    << " destroying " << size() << " objects" << std::endl;
 
-            for (auto iter = umap.begin(); iter != umap.end(); ++iter)
+            for (auto & iter : umap)
             {
-                if (iter->second.pj)
+                if (iter.second.pj)
                 {
-                    proj_destroy(iter->second.pj);
+                    proj_destroy(iter.second.pj);
                 }
             }
 
@@ -101,7 +102,7 @@ namespace vsgCs
                 proj_context_destroy(g_pj_thread_local_context);
         }
 
-        PJ_CONTEXT* threading_context()
+        static PJ_CONTEXT* threading_context()
         {
             if (g_pj_thread_local_context == nullptr)
             {
@@ -115,9 +116,10 @@ namespace vsgCs
         {
             auto iter = umap.find(def);
             if (iter == umap.end())
+            {
                 return empty_string; // shouldn't happen
-            else
-                return iter->second.error;
+            }
+            return iter->second.error;
         }
 
         //! retrieve or create a PJ projection object based on the provided definition string,
@@ -125,7 +127,7 @@ namespace vsgCs
         //! like "spherical-mercator" or "wgs84".
         SRSEntry& get_or_create(const std::string& def)
         {
-            auto ctx = threading_context();
+            auto* ctx = threading_context();
 
             auto iter = umap.find(def);
             if (iter == umap.end())
@@ -193,7 +195,9 @@ namespace vsgCs
                     PJ* ellps = proj_get_ellipsoid(ctx, pj);
                     if (ellps)
                     {
-                        double semi_major, semi_minor, inv_flattening;
+                        double semi_major;
+                        double semi_minor;
+                        double inv_flattening;
                         int is_semi_minor_computed;
                         proj_ellipsoid_get_parameters(ctx, ellps, &semi_major, &semi_minor, &is_semi_minor_computed, &inv_flattening);
                         proj_destroy(ellps);
@@ -213,10 +217,9 @@ namespace vsgCs
 
                 return new_entry;
             }
-            else
-            {
-                return iter->second;
-            }
+            
+            return iter->second;
+           
         }
 
         //! fetch the projection type
@@ -311,7 +314,7 @@ namespace vsgCs
         //! retrieve or create a transformation object
         PJ* get_or_create_operation(const std::string& firstDef, const std::string& secondDef)
         {
-            auto ctx = threading_context();
+            auto* ctx = threading_context();
 
             PJ* pj = nullptr;
             std::string proj;
@@ -450,6 +453,7 @@ namespace vsgCs
     class CRS::ConversionOperation
     {
     public:
+        virtual ~ConversionOperation() = default;
         virtual vsg::dvec3 getECEF(const vsg::dvec3& coord) = 0;
         virtual vsg::dmat4 getENU(const vsg::dvec3& coord) = 0;
         // The inverse operation
@@ -518,8 +522,8 @@ namespace vsgCs
     class ProjConversion : public CRS::ConversionOperation
     {
     public:
-        ProjConversion(const std::string& in_sourceCRS)
-            : sourceCRS(in_sourceCRS)
+        ProjConversion(std::string  in_sourceCRS)
+            : sourceCRS(std::move(in_sourceCRS))
         {
         }
 
@@ -527,18 +531,17 @@ namespace vsgCs
 
         vsg::dvec3 getECEF(const vsg::dvec3& coord) override
         {
-            auto handle = getHandle();
-            PJ_COORD out = proj_trans(handle, PJ_FWD, PJ_COORD{ coord.x, coord.y, coord.z });
+            auto* handle = getHandle();
+            PJ_COORD out = proj_trans(handle, PJ_FWD, PJ_COORD{ {coord.x, coord.y, coord.z} });
             int err = proj_errno(handle);
             vsg::dvec3 result(0.0, 0.0, 0.0);
             if (err != 0)
             {
                 throw std::runtime_error(std::string("PROJ error: ") + proj_errno_string(err));
             }
-            else
-            {
-                result.set(out.xyz.x, out.xyz.y, out.xyz.z);
-            }
+            
+            result.set(out.xyz.x, out.xyz.y, out.xyz.z);
+           
             return result;
         }
 
@@ -546,7 +549,7 @@ namespace vsgCs
         {
             using namespace CesiumGeospatial;
             vsg::dvec3 origin = getECEF(coord);
-            auto& ellipsoid = g_srs_factory.get_ellipsoid(sourceCRS);
+            const auto& ellipsoid = g_srs_factory.get_ellipsoid(sourceCRS);
             LocalHorizontalCoordinateSystem lhcs(vsg2glm(origin),
                                                  LocalDirection::East, LocalDirection::North,
                                                  LocalDirection::Up,
@@ -556,25 +559,24 @@ namespace vsgCs
 
         vsg::dvec3 getCRSCoord(const vsg::dvec3& ecef) override
         {
-            auto handle = getHandle();
-            PJ_COORD out = proj_trans(handle, PJ_INV, PJ_COORD{ ecef.x, ecef.y, ecef.z });
+            auto* handle = getHandle();
+            PJ_COORD out = proj_trans(handle, PJ_INV, PJ_COORD{ {ecef.x, ecef.y, ecef.z} });
             int err = proj_errno(handle);
             vsg::dvec3 result(0.0, 0.0, 0.0);
             if (err != 0)
             {
                 throw std::runtime_error(std::string("PROJ error: ") + proj_errno_string(err));
             }
-            else
-            {
-                result.set(out.xyz.x, out.xyz.y, out.xyz.z);
-            }
+            
+            result.set(out.xyz.x, out.xyz.y, out.xyz.z);
+           
             return result;
         }
 
     protected:
-        PJ* getHandle()
+        PJ* getHandle() const
         {
-            auto handle = g_srs_factory.get_or_create_operation(sourceCRS, "ecef");
+            auto* handle = g_srs_factory.get_or_create_operation(sourceCRS, "ecef");
             if (!handle)
             {
                 throw std::runtime_error("can't create conversion from " + sourceCRS + " to ECEF.");

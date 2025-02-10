@@ -5,7 +5,7 @@ set(LIB_NAME vsgCs)
 set(LIB_PUBLIC_HEADERS
   accessorUtils.h
   accessor_traits.h
-  ${GENERATED_HEADERS_DIR}/vsgCs/Config.h
+  ${PROJECT_BINARY_DIR}/include/vsgCs/Config.h
   CRS.h
   CsDebugColorizeTilesOverlay.h
   CsOverlay.h
@@ -65,8 +65,9 @@ set_target_properties(${LIB_NAME} PROPERTIES
   PUBLIC_HEADER "${LIB_PUBLIC_HEADERS}"
 )
 
-target_include_directories(${LIB_NAME} PRIVATE ${CURL_INCLUDE_DIRS})
-target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}>)
+target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/..>)
+target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_BINARY_DIR}/..>)
+target_include_directories(${LIB_NAME} PUBLIC $<BUILD_INTERFACE:${PROJECT_BINARY_DIR}/include>)
 
 if(VSGCS_BUILD_SHARED_LIBS)
   target_compile_definitions(${LIB_NAME} PRIVATE VSGCS_LIBRARY)
@@ -83,7 +84,7 @@ target_link_libraries(${LIB_NAME} PUBLIC
 if(CESIUM_SPDLOG_HEADER_ONLY)
   target_link_libraries(${LIB_NAME} PUBLIC spdlog::spdlog_header_only)
 else()
-  target_link_libraries(${LIB_NAME} PUBLIC spdlog)
+  target_link_libraries(${LIB_NAME} PUBLIC spdlog::spdlog)
 endif()
 target_link_libraries(${LIB_NAME} PRIVATE CURL::libcurl PROJ::proj)
 
@@ -98,9 +99,14 @@ install(TARGETS ${LIB_NAME} EXPORT vsgCsTargets
   PUBLIC_HEADER DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIB_NAME}"
   )
 
-if(WIN32)
-  install(IMPORTED_RUNTIME_ARTIFACTS CURL::libcurl_shared)
-endif()
-
+configure_file("Config.h.in"
+  "${PROJECT_BINARY_DIR}/include/vsgCs/Config.h")
+  
 include(GenerateExportHeader)
 generate_export_header(vsgCs EXPORT_FILE_NAME Export.h)
+
+install(FILES
+  "${CMAKE_CURRENT_BINARY_DIR}/Export.h"
+  "${PROJECT_BINARY_DIR}/include/vsgCs/Config.h"
+  DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}/${LIB_NAME}"
+)

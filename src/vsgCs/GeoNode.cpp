@@ -39,13 +39,13 @@ SOFTWARE.
 
 using namespace vsgCs;
 
-GeoNode::GeoNode(const std::string& crs, vsg::ref_ptr<WorldAnchor> worldAnchor)
+GeoNode::GeoNode(const std::string& crs, const vsg::ref_ptr<WorldAnchor>& worldAnchor)
     : _worldAnchor(worldAnchor)
 {
     _crs = std::make_shared<CRS>(crs);
 }
 
-GeoNode::GeoNode(const std::shared_ptr<CRS>& crs, vsg::ref_ptr<WorldAnchor> worldAnchor)
+GeoNode::GeoNode(const std::shared_ptr<CRS>& crs, const vsg::ref_ptr<WorldAnchor>& worldAnchor)
     : _crs(crs), _worldAnchor(worldAnchor)
 {
 }
@@ -74,7 +74,7 @@ vsg::dvec3 GeoNode::getOrigin() const
 
 // Models loaded via vsgXchange are placed in their own graph, with a different arrangement of
 // descriptor sets bound via state groups. Only the view / lighting / shadow descriptor set is
-// bound; the world and tile parameters are of course not relevent.
+// bound; the world and tile parameters are of course not relevant.
 
 vsg::ref_ptr<vsg::StateGroup> vsgCs::createModelRoot(const vsg::ref_ptr<RuntimeEnvironment>& env)
 {

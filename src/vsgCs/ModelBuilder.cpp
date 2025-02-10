@@ -366,7 +366,7 @@ namespace
                                            const AccessorView<TI>& indexView)
     {
         vsg::ref_ptr<vsg::Data> result;
-        if constexpr (std::is_same<T, float>::value)
+        if constexpr (std::is_same_v<T, float>)
         {
             if (indexView.status() == AccessorViewStatus::Valid)
             {
@@ -398,7 +398,7 @@ namespace
                                            const AccessorView<TI>& indexView)
     {
         vsg::ref_ptr<vsg::Data> result;
-        if constexpr (std::is_same<T, float>::value)
+        if constexpr (std::is_same_v<T, float>)
         {
             if (indexView.status() == AccessorViewStatus::Valid)
             {
@@ -445,7 +445,7 @@ namespace
                                          const AccessorView<TI>& indexView)
     {
         vsg::ref_ptr<vsg::Data> result;
-        if constexpr (std::is_same<T, float>::value)
+        if constexpr (std::is_same_v<T, float>)
         {
             if (indexView.status() == AccessorViewStatus::Valid)
             {
@@ -601,11 +601,11 @@ namespace
               depthClamp(in_depth_clamp)
         {
         }
-        void apply(vsg::Object& object)
+        void apply(vsg::Object& object) override
         {
             object.traverse(*this);
         }
-        void apply(vsg::RasterizationState& rs)
+        void apply(vsg::RasterizationState& rs) override
         {
             if (two_sided)
             {
@@ -616,11 +616,11 @@ namespace
                 rs.depthClampEnable = VK_TRUE;
             }
         }
-        void apply(vsg::InputAssemblyState& ias)
+        void apply(vsg::InputAssemblyState& ias) override
         {
             ias.topology = topology;
         }
-        void apply(vsg::ColorBlendState& cbs)
+        void apply(vsg::ColorBlendState& cbs) override
         {
             cbs.configureAttachments(blending);
         }
@@ -783,25 +783,28 @@ namespace
         {
             return {};
         }
-        vsg::vec3 posMin(pPositionAccessor->min[0], pPositionAccessor->min[1], pPositionAccessor->min[2]);
-        vsg::vec3 posMax(pPositionAccessor->max[0], pPositionAccessor->max[1], pPositionAccessor->max[2]);
+        vsg::box posBox(vsg::vec3(pPositionAccessor->min[0], pPositionAccessor->min[1], pPositionAccessor->min[2]),
+                 vsg::vec3(pPositionAccessor->max[0], pPositionAccessor->max[1], pPositionAccessor->max[2]));
         vsg::box bounds;
         if (!pInstanceData)
         {
-            bounds.add(posMin);
-            bounds.add(posMax);
-        } else {
+            bounds.add(posBox);
+        } else
+        {
             const size_t numInstances = (*pInstanceData)[0]->size();
             for (size_t i = 0; i < numInstances; ++i)
             {
-                vsg::mat4 instanceTranspose((*pInstanceData)[0]->at(i),
-                                            (*pInstanceData)[1]->at(i),
-                                            (*pInstanceData)[2]->at(i),
-                                            vsg::vec4(0.0f, 0.0f, 0.0f, 1.0f));
-                vsg::vec3 minPt = posMin * instanceTranspose;
-                bounds.add(minPt);
-                vsg::vec3 maxPt = posMax * instanceTranspose;
-                bounds.add(maxPt);
+                const vsg::mat4 instanceTranspose((*pInstanceData)[0]->at(i),
+                                                  (*pInstanceData)[1]->at(i),
+                                                  (*pInstanceData)[2]->at(i),
+                                                  vsg::vec4(0.0f, 0.0f, 0.0f, 1.0f));
+                mapBox(posBox,
+                       [&bounds, &instanceTranspose](float x, float y, float z)
+                       {
+                           const vsg::vec3 boxPoint(x, y, z);
+                           const vsg::vec3 instancePoint = boxPoint * instanceTranspose;
+                           bounds.add(instancePoint);
+                       });
             }
         }
         if (!bounds.valid())
@@ -1142,7 +1145,7 @@ ModelBuilder::operator()()
 
 vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRGB)
 {
-    CesiumGltf::ImageCesium& image = _model->images[i].cesium;
+    auto image = _model->images[i].pAsset;
     ImageData& imageData = _loadedImages[i];
     if ((imageData.image.valid() || imageData.imageWithMipmap.valid())
         && sRGB != imageData.sRGB)
@@ -1157,7 +1160,7 @@ vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRG
     {
         return imageData.image;
     }
-    auto data = vsgCs::loadImage(image, useMipMaps, sRGB);
+    auto data = vsgCs::loadImage(*image, useMipMaps, sRGB);
     imageData.sRGB = sRGB;
     if (useMipMaps)
     {

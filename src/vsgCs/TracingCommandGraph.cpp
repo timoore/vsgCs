@@ -9,7 +9,7 @@
 
 namespace vsgCs
 {
-    TracingCollectCommand::TracingCollectCommand(vsg::ref_ptr<TracyContextValue> in_tracyCtx)
+    TracingCollectCommand::TracingCollectCommand(const vsg::ref_ptr<TracyContextValue>& in_tracyCtx)
         : tracyCtx(in_tracyCtx)
     {
     }
@@ -26,8 +26,8 @@ namespace vsgCs
     }
     
     TracingCommandGraph::TracingCommandGraph(const vsg::ref_ptr<RuntimeEnvironment>& in_env,
-                                             vsg::ref_ptr<vsg::Window> in_window,
-                                             vsg::ref_ptr<vsg::Node> child)
+                                             const vsg::ref_ptr<vsg::Window>& in_window,
+                                             const vsg::ref_ptr<vsg::Node>& child)
         : Inherit(in_window, child), features(in_env->features), tracyCtx(in_env->tracyContext)
     {
         addChild(TracingCollectCommand::create(tracyCtx));
@@ -93,8 +93,8 @@ namespace vsgCs
         VertexIndexDraw::accept(visitor);
     }
 
-    TracingRenderGraph::TracingRenderGraph(vsg::ref_ptr<vsg::Window> in_window,
-                                                vsg::ref_ptr<vsg::View> view)
+    TracingRenderGraph::TracingRenderGraph(const vsg::ref_ptr<vsg::Window>& in_window,
+                                           const vsg::ref_ptr<vsg::View>& view)
         : Inherit(in_window, view)
     {
     }

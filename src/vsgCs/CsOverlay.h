@@ -26,14 +26,8 @@ SOFTWARE.
 #include <vsg/core/Object.h>
 #include <vsg/core/Inherit.h>
 
-// Some include file in Cesium (actually, it's spdlog.h) unleashes the hell of windows.h. We need to
-// turn off GDI defines to avoid a redefinition of the GLSL constant OPAQUE.
-#ifndef NOGDI
-#define NOGDI
-#endif
-
 #include "CesiumRasterOverlays/RasterOverlay.h"
-#include "Export.h"
+#include "vsgCs/Export.h"
 #include "TilesetNode.h"
 
 namespace vsgCs

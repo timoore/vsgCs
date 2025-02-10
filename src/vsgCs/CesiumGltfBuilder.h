@@ -33,7 +33,7 @@ SOFTWARE.
 #include <vsg/io/Options.h>
 #include <vsg/state/DescriptorSetLayout.h>
 
-#include "Export.h"
+#include "vsgCs/Export.h"
 #include "GraphicsEnvironment.h"
 #include "ModelBuilder.h"
 #include "RuntimeEnvironment.h"
@@ -78,21 +78,13 @@ namespace vsgCs
                                          const CreateModelOptions& options);
         AttachTileDataResult attachTileData(Cesium3DTilesSelection::Tile& tile,
                                             const vsg::ref_ptr<vsg::Node>& node);
-        vsg::ref_ptr<vsg::ImageInfo> loadTexture(CesiumGltf::ImageCesium& image,
+        vsg::ref_ptr<vsg::ImageInfo> loadTexture(CesiumGltf::ImageAsset& image,
                                                  VkSamplerAddressMode addressX,
                                                  VkSamplerAddressMode addressY,
                                                  VkFilter minFilter,
                                                  VkFilter maxFilter,
                                                  bool useMipMaps,
                                                  bool sRGB);
-        vsg::ref_ptr<vsg::ImageInfo> loadTexture(CesiumTextureSource&& imageSource,
-                                                 VkSamplerAddressMode addressX,
-                                                 VkSamplerAddressMode addressY,
-                                                 VkFilter minFilter,
-                                                 VkFilter maxFilter,
-                                                 bool useMipMaps,
-                                                 bool sRGB);
-
         ModifyRastersResult attachRaster(const Cesium3DTilesSelection::Tile& tile,
                                          const vsg::ref_ptr<vsg::Node>& node,
                                          int32_t overlayTextureCoordinateID,

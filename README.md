@@ -32,6 +32,8 @@ package, which also "powers Cesium's runtime integrations for
 ---
 
 ## News
+- February 10, 2025: vsgCs now uses vcpkg for managing its dependencies. See [INSTALL.md](INSTALL.md)
+  for details.
 - June 12, 2023: Version 0.4 is released! This release is dedicated to the memory of Alicia Hills
   Moore (1930-2023). My mother was fascinated by computer graphics and interviewed many of its
   pioneers during a long career as a journalist.
@@ -54,28 +56,7 @@ package, which also "powers Cesium's runtime integrations for
 
 ## Installation - Quick Start
 
-vsgCs will now download most of its dependencies as part of the configuration and build process. The
-only dependencies that need to be explicitly installed are:
-- `libcurl` This is best installed via a package manager.
-- the [Vulkan SDK](https://vulkan.lunarg.com/sdk/home) from LunarG. Follow installation instructions
-  for your operating system.
-- The `git-lfs` component of git. This comes with Git for Windows but is not installed by default on Linux.
-
-### Command line build instructions:
-
-To build and install the static library (libvsgCs.a / libvsgCs.lib) and sample
-application (worldviewer) on Linux:
-```
-    git clone https://github.com/timoore/vsgCs.git
-    mkdir build # or wherever you like
-    cd build
-    cmake ../vsgCs.git -DCMAKE_BUILD_TYPE=Debug
-    make -j 8
-    sudo make install
-```
-
-The `cmake` part may take a long time to download the Cesium Native library and its dependencies. If
-you encounter a git error, see [the install instructions](INSTALL.md) for possible workarounds.
+See [the install instructions](INSTALL.md).
 
 ---
 

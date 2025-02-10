@@ -31,7 +31,7 @@ SOFTWARE.
 #if defined(vsgXchange_found)
 #include <vsgXchange/all.h>
 #endif
-#include <vsgImGui/imgui.h>
+#include <imgui.h>
 
 #include "vsgCs/Config.h"
 #include "vsgCs/WorldNode.h"

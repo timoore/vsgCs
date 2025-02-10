@@ -37,7 +37,7 @@ SOFTWARE.
    TILESET_CRS_GEOCENTRIC, if any.
  */
 
-#include "Export.h"
+#include "vsgCs/Export.h"
 
 #include <vsg/maths/vec3.h>
 #include <vsg/maths/mat4.h>

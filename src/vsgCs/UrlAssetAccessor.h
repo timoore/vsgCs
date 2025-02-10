@@ -24,7 +24,7 @@ SOFTWARE.
 
 #pragma once
 
-#include "Export.h"
+#include "vsgCs/Export.h"
 
 #include "CesiumAsync/AsyncSystem.h"
 #include "CesiumAsync/IAssetAccessor.h"
@@ -109,7 +109,7 @@ namespace vsgCs
                 const std::string& verb,
                 const std::string& url,
                 const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers,
-                const gsl::span<const std::byte>& contentPayload) override;
+                const std::span<const std::byte>& contentPayload) override;
 
         virtual void tick() noexcept override;
         CurlCache curlCache;

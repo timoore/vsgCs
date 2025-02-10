@@ -157,7 +157,7 @@ namespace vsgCs
         }
         else
         {
-            return std::max(static_cast<D>(val) / std::numeric_limits<S>::max(),
+            return std::max(static_cast<D>(static_cast<D>(val) / std::numeric_limits<S>::max()),
                             static_cast<D>(-1));
         }
     }
