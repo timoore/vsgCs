@@ -1,6 +1,6 @@
 {
   "name": "cesium-native",
-  "version-string": "0.41.0",
+  "version-string": "0.44.0",
   "features": {
     "dependencies-only": {
       "description": "install port's dependencies without the port"
@@ -10,7 +10,7 @@
     "vcpkg-cmake",
     "vcpkg-cmake-config",
     "asyncplusplus",
-    "catch2",
+    "doctest",
     "expected-lite",
     "fmt",
     "glm",
@@ -18,7 +18,7 @@
     "rapidjson",
     "spdlog",
     "stb",
-    "uriparser",
+    "ada-url",
     "draco",
     {
       "name": "ktx",

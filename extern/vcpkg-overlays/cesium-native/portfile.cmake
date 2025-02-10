@@ -11,9 +11,9 @@ endif()
 
 vcpkg_from_github(
         OUT_SOURCE_PATH SOURCE_PATH
-        REPO timoore/cesium-native
-        REF 6c1b1edd4ee388f6372dcfe1c33de6839696e5b4
-        SHA512 1dd74feefe20dc0363c42f5b1a03d271de5d37cc86078ecc1090fa1c3517284c04ee0ae9f6c622f2b6391a48bccbf59a9b0f342e4e21f33a78c1cb85845b8b98
+        REPO CesiumGS/cesium-native
+        REF d5e261baf93ec28573508495b55020e222689320
+        SHA512 740352db674d1663421d239c369f2a6fb2f4444529be609afa7636be5f3ebb0534d3922e1319e0c3ab481ce9431171e1dc06650dd51b0fe9e06e3dbb852f4726
         HEAD_REF vcpkg-pkg
         )
 
@@ -24,6 +24,6 @@ vcpkg_cmake_configure(
         )
 
 vcpkg_cmake_install()
-vcpkg_cmake_config_fixup(CONFIG_PATH lib/cmake/cesium-native PACKAGE_NAME cesium-native)
+vcpkg_cmake_config_fixup(CONFIG_PATH share/cesium-native/cmake PACKAGE_NAME cesium-native)
 file(REMOVE_RECURSE "${CURRENT_PACKAGES_DIR}/debug/include" "${CURRENT_PACKAGES_DIR}/debug/share")
 
