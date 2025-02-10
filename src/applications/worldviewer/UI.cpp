@@ -84,7 +84,7 @@ namespace vsgCs
     bool UI::createUI(const vsg::ref_ptr<vsg::Window>& window,
                       const vsg::ref_ptr<vsg::Viewer>& viewer,
                       const vsg::ref_ptr<vsg::Camera>& camera,
-                      const vsg::ref_ptr<vsg::EllipsoidModel>&,
+                      const vsg::ref_ptr<vsg::EllipsoidModel>& ellipsoidModel,
                       const vsg::ref_ptr<vsg::Options>&,
                       const vsg::ref_ptr<WorldNode>& worldNode,
                       const vsg::ref_ptr<vsg::Group>& scene,
@@ -94,17 +94,26 @@ namespace vsgCs
         // Add the ImGui event handler first to handle events early
         viewer->addEventHandler(vsgImGui::SendEventsToImGui::create());
         viewer->addEventHandler(vsg::CloseHandler::create(viewer));
-        _mapManipulator = MapManipulator::create(worldNode, camera);
-        viewer->addEventHandler(_mapManipulator);
-        if (debugManipulator)
+        if (ellipsoidModel)
         {
-            auto manipCenter = createDot();
-            auto updateCenter = UpdateCenterOperation::create();
-            updateCenter->manipulator = _mapManipulator;
-            updateCenter->dot = manipCenter;
-            scene->addChild(manipCenter);
-            viewer->addUpdateOperation(updateCenter, vsg::UpdateOperations::ALL_FRAMES);
+            _mapManipulator = MapManipulator::create(worldNode, camera);
+            viewer->addEventHandler(_mapManipulator);
+            if (debugManipulator)
+            {
+                auto manipCenter = createDot();
+                auto updateCenter = UpdateCenterOperation::create();
+                updateCenter->manipulator = _mapManipulator;
+                updateCenter->dot = manipCenter;
+                scene->addChild(manipCenter);
+                viewer->addUpdateOperation(updateCenter, vsg::UpdateOperations::ALL_FRAMES);
+            }
         }
+        else
+        {
+            _trackball = vsg::Trackball::create(camera);
+            viewer->addEventHandler(_trackball);
+        }
+
         return true;
     }
 
@@ -115,9 +124,16 @@ namespace vsgCs
         return _renderImGui;
     }
 
-    void UI::setViewpoint(const vsg::ref_ptr<vsg::LookAt>& lookAt, float)
+    void UI::setViewpoint(const vsg::ref_ptr<vsg::LookAt>& lookAt, float duration)
     {
-      _mapManipulator->setHome(lookAt->center, length( lookAt->center - lookAt->eye));
-      _mapManipulator->home();
+        if (_mapManipulator)
+        {
+            _mapManipulator->setHome(lookAt->center, length( lookAt->center - lookAt->eye));
+            _mapManipulator->home();
+        }
+        else if (_trackball)
+        {
+            _trackball->setViewpoint(lookAt, duration);
+        }
     }
 }
