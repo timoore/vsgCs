@@ -263,6 +263,7 @@ int main(int argc, char** argv)
 #endif
         auto maxShadowDistance = arguments.value<double>(10000.0, "--sd");
         bool debugManipulator = arguments.read({"--debug-manipulator"});
+        bool modelMode = arguments.read({"--model-mode"});
 
         if (arguments.errors())
         {
@@ -310,8 +311,18 @@ int main(int argc, char** argv)
         auto modelRoot = graphBuilder.xchangeModels;
         // VSG's EllipsoidModel provides ellipsoid parameters (e.g. WGS84), mostly for the benefit
         // of the trackball manipulator.
-        auto ellipsoidModel = vsg::EllipsoidModel::create();
-        worldNode->setObject("EllipsoidModel", ellipsoidModel);
+        vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
+        double radius = 2000.0;
+        if (!modelMode)
+        {
+            ellipsoidModel = vsg::EllipsoidModel::create();
+            worldNode->setObject("EllipsoidModel", ellipsoidModel);
+            radius = ellipsoidModel->radiusEquator();
+        }
+        else
+        {
+            useEllipsoidPerspective = false;
+        }
         vsg_scene->addChild(worldNode);
         if (modelRoot)
         {
@@ -321,7 +332,6 @@ int main(int argc, char** argv)
         // vsgCS::RuntimeEnvironment needs the vsg::Viewer object for creation of Vulkan objects
         environment->setViewer(viewer);
         vsg::dvec3 centre(0.0, 0.0, 0.0);
-        double radius = ellipsoidModel->radiusEquator();
 
         double nearFarRatio = 0.0005;
 
@@ -329,7 +339,7 @@ int main(int argc, char** argv)
         vsg::ref_ptr<vsg::LookAt> lookAt;
         vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
         bool setViewpointAfterLoad = false;
-        if (poi_latitude != invalid_value && poi_longitude != invalid_value)
+        if (!modelMode && poi_latitude != invalid_value && poi_longitude != invalid_value)
         {
             double height = (poi_distance != invalid_value) ? poi_distance : radius * 3.5;
             auto ecef = ellipsoidModel->convertLatLongAltitudeToECEF({poi_latitude, poi_longitude, 0.0});
@@ -355,7 +365,9 @@ int main(int argc, char** argv)
         }
         else
         {
-            perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+            double nearZ = 1.0;
+            double farZ = nearZ / nearFarRatio;
+            perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearZ, farZ);
         }
         auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
         // Create this application's user interface, including the trackball manipulator and the
