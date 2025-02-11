@@ -24,6 +24,7 @@ SOFTWARE.
 
 #include "accessor_traits.h"
 #include "CesiumGltfBuilder.h"
+#include "debugCommands.h"
 #include "pbr.h"
 
 #include "LoadGltfResult.h"
@@ -186,7 +187,15 @@ CesiumGltfBuilder::load(CesiumGltf::Model* model, const CreateModelOptions& opti
         tilesExtensions.emplace_back(stylingExtension);
     }
     ModelBuilder builder(_genv, model, options, tilesExtensions);
-    return builder();
+    vsg::ref_ptr<vsg::Group> result = builder();
+    if (_genv->supportsDebugging() && !builder._name.empty())
+    {
+        auto beginLabel = BeginLabel::create(_genv, builder._name);
+        auto endLabel = EndLabel::create(_genv);
+        result->children.insert(result->children.begin(), beginLabel);
+        result->children.emplace_back(endLabel);
+    }
+    return result;
 }
 
 vsg::ref_ptr<vsg::StateGroup> CesiumGltfBuilder::getTileStateGroup(const vsg::ref_ptr<vsg::Node>& node)

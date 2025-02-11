@@ -10,6 +10,7 @@ set(LIB_PUBLIC_HEADERS
   CsDebugColorizeTilesOverlay.h
   CsOverlay.h
   CesiumGltfBuilder.h
+  debugCommands.h
   ${CMAKE_CURRENT_BINARY_DIR}/Export.h
   GeoNode.h
   GeospatialServices.h
@@ -35,6 +36,7 @@ set(SOURCES
   CsOverlay.cpp
   CesiumGltfBuilder.cpp
   CompilableImage.cpp
+  debugCommands.cpp
   GeoNode.cpp
   GeospatialServices.cpp
   GltfLoader.cpp

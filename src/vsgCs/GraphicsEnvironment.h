@@ -54,6 +54,8 @@ namespace vsgCs
         PFN_vkGetPhysicalDeviceCalibrateableTimeDomainsEXT vkGetPhysicalDeviceCalibrateableTimeDomainsEXT
         = nullptr;
         PFN_vkGetCalibratedTimestampsEXT vkGetCalibratedTimestampsEXT = nullptr;
+        PFN_vkCmdBeginDebugUtilsLabelEXT vkCmdBeginDebugUtilsLabelEXT = nullptr;
+        PFN_vkCmdEndDebugUtilsLabelEXT vkCmdEndDebugUtilsLabelEXT = nullptr;
     };
 
     class VSGCS_EXPORT GraphicsEnvironment : public vsg::Inherit<vsg::Object, GraphicsEnvironment>
@@ -81,6 +83,10 @@ namespace vsgCs
          */
         vsg::ref_ptr<vsg::PipelineLayout> overlayPipelineLayout;
         vsg::ref_ptr<vsg::ImageInfo> blueNoiseTexture;
+        bool supportsDebugging() const
+        {
+            return features.vkCmdBeginDebugUtilsLabelEXT && features.vkCmdEndDebugUtilsLabelEXT;
+        }
     protected:
         vsg::ref_ptr<vsg::CompileTraversal> miniCompileTraversal;
     };
