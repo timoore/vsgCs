@@ -110,6 +110,7 @@ namespace vsgCs
             {
                 g_pj_thread_local_context = proj_context_create();
                 proj_log_func(g_pj_thread_local_context, nullptr, redirect_proj_log);
+                proj_context_set_enable_network(g_pj_thread_local_context, 1);
             }
             return g_pj_thread_local_context;
         }
