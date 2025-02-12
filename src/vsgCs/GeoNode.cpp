@@ -114,9 +114,7 @@ namespace
         vsg::dvec3 crsCoords;
         if (earthCoords)
         {
-            crsCoords.set(vsg::radians((*earthCoords)[0]),
-                          vsg::radians((*earthCoords)[1]),
-                          (*earthCoords)[2]);
+            crsCoords.set((*earthCoords)[0], (*earthCoords)[1], (*earthCoords)[2]);
         }
         else if (coordinates)
         {

@@ -504,14 +504,14 @@ namespace vsgCs
     vsg::dvec3 EPSG4979::getECEF(const vsg::dvec3& coord)
     {
         using namespace CesiumGeospatial;
-        auto glmvec = Ellipsoid::WGS84.cartographicToCartesian(Cartographic(coord.x, coord.y, coord.z));
+        auto glmvec = Ellipsoid::WGS84.cartographicToCartesian(Cartographic(vsg::radians(coord.x), vsg::radians(coord.y), coord.z));
         return glm2vsg(glmvec);
     }
 
     vsg::dmat4 EPSG4979::getENU(const vsg::dvec3& coord)
     {
         using namespace CesiumGeospatial;
-        LocalHorizontalCoordinateSystem localSys(Cartographic(coord.x, coord.y, coord.z));
+        LocalHorizontalCoordinateSystem localSys(Cartographic(vsg::radians(coord.x), vsg::radians(coord.y), coord.z));
         vsg::dmat4 localMat = glm2vsg(localSys.getLocalToEcefTransformation());
         return localMat;
     }
