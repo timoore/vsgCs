@@ -31,6 +31,7 @@ SOFTWARE.
 
 #include "CRS.h"
 
+#include "vsgCs/Config.h"
 #include "runtimeSupport.h"
 
 #include <vsg/maths/transform.h>
@@ -39,7 +40,9 @@ SOFTWARE.
 #include <CesiumGeospatial/Ellipsoid.h>
 #include <CesiumGeospatial/LocalHorizontalCoordinateSystem.h>
 
+#ifdef VSGCS_USE_PROJ
 #include <proj.h>
+#endif
 
 #include <stdexcept>
 #include <utility>
@@ -54,10 +57,7 @@ namespace vsgCs
         }
     }
 
-    inline bool starts_with(const std::string& s, const char* pattern) {
-        return s.rfind(pattern, 0) == 0;
-    }
-
+#ifdef VSGCS_USE_PROJ
     inline bool contains(const std::string& s, const char* pattern) {
         return s.find(pattern) != std::string::npos;
     }
@@ -460,6 +460,7 @@ namespace vsgCs
 
     // create an SRS repo per thread since proj is not thread safe.
     thread_local SRSFactory g_srs_factory;
+#endif // VSGCS_USE_PROJ
 
     class CRS::ConversionOperation
     {
@@ -529,7 +530,7 @@ namespace vsgCs
     
     // The meat of vsgCs::CRS: conversion operations implemented by PROJ. The actual PROJ operation
     // will need a thread context.
-
+#ifdef VSGCS_USE_PROJ
     class ProjConversion : public CRS::ConversionOperation
     {
     public:
@@ -596,6 +597,7 @@ namespace vsgCs
             return handle;
         }
     };
+#endif // VSGCS_USE_PROJ
 
     CRS::CRS(const std::string& name)
         : _name(name)
@@ -608,20 +610,34 @@ namespace vsgCs
         {
             _converter = std::make_shared<EPSG4979>();
         }
+#ifdef VSGCS_USE_PROJ
         else
         {
             _converter = std::make_shared<ProjConversion>(name);
+        }
+#endif
+        if (!_converter)
+        {
+            vsg::warn("Unknown CRS name: " + name);
         }
     }
 
     vsg::dvec3 CRS::getECEF(const vsg::dvec3& coord)
     {
-        return _converter->getECEF(coord);
+        if (_converter)
+        {
+            return _converter->getECEF(coord);
+        }
+        return {0.0, 0.0, 0.0};
     }
 
     vsg::dmat4 CRS::getENU(const vsg::dvec3& coord)
     {
-        return _converter->getENU(coord);
+        if (_converter)
+        {
+            return _converter->getENU(coord);
+        }
+        return vsg::dmat4(1.0);
     }
 }
 
