@@ -1,5 +1,11 @@
 cmake_minimum_required(VERSION 3.22)
 
+option(VSGCS_USE_PROJ "Use the Proj library for coordinate system transformations" ON)
+
+if(VSGCS_USE_PROJ)
+  list(APPEND VCPKG_MANIFEST_FEATURES "proj")
+endif()
+
 project(vsgCs
     VERSION 0.9.0
     DESCRIPTION "VSG library for rendering 3D Tiles and Cesium ion assets"
@@ -49,7 +55,9 @@ else()
   find_package(cesium-native REQUIRED)
 endif()
 
-find_package(PROJ REQUIRED)
+if(VSGCS_USE_PROJ)
+  find_package(PROJ REQUIRED)
+endif()
 find_package(imgui REQUIRED)
 find_package(tinyxml2 REQUIRED)
 find_package(spdlog REQUIRED)

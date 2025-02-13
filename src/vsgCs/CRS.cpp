@@ -31,6 +31,7 @@ SOFTWARE.
 
 #include "CRS.h"
 
+#include "vsgCs/Config.h"
 #include "runtimeSupport.h"
 
 #include <vsg/maths/transform.h>
@@ -39,7 +40,9 @@ SOFTWARE.
 #include <CesiumGeospatial/Ellipsoid.h>
 #include <CesiumGeospatial/LocalHorizontalCoordinateSystem.h>
 
+#ifdef VSGCS_USE_PROJ
 #include <proj.h>
+#endif
 
 #include <stdexcept>
 #include <utility>
@@ -54,10 +57,7 @@ namespace vsgCs
         }
     }
 
-    inline bool starts_with(const std::string& s, const char* pattern) {
-        return s.rfind(pattern, 0) == 0;
-    }
-
+#ifdef VSGCS_USE_PROJ
     inline bool contains(const std::string& s, const char* pattern) {
         return s.find(pattern) != std::string::npos;
     }
@@ -110,6 +110,7 @@ namespace vsgCs
             {
                 g_pj_thread_local_context = proj_context_create();
                 proj_log_func(g_pj_thread_local_context, nullptr, redirect_proj_log);
+                proj_context_set_enable_network(g_pj_thread_local_context, 1);
             }
             return g_pj_thread_local_context;
         }
@@ -459,6 +460,7 @@ namespace vsgCs
 
     // create an SRS repo per thread since proj is not thread safe.
     thread_local SRSFactory g_srs_factory;
+#endif // VSGCS_USE_PROJ
 
     class CRS::ConversionOperation
     {
@@ -503,14 +505,14 @@ namespace vsgCs
     vsg::dvec3 EPSG4979::getECEF(const vsg::dvec3& coord)
     {
         using namespace CesiumGeospatial;
-        auto glmvec = Ellipsoid::WGS84.cartographicToCartesian(Cartographic(coord.x, coord.y, coord.z));
+        auto glmvec = Ellipsoid::WGS84.cartographicToCartesian(Cartographic(vsg::radians(coord.x), vsg::radians(coord.y), coord.z));
         return glm2vsg(glmvec);
     }
 
     vsg::dmat4 EPSG4979::getENU(const vsg::dvec3& coord)
     {
         using namespace CesiumGeospatial;
-        LocalHorizontalCoordinateSystem localSys(Cartographic(coord.x, coord.y, coord.z));
+        LocalHorizontalCoordinateSystem localSys(Cartographic(vsg::radians(coord.x), vsg::radians(coord.y), coord.z));
         vsg::dmat4 localMat = glm2vsg(localSys.getLocalToEcefTransformation());
         return localMat;
     }
@@ -528,7 +530,7 @@ namespace vsgCs
     
     // The meat of vsgCs::CRS: conversion operations implemented by PROJ. The actual PROJ operation
     // will need a thread context.
-
+#ifdef VSGCS_USE_PROJ
     class ProjConversion : public CRS::ConversionOperation
     {
     public:
@@ -595,6 +597,7 @@ namespace vsgCs
             return handle;
         }
     };
+#endif // VSGCS_USE_PROJ
 
     CRS::CRS(const std::string& name)
         : _name(name)
@@ -607,20 +610,34 @@ namespace vsgCs
         {
             _converter = std::make_shared<EPSG4979>();
         }
+#ifdef VSGCS_USE_PROJ
         else
         {
             _converter = std::make_shared<ProjConversion>(name);
+        }
+#endif
+        if (!_converter)
+        {
+            vsg::warn("Unknown CRS name: " + name);
         }
     }
 
     vsg::dvec3 CRS::getECEF(const vsg::dvec3& coord)
     {
-        return _converter->getECEF(coord);
+        if (_converter)
+        {
+            return _converter->getECEF(coord);
+        }
+        return {0.0, 0.0, 0.0};
     }
 
     vsg::dmat4 CRS::getENU(const vsg::dvec3& coord)
     {
-        return _converter->getENU(coord);
+        if (_converter)
+        {
+            return _converter->getENU(coord);
+        }
+        return vsg::dmat4(1.0);
     }
 }
 
