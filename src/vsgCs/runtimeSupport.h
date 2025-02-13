@@ -45,7 +45,8 @@ namespace vsgCs
     void VSGCS_EXPORT startup();
     void VSGCS_EXPORT shutdown();
     vsg::ref_ptr<vsg::LookAt> VSGCS_EXPORT makeLookAtFromTile(const Cesium3DTilesSelection::Tile* tile,
-                                                              double distance);
+                                                              double distance,
+                                                              bool localModel = false);
 
     inline void setdmat4(vsg::dmat4& vmat, const glm::dmat4x4& glmmat)
     {

@@ -419,7 +419,8 @@ int main(int argc, char** argv)
                 && worldNode->getRootTile())
             {
                 lookAt = vsgCs::makeLookAtFromTile(worldNode->getRootTile(),
-                                                   poi_distance);
+                                                   poi_distance,
+                                                   modelMode);
                 ui->setViewpoint(lookAt, 1.0);
                 setViewpointAfterLoad = false;
             }
