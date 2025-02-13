@@ -73,7 +73,8 @@ void usage(const char* name)
         << "--poi lat lon\t\t coordinates of initial point of interest\n"
         << "--distance dist\t\t distance from point of interest\n"
         << "--time HH::MM\t\t time in UTC (default 12:00)\n"
-        << "--help\t\t\t print this message\n";
+        << "--help\t\t\t print this message\n"
+        << "--local-model\t\t treat tilesets as model with trackball navigation\n";
 }
 
 class VsgCsScenegraphBuilder
@@ -263,7 +264,7 @@ int main(int argc, char** argv)
 #endif
         auto maxShadowDistance = arguments.value<double>(10000.0, "--sd");
         bool debugManipulator = arguments.read({"--debug-manipulator"});
-        bool modelMode = arguments.read({"--model-mode"});
+        bool localModel = arguments.read({"--local-model"});
 
         if (arguments.errors())
         {
@@ -313,7 +314,7 @@ int main(int argc, char** argv)
         // of the trackball manipulator.
         vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
         double radius = 2000.0;
-        if (!modelMode)
+        if (!localModel)
         {
             ellipsoidModel = vsg::EllipsoidModel::create();
             worldNode->setObject("EllipsoidModel", ellipsoidModel);
@@ -339,7 +340,7 @@ int main(int argc, char** argv)
         vsg::ref_ptr<vsg::LookAt> lookAt;
         vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
         bool setViewpointAfterLoad = false;
-        if (!modelMode && poi_latitude != invalid_value && poi_longitude != invalid_value)
+        if (!localModel && poi_latitude != invalid_value && poi_longitude != invalid_value)
         {
             double height = (poi_distance != invalid_value) ? poi_distance : radius * 3.5;
             auto ecef = ellipsoidModel->convertLatLongAltitudeToECEF({poi_latitude, poi_longitude, 0.0});
@@ -420,7 +421,7 @@ int main(int argc, char** argv)
             {
                 lookAt = vsgCs::makeLookAtFromTile(worldNode->getRootTile(),
                                                    poi_distance,
-                                                   modelMode);
+                                                   localModel);
                 ui->setViewpoint(lookAt, 1.0);
                 setViewpointAfterLoad = false;
             }
