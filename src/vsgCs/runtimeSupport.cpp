@@ -50,11 +50,15 @@ namespace vsgCs
     }
 
     vsg::ref_ptr<vsg::LookAt> makeLookAtFromTile(const Cesium3DTilesSelection::Tile* tile,
-                                                 double distance)
+                                                 double distance,
+                                                 bool localModel)
     {
         auto boundingVolume = tile->getBoundingVolume();
-        if (auto* csBoundingBox = get_if<CesiumGeometry::OrientedBoundingBox>(&boundingVolume)) {
-            CesiumGeometry::BoundingSphere csSphere = csBoundingBox->toSphere();
+        if (localModel)
+        {
+            CesiumGeometry::OrientedBoundingBox csBoundingBox
+                = getOrientedBoundingBoxFromBoundingVolume(boundingVolume);
+            CesiumGeometry::BoundingSphere csSphere = csBoundingBox.toSphere();
             vsg::dvec3 vPosition = glm2vsg(csSphere.getCenter());
             double radius = csSphere.getRadius();
             vsg::dvec3 eye = vsg::dvec3(0.0, -2.0 * radius, 0.0);
