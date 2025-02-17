@@ -46,6 +46,15 @@
         "VCPKG_MANIFEST_NO_DEFAULT_FEATURES": true,
         "VCPKG_MANIFEST_FEATURES": "cesium-native-local"
       }
+    },
+    {
+      "name": "linux-clang",
+      "inherits": "vcpkg",
+      "cacheVariables": {
+        "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/CMakeModules/LinuxClangToolchain.cmake",
+        "VCPKG_TARGET_TRIPLET": "x64-linux-clang",
+        "VCPKG_HOST_TRIPLET": "x64-linux-clang"
+      }
     }
   ],
   "buildPresets": [
