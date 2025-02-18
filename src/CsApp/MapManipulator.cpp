@@ -563,13 +563,13 @@ MapManipulator::configureDefaultSettings()
     options.add(OPTION_SCALE_Y, 9.0);
 
     _settings->bindMouse(ACTION_PAN, MOUSE_LEFT_BUTTON, 0L);
-    _settings->bindMouse(ACTION_PAN, MOUSE_LEFT_BUTTON, vsg::MODKEY_Control, options);
 
     // rotate with either the middle button or the left+right buttons:
     _settings->bindMouse(ACTION_ROTATE, MOUSE_MIDDLE_BUTTON, 0L);
     _settings->bindMouse(ACTION_ROTATE, MOUSE_LEFT_BUTTON | MOUSE_RIGHT_BUTTON, 0L);
     _settings->bindMouse(ACTION_ROTATE, MOUSE_MIDDLE_BUTTON, vsg::MODKEY_Control, options);
-    _settings->bindMouse(ACTION_ROTATE, MOUSE_LEFT_BUTTON | MOUSE_RIGHT_BUTTON, vsg::MODKEY_Control, options);
+    // Throw this bone to users with a touchpad.
+    _settings->bindMouse(ACTION_ROTATE, MOUSE_LEFT_BUTTON, vsg::MODKEY_Control, options);
 
     options.add(OPTION_SCALE_X, 4.0);
     options.add(OPTION_SCALE_Y, 4.0);
@@ -589,11 +589,10 @@ MapManipulator::configureDefaultSettings()
     options.add(OPTION_GOTO_RANGE_FACTOR, 0.4);
     _settings->bindMouseDoubleClick(ACTION_GOTO, MOUSE_LEFT_BUTTON, 0L, options);
 
-    // double click the right button (or CTRL-left button) to zoom out to a point
+    // double click the right button to zoom out to a point
     options.clear();
     options.add(OPTION_GOTO_RANGE_FACTOR, 2.5);
     _settings->bindMouseDoubleClick(ACTION_GOTO, MOUSE_RIGHT_BUTTON, 0L, options);
-    _settings->bindMouseDoubleClick(ACTION_GOTO, MOUSE_LEFT_BUTTON, vsg::MODKEY_Control, options);
 
     // map multi-touch pinch to a discrete zoom
     options.clear();
@@ -1321,10 +1320,13 @@ MapManipulator::home()
 }
 
 void
-MapManipulator::clearEvents()
+MapManipulator::clearEvents(bool clearKeyPress)
 {
     _continuous = false;
-    _keyPress.reset();
+    if (clearKeyPress)
+    {
+        _keyPress.reset();
+    }
     _buttonPress.reset();
     _buttonRelease.reset();
     _task.reset();
@@ -1363,7 +1365,7 @@ MapManipulator::apply(vsg::ButtonPressEvent& buttonPress)
     //std::cout << "ButtonPressEvent" << std::endl;
 
     // simply record the button press event.
-    clearEvents();
+    clearEvents(false);
 
     _buttonPress = buttonPress;
 
