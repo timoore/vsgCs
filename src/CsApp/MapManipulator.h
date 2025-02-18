@@ -683,7 +683,7 @@ namespace vsgCs
         virtual void handleMovementAction(const ActionType& type, vsg::dvec2 delta, vsg::time_point time);
         virtual void handleContinuousAction(const Action& action, vsg::time_point time);
 
-        void clearEvents();
+        void clearEvents(bool clearKeyPress = true);
         vsg::ref_ptr<WorldNode> getMapNode() const;
 
         struct State
