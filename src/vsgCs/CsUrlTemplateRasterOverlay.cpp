@@ -108,6 +108,8 @@ namespace vsgCs
         overlay->MaterialLayerKey = CesiumUtility::JsonHelpers::getStringOrDefault(json, "materialKey",
             "Overlay0");
         overlay->TemplateUrl = CesiumUtility::JsonHelpers::getStringOrDefault(json, "url", "");
+        std::string projection = CesiumUtility::JsonHelpers::getStringOrDefault(json, "projection", "");
+        overlay->Projection = projection == "geographic" ? ECesiumUrlTemplateRasterOverlayProjection::Geographic : ECesiumUrlTemplateRasterOverlayProjection::WebMercator;
 
         return overlay;
     }

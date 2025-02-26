@@ -1,0 +1,19 @@
+{
+    "Type": "World",
+    "tilesets": [
+        {
+            "Type": "Tileset",
+            "ionAssetID": 1,
+            "overlays": [
+                {
+                    "Type": "WebMapTileServiceRasterOverlay",
+                    "baseUrl": "https://ows.terrestris.de/osm/service",
+                    "layer": "HikeMap",
+                    "style": "default",
+                    "format": "image/png",
+                    "tileMatrixSetID": "hikemap_grid"
+                }
+            ]
+        }
+    ]
+}

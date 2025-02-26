@@ -77,6 +77,7 @@ namespace vsgCs
         overlay->MaterialLayerKey = CesiumUtility::JsonHelpers::getStringOrDefault(json, "materialKey",
             "Overlay0");
         overlay->BaseUrl = CesiumUtility::JsonHelpers::getStringOrDefault(json, "baseUrl", "");
+        overlay->Layers = CesiumUtility::JsonHelpers::getStringOrDefault(json, "layers", "");
 
         return overlay;
     }

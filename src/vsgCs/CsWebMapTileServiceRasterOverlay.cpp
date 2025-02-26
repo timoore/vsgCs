@@ -152,6 +152,12 @@ namespace vsgCs
         overlay->MaterialLayerKey = CesiumUtility::JsonHelpers::getStringOrDefault(json, "materialKey",
             "Overlay0");
         overlay->BaseUrl = CesiumUtility::JsonHelpers::getStringOrDefault(json, "baseUrl", "");
+        overlay->Layer = CesiumUtility::JsonHelpers::getStringOrDefault(json, "layer", "");
+        overlay->Style = CesiumUtility::JsonHelpers::getStringOrDefault(json, "style", "");
+        overlay->Format = CesiumUtility::JsonHelpers::getStringOrDefault(json, "format", "");
+        overlay->TileMatrixSetID = CesiumUtility::JsonHelpers::getStringOrDefault(json, "tileMatrixSetID", "");
+        std::string projection = CesiumUtility::JsonHelpers::getStringOrDefault(json, "projection", "");
+        overlay->Projection = projection == "geographic" ? ECesiumWebMapTileServiceRasterOverlayProjection::Geographic : ECesiumWebMapTileServiceRasterOverlayProjection::WebMercator;
 
         return overlay;
     }

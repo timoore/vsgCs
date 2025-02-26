@@ -1,0 +1,16 @@
+{
+    "Type": "World",
+    "tilesets": [
+        {
+            "Type": "Tileset",
+            "ionAssetID": 1,
+            "overlays": [
+                {
+                    "Type": "WebMapServiceRasterOverlay",
+                    "url": "https://demo.boundlessgeo.com/geoserver/wms",
+                    "layers": "topp"
+                }
+            ]
+        }
+    ]
+}

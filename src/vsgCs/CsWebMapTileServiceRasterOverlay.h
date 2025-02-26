@@ -103,8 +103,6 @@ namespace vsgCs
          */
         std::vector<std::string> TileMatrixSetLabels;
 
-        bool UseWebMercatorProjection_DEPRECATED;
-
         /**
          * The type of projection used to project the WMTS imagery onto the globe.
          * For instance, EPSG:4326 uses geographic projection and EPSG:3857 uses Web
