@@ -7,11 +7,11 @@
             "overlays": [
                 {
                     "Type": "WebMapTileServiceRasterOverlay",
-                    "baseUrl": "https://ows.terrestris.de/osm/service",
-                    "layer": "HikeMap",
+                    "baseUrl": "https://basemap.nationalmap.gov/arcgis/rest/services/USGSTopo/MapServer/WMTS?",
+                    "layer": "USGSTopo",
                     "style": "default",
                     "format": "image/png",
-                    "tileMatrixSetID": "hikemap_grid"
+                    "tileMatrixSetID": "default028mm"
                 }
             ]
         }

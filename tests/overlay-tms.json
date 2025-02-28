@@ -7,7 +7,7 @@
             "overlays": [
                 {
                     "Type": "TileMapServiceRasterOverlay",
-                    "url": "https://v3.cartalib.mapgears.com/mapcache/tms/1.0.0/mapgears_basemap@g/"
+                    "url": "https://tms.example.com/1.0.0/osm/tilemapresource.xml"
                 }
             ]
         }

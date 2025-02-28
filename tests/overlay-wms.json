@@ -7,8 +7,8 @@
             "overlays": [
                 {
                     "Type": "WebMapServiceRasterOverlay",
-                    "url": "https://demo.boundlessgeo.com/geoserver/wms",
-                    "layers": "topp"
+                    "baseUrl": "https://basemap.nationalmap.gov/arcgis/services/USGSTopo/MapServer/WmsServer?",
+                    "layers": "0"
                 }
             ]
         }
