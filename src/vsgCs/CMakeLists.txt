@@ -8,6 +8,10 @@ set(LIB_PUBLIC_HEADERS
   ${PROJECT_BINARY_DIR}/include/vsgCs/Config.h
   CRS.h
   CsDebugColorizeTilesOverlay.h
+  CsWebMapServiceRasterOverlay.h
+  CsWebMapTileServiceRasterOverlay.h
+  CsTileMapServiceRasterOverlay.h
+  CsUrlTemplateRasterOverlay.h
   CsOverlay.h
   CesiumGltfBuilder.h
   ${CMAKE_CURRENT_BINARY_DIR}/Export.h
@@ -32,6 +36,10 @@ set(LIB_PUBLIC_HEADERS
 set(SOURCES
   CRS.cpp
   CsDebugColorizeTilesOverlay.cpp
+  CsWebMapServiceRasterOverlay.cpp
+  CsWebMapTileServiceRasterOverlay.cpp
+  CsTileMapServiceRasterOverlay.cpp
+  CsUrlTemplateRasterOverlay.cpp
   CsOverlay.cpp
   CesiumGltfBuilder.cpp
   CompilableImage.cpp
