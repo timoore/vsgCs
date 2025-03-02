@@ -156,11 +156,9 @@ size_t UrlAssetResponse::dataCallback(char* buffer, size_t size, size_t nitems, 
     {
         return cnt;
     }
-    std::transform(buffer, buffer + cnt, std::back_inserter(response->_result),
-                   [](char c)
-                   {
-                       return std::byte{static_cast<unsigned char>(c)};
-                   });
+    size_t resultSize = response->_result.size();
+    response->_result.resize(resultSize + cnt);
+    std::memcpy(&response->_result[resultSize], buffer, cnt);
     return cnt;
 }
 
