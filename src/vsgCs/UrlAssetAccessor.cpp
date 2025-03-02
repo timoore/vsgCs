@@ -177,16 +177,24 @@ void UrlAssetResponse::setCallbacks(CURL* curl)
     curl_easy_setopt(curl, CURLOPT_HEADERDATA, this);
 }
 
-UrlAssetAccessor::UrlAssetAccessor()
-    :  userAgent("Mozilla/5.0 vsgCs Cesium for VSG")
+UrlAssetAccessor::UrlAssetAccessor(bool doGlobalCurlInit)
+    :  userAgent("Mozilla/5.0 vsgCs Cesium for VSG"), curlGlobalInitCalled(false)
 {
-    // XXX Do we need to worry about the thread safety problems with this?
-    curl_global_init(CURL_GLOBAL_ALL);
+    // XXX Do we need to worry about the thread safety problems with
+    // this?
+    if (doGlobalCurlInit)
+    {
+        curl_global_init(CURL_GLOBAL_ALL);
+        curlGlobalInitCalled = true;
+    }
 }
 
 UrlAssetAccessor::~UrlAssetAccessor()
 {
-    curl_global_cleanup();
+    if (curlGlobalInitCalled)
+    {
+        curl_global_cleanup();
+    }
 }
 
 template <typename TC>

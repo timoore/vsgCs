@@ -67,6 +67,12 @@ RuntimeEnvironment::RuntimeEnvironment()
 #else
     hasProj = false;
 #endif
+    curl_global_init(CURL_GLOBAL_ALL);
+}
+
+RuntimeEnvironment::~RuntimeEnvironment()
+{
+    curl_global_cleanup();
 }
 
 vsg::ref_ptr<vsg::Options> RuntimeEnvironment::initializeOptions(vsg::CommandLine &arguments,
@@ -391,7 +397,7 @@ std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> RuntimeEnvironment::ge
         return _externals;
     }
     auto logger = spdlog::default_logger();
-    auto urlAccessor = std::make_shared<UrlAssetAccessor>();
+    auto urlAccessor = std::make_shared<UrlAssetAccessor>(false);
     std::shared_ptr<CesiumAsync::IAssetAccessor> assetAccessor;
     if (_csCacheFile.has_value())
     {

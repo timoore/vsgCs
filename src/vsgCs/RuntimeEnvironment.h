@@ -43,6 +43,7 @@ namespace vsgCs
     {
     public:
         RuntimeEnvironment();
+        ~RuntimeEnvironment() override;
         vsg::ref_ptr<vsg::Options> initializeOptions(vsg::CommandLine& arguments,
                                                      const vsg::ref_ptr<vsg::Options>& options= {});
         vsg::ref_ptr<vsg::WindowTraits> initializeTraits(vsg::CommandLine& arguments,
