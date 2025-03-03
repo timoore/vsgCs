@@ -12,10 +12,10 @@ project(vsgCs
     LANGUAGES CXX C
 )
 set(VSGCS_SOVERSION 0)
-SET(VSGCS_RELEASE_CANDIDATE 0)
+set(VSGCS_RELEASE_CANDIDATE 0)
 
 # We have some custom .cmake scripts not in the official distribution.
-SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${vsgCs_SOURCE_DIR}/CMakeModules")
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${vsgCs_SOURCE_DIR}/CMakeModules")
 
 include("vsgCsMacros")
 
@@ -83,6 +83,21 @@ include(GNUInstallDirs)
 
 set(VSGCS_DATA_DIR "${CMAKE_INSTALL_DATADIR}/vsgCs")
 set(VSGCS_FULL_DATA_DIR "${CMAKE_INSTALL_FULL_DATADIR}/vsgCs")
+
+if(VSGCS_USE_PROJ)
+  if(VCPKG_INSTALLED_DIR)
+    option(VSGCS_INSTALL_PROJ_DATA "Install Proj data from vcpkg" ON)
+    if(VSGCS_INSTALL_PROJ_DATA)
+      set(VSGCS_FULL_PROJ_DATA_DIR "${VSGCS_FULL_DATA_DIR}/proj" CACHE PATH "Directory for Proj data")
+      install(
+        DIRECTORY "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/proj"
+        DESTINATION "${VSGCS_DATA_DIR}"
+        PATTERN "*.cmake" EXCLUDE)
+    endif()
+  else()
+    set(VSGCS_FULL_PROJ_DATA_DIR "" CACHE PATH "Directory for Proj data")
+  endif()
+endif()
 
 if(WIN32)
   set(CMAKE_INSTALL_UCRT_LIBRARIES YES)
