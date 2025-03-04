@@ -1,4 +1,5 @@
 #pragma once
 
 #cmakedefine VSGCS_USE_PROJ
+#cmakedefine VSGCS_FULL_PROJ_DATA_DIR "@VSGCS_FULL_PROJ_DATA_DIR@"
 #define VSGCS_FULL_DATA_DIR "@VSGCS_FULL_DATA_DIR@"
