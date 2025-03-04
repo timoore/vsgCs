@@ -32,7 +32,6 @@ SOFTWARE.
 #include <Cesium3DTilesSelection/Tile.h>
 
 #include "vsgCs/Export.h"
-#include "vsgCs/Config.h"
 
 #include <algorithm>
 #include <iterator>
