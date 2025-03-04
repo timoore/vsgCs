@@ -45,9 +45,6 @@ SOFTWARE.
 #endif
 
 #include <cstdlib>
-#include <mutex>
-#include <stdexcept>
-#include <utility>
 
 namespace vsgCs
 {
@@ -127,6 +124,15 @@ namespace vsgCs
                 g_pj_thread_local_context = proj_context_create();
                 proj_log_func(g_pj_thread_local_context, nullptr, redirect_proj_log);
                 proj_context_set_enable_network(g_pj_thread_local_context, 1);
+#ifdef VSGCS_FULL_PROJ_DATA_DIR
+                if (!getenv("PROJ_DATA"))
+                {
+                    const char *paths[] = { VSGCS_FULL_PROJ_DATA_DIR };
+                    proj_context_set_search_paths(g_pj_thread_local_context,
+                                                  1,
+                                                  paths);
+                }
+#endif
             }
             return g_pj_thread_local_context;
         }
