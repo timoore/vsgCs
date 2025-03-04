@@ -83,20 +83,6 @@ namespace vsgCs
         std::unordered_map<std::string, SRSEntry> umap;
         static const std::string empty_string;
 
-        SRSFactory()
-        {
-            static std::once_flag projDataInitFlag;
-
-            std::call_once(projDataInitFlag,
-                []()
-                {
-#ifdef VSGCS_FULL_PROJ_DATA_DIR
-                    // Don't overwrite if it is already set
-                    setenv("PROJ_DATA", VSGCS_FULL_PROJ_DATA_DIR, 0);
-#endif
-                });
-        }
-
         //! destroy cache entries and threading context upon descope
         ~SRSFactory()
         {
