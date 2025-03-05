@@ -7,7 +7,7 @@
             "overlays": [
                 {
                     "Type": "TileMapServiceRasterOverlay",
-                    "url": "https://tms.example.com/1.0.0/osm/tilemapresource.xml"
+                    "url": "https://readymap.org/readymap/tiles/1.0.0/7/tilemapresource.xml"
                 }
             ]
         }
