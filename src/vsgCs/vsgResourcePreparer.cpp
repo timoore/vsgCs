@@ -33,6 +33,8 @@ SOFTWARE.
 #include <Cesium3DTilesSelection/Tile.h>
 #include <CesiumAsync/AsyncSystem.h>
 
+#include <gsl/util>
+
 #include <limits>
 
 using namespace vsgCs;
@@ -168,14 +170,17 @@ vsgResourcePreparer::prepareInMainThread(Cesium3DTilesSelection::Tile& tile,
     VSGCS_ZONESCOPED;
     // Cesium doesn't make the Tile object available to the load thread for some reason. Therefore
     // we need to attach the descriptor set with tile-specific data here.
-    const Cesium3DTilesSelection::TileContent& content = tile.getContent();
-    if (content.isRenderContent())
+    if (!tile.getContent().isRenderContent())
     {
-        auto* loadModelResult = reinterpret_cast<LoadModelResult*>(pLoadThreadResult);
-        auto attachResult = _builder->attachTileData(tile, loadModelResult->modelResult);
-        return merge(this, *loadModelResult, attachResult);
+        return nullptr;
     }
-    return nullptr;
+    auto* loadModelResult = reinterpret_cast<LoadModelResult*>(pLoadThreadResult);
+    auto attachResult = _builder->attachTileData(tile, loadModelResult->modelResult);
+    auto deleter = gsl::finally([loadModelResult]()
+    {
+        delete loadModelResult;
+    });
+    return merge(this, *loadModelResult, attachResult);
 }
 
 void vsgResourcePreparer::free(Cesium3DTilesSelection::Tile&,
@@ -234,14 +239,21 @@ vsgResourcePreparer::prepareRasterInMainThread(CesiumRasterOverlays::RasterOverl
                                                void* rawLoadResult)
 {
     VSGCS_ZONESCOPED;
+    if (!rawLoadResult)
+    {
+        return nullptr;
+    }
     auto* loadRasterResult = static_cast<LoadRasterResult*>(rawLoadResult);
-    vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
-    if (ref_viewer)
+    if (vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer)
     {
         vsg::updateViewer(*ref_viewer, loadRasterResult->compileResult);
     }
-
-    return new RasterResources{loadRasterResult->rasterResult, loadRasterResult->overlayOptions};
+    auto deleter = gsl::finally([loadRasterResult]()
+    {
+        delete loadRasterResult;
+    });
+    return  new RasterResources{.raster = loadRasterResult->rasterResult,
+                                .overlayOptions = loadRasterResult->overlayOptions};
 }
 
 void

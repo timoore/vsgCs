@@ -42,6 +42,7 @@
         "vulkan-binding"
       ]
     },
+    "ms-gsl",
     "spdlog",
     "tinyxml2",
     "vsg",

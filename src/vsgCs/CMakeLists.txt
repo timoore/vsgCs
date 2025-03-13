@@ -80,7 +80,7 @@ endif()
 # multiple definition errors.
 
 target_link_libraries(${LIB_NAME} PUBLIC
-  vsg::vsg vsgImGui::vsgImGui Cesium3DTilesSelection CesiumRasterOverlays CesiumGltfContent CesiumGltfReader CesiumGltf)
+  vsg::vsg vsgImGui::vsgImGui Cesium3DTilesSelection CesiumRasterOverlays CesiumGltfContent CesiumGltfReader CesiumGltf Microsoft.GSL::GSL)
 if(CESIUM_SPDLOG_HEADER_ONLY)
   target_link_libraries(${LIB_NAME} PUBLIC spdlog::spdlog_header_only)
 else()

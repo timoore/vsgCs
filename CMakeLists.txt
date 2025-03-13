@@ -61,6 +61,7 @@ endif()
 find_package(imgui REQUIRED)
 find_package(tinyxml2 REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(Microsoft.GSL REQUIRED)
 
 if(PROJECT_IS_TOP_LEVEL)
   set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
