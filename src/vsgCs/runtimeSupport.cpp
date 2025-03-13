@@ -375,7 +375,7 @@ namespace
     }
 
     vsg::ref_ptr<vsg::Data>
-    makeArray(uint32_t width, uint32_t height, void* data, vsg::Data::Properties in_properties)
+    makeArray(uint32_t width, uint32_t height, vsg::Data::Properties in_properties)
     {
         auto [block_width, block_height] = getBlockSize(in_properties.format);
         auto mem_width = width / block_width;
@@ -385,18 +385,15 @@ namespace
         case VK_FORMAT_R8_SRGB:
         case VK_FORMAT_R8_UNORM:
             return vsg::ubyteArray2D::create(mem_width, mem_height,
-                                             reinterpret_cast<vsg::ubyteArray2D::value_type*>(data),
                                              in_properties);
         case VK_FORMAT_R8G8_SRGB:
         case VK_FORMAT_R8G8_UNORM:
             return vsg::ubvec2Array2D::create(mem_width, mem_height,
-                                             reinterpret_cast<vsg::ubvec2Array2D::value_type*>(data),
                                              in_properties);
 
         case VK_FORMAT_R8G8B8A8_SRGB:
         case VK_FORMAT_R8G8B8A8_UNORM:
             return vsg::ubvec4Array2D::create(mem_width, mem_height,
-                                             reinterpret_cast<vsg::ubvec4Array2D::value_type*>(data),
                                              in_properties);
         case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK:
         case VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK:
@@ -407,7 +404,6 @@ namespace
         case VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG:
         case VK_FORMAT_EAC_R11_UNORM_BLOCK:
             return vsg::block64Array2D::create(mem_width, mem_height,
-                                               reinterpret_cast<vsg::block64Array2D::value_type*>(data),
                                                in_properties);
         case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
         case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK:
@@ -420,24 +416,16 @@ namespace
         case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
         case VK_FORMAT_EAC_R11G11_UNORM_BLOCK:
             return vsg::block128Array2D::create(mem_width, mem_height,
-                                                reinterpret_cast<vsg::block128Array2D::value_type*>(data),
                                                 in_properties);
         default:
             return {};
         }
     }
 
-    void* rgbExpand(CesiumGltf::ImageAsset& image)
+    void rgbExpand(CesiumGltf::ImageAsset& image, void* destData)
     {
         VSGCS_ZONESCOPED;
-        size_t sourceSize = image.pixelData.size();
-        size_t destSize = sourceSize * 4 / 3;
-        uint8_t* destData = nullptr;
-        {
-            VSGCS_ZONESCOPEDN("rgbExpand allocate");
-            destData = new (vsg::allocate(sizeof(uint8_t) * destSize, vsg::ALLOCATOR_AFFINITY_DATA)) uint8_t[destSize];
-        }
-        uint8_t* pDest = destData;
+        auto* pDest = static_cast<uint8_t*>(destData);
         auto srcItr = image.pixelData.begin();
         while (srcItr != image.pixelData.end())
         {
@@ -447,7 +435,6 @@ namespace
             }
             *pDest++ = 1;
         }
-        return destData;
     }
 }
 
@@ -467,6 +454,19 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageAsset& image, bool useMipMaps
         return {};
     }
     vsg::Data::Properties props;
+    // Assume that the ImageCesium raw format will be fine to upload into Vulkan, except for
+    // R8G8B8 uncompressed textures, which are rarely supported.
+    bool expand = false;
+    if (pixelFormat == VK_FORMAT_R8G8B8_UNORM)
+    {
+        pixelFormat = VK_FORMAT_R8G8B8A8_UNORM;
+        expand = true;
+    }
+    else if (pixelFormat == VK_FORMAT_R8G8B8_SRGB)
+    {
+        pixelFormat = VK_FORMAT_R8G8B8A8_SRGB;
+        expand = true;
+    }
     props.format = pixelFormat;
     if (useMipMaps)
     {
@@ -478,27 +478,23 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageAsset& image, bool useMipMaps
     }
     std::tie(props.blockWidth, props.blockHeight) = getBlockSize(pixelFormat);
     props.origin = vsg::BOTTOM_LEFT;
-    // Assume that the ImageCesium raw format will be fine to upload into Vulkan, except for
-    // R8G8B8 uncompressed textures, which are rarely supported.
-    void* imageSource = nullptr;
-    if (pixelFormat == VK_FORMAT_R8G8B8_UNORM || pixelFormat == VK_FORMAT_R8G8B8_SRGB)
+    auto result = makeArray(image.width, image.height, props);
+    if (expand)
     {
-        imageSource = rgbExpand(image);
+        rgbExpand(image, result->dataPointer());
     }
     else
     {
-        auto* destData
-            = new (vsg::allocate(sizeof(uint8_t) * image.pixelData.size(), vsg::ALLOCATOR_AFFINITY_DATA))
-            uint8_t[image.pixelData.size()];
+        auto* destData = static_cast<uint8_t*>(result->dataPointer());
+
         std::transform(image.pixelData.begin(), image.pixelData.end(), destData,
                        [](std::byte b)
                        {
                            return std::to_integer<uint8_t>(b);
                        });
-        imageSource = destData;
     }
     // Assume that there is no advantage in sharing the texture data; might be very false!
-    return makeArray(image.width, image.height, imageSource, props);
+    return result;
 }
     std::string getTileUrl(const vsg::Object* obj)
     {
