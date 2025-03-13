@@ -33,6 +33,8 @@ SOFTWARE.
 #include <Cesium3DTilesSelection/Tile.h>
 #include <CesiumAsync/AsyncSystem.h>
 
+#include <gsl/util>
+
 #include <limits>
 
 using namespace vsgCs;
@@ -174,9 +176,11 @@ vsgResourcePreparer::prepareInMainThread(Cesium3DTilesSelection::Tile& tile,
     }
     auto* loadModelResult = reinterpret_cast<LoadModelResult*>(pLoadThreadResult);
     auto attachResult = _builder->attachTileData(tile, loadModelResult->modelResult);
-    auto* prepareResult = merge(this, *loadModelResult, attachResult);
-    delete loadModelResult;
-    return prepareResult;
+    auto deleter = gsl::finally([loadModelResult]()
+    {
+        delete loadModelResult;
+    });
+    return merge(this, *loadModelResult, attachResult);
 }
 
 void vsgResourcePreparer::free(Cesium3DTilesSelection::Tile&,
@@ -244,11 +248,12 @@ vsgResourcePreparer::prepareRasterInMainThread(CesiumRasterOverlays::RasterOverl
     {
         vsg::updateViewer(*ref_viewer, loadRasterResult->compileResult);
     }
-
-    auto* result =  new RasterResources{.raster = loadRasterResult->rasterResult,
-                                        .overlayOptions = loadRasterResult->overlayOptions};
-    delete loadRasterResult;
-    return result;
+    auto deleter = gsl::finally([loadRasterResult]()
+    {
+        delete loadRasterResult;
+    });
+    return  new RasterResources{.raster = loadRasterResult->rasterResult,
+                                .overlayOptions = loadRasterResult->overlayOptions};
 }
 
 void
