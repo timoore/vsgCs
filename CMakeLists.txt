@@ -70,6 +70,12 @@ if(PROJECT_IS_TOP_LEVEL)
   endif()
 endif()
 
+find_path(VALGRIND_H_PATH
+  valgrind.h
+  PATHS ${CMAKE_INCLUDE_PATH}/valgrind ${CMAKE_SYSTEM_INCLUDE_PATH}/valgrind)
+
+message("valgrind path: ${VALGRIND_H_PATH}")
+
 vsgCs_setup_build_vars()
 
 include(GNUInstallDirs)

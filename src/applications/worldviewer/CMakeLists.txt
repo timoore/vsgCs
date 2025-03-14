@@ -22,6 +22,11 @@ if (BUILD_TRACY)
   target_link_libraries(worldviewer PUBLIC Tracy::TracyClient)
 endif()
 
+if(VALGRIND_H_PATH)
+  target_include_directories(worldviewer PRIVATE "${VALGRIND_H_PATH}")
+  target_compile_definitions(worldviewer PRIVATE HAVE_VALGRIND)
+endif()
+
 install(TARGETS worldviewer
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
 )
