@@ -1005,7 +1005,6 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
             = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineConf->layout,
                                              pbr::PRIMITIVE_DESCRIPTOR_SET,
                                              descSet);
-        _genv->sharedObjects->share(bindDescriptorSet);
         stateGroup->add(bindDescriptorSet);
     }
     // assign any custom ArrayState that may be required.
@@ -1160,7 +1159,7 @@ vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRG
     {
         return imageData.image;
     }
-    auto data = vsgCs::loadImage(*image, useMipMaps, sRGB);
+    auto data = vsgCs::loadImage(image, useMipMaps, sRGB);
     imageData.sRGB = sRGB;
     if (useMipMaps)
     {

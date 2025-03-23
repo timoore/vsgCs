@@ -142,9 +142,10 @@ void TilesetNode::shutdown()
         // Kind of gross, but the overlay is going to call TilesetNode::removeOverlay, which mutates
         // the _overlays vector.
         vsg::ref_ptr<TilesetNode> ref_this(this);
-        while (!_overlays.empty())
+        std::vector<vsg::ref_ptr<CsOverlay>> overlaysCopy(_overlays);
+        for (auto& overlay : overlaysCopy)
         {
-            (*(_overlays.end() - 1))->removeFromTileset(ref_this);
+            overlay->removeFromTileset(ref_this);
         }
         ++_tilesetsBeingDestroyed;
         _tileset->getAsyncDestructionCompleteEvent().thenInMainThread(

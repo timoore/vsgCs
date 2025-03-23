@@ -325,7 +325,8 @@ vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumGltf::ImageAss
                                                             bool useMipMaps,
                                                             bool sRGB)
 {
-    auto data = loadImage(image, useMipMaps, sRGB);
+    auto pimage = CesiumUtility::IntrusivePointer(&image);
+    auto data = loadImage(pimage, useMipMaps, sRGB);
     if (!data)
     {
         return {};
