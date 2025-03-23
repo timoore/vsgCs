@@ -1159,7 +1159,7 @@ vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRG
     {
         return imageData.image;
     }
-    auto data = vsgCs::loadImage(*image, useMipMaps, sRGB);
+    auto data = vsgCs::loadImage(image, useMipMaps, sRGB);
     imageData.sRGB = sRGB;
     if (useMipMaps)
     {

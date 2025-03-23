@@ -64,7 +64,8 @@ void CsOverlay::removeFromTileset(const vsg::ref_ptr<TilesetNode>& tilesetNode)
     ++_overlaysBeingDestroyed;
     _rasterOverlay->getAsyncDestructionCompleteEvent(getAsyncSystem())
       .thenInMainThread([this]() { --this->_overlaysBeingDestroyed; });
-    tilesetNode->removeOverlay(vsg::ref_ptr<CsOverlay>(this));
+    vsg::ref_ptr<CsOverlay> ref_this(this);
+    tilesetNode->removeOverlay(ref_this);
     _rasterOverlay = nullptr;
 }
 
