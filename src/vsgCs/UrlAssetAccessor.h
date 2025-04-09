@@ -25,7 +25,6 @@ SOFTWARE.
 #pragma once
 
 #include "vsgCs/Export.h"
-#include "vsgCs/RuntimeEnvironment.h"
 
 #include "CesiumAsync/AsyncSystem.h"
 #include "CesiumAsync/IAssetAccessor.h"
@@ -96,7 +95,6 @@ namespace vsgCs
         : public CesiumAsync::IAssetAccessor {
     public:
         UrlAssetAccessor();
-        explicit UrlAssetAccessor(const vsgCs::RuntimeEnvironment& env);
         ~UrlAssetAccessor() override;
 
         CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>>

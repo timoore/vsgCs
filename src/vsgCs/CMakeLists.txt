@@ -23,6 +23,7 @@ set(LIB_PUBLIC_HEADERS
   Styling.h
   TracingCommandGraph.h
   TilesetNode.h
+  Version.h
   vsgResourcePreparer.h
   runtimeSupport.h
   WorldAnchor.h
@@ -49,6 +50,7 @@ set(SOURCES
   TilesetNode.cpp
   UrlAssetAccessor.cpp
   runtimeSupport.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/Version.cpp
   vsgResourcePreparer.cpp
   pbr.cpp
   WorldAnchor.cpp
@@ -101,6 +103,9 @@ install(TARGETS ${LIB_NAME} EXPORT vsgCsTargets
 
 configure_file("Config.h.in"
   "${PROJECT_BINARY_DIR}/include/vsgCs/Config.h")
+
+configure_file("Version.cpp.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/Version.cpp")
   
 include(GenerateExportHeader)
 generate_export_header(vsgCs EXPORT_FILE_NAME Export.h)

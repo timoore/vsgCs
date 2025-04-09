@@ -25,7 +25,7 @@ SOFTWARE.
 #include "UrlAssetAccessor.h"
 
 #include "Tracing.h"
-#include "vsgCs/RuntimeEnvironment.h"
+#include "vsgCs/Version.h"
 
 #include <CesiumAsync/IAssetResponse.h>
 
@@ -184,14 +184,9 @@ UrlAssetAccessor::UrlAssetAccessor()
     // XXX Do we need to worry about the thread safety problems with this?
     curl_global_init(CURL_GLOBAL_ALL);
     _cesiumHeaders.emplace_back("X-Cesium-Client:vsgCs");
-}
-
-UrlAssetAccessor::UrlAssetAccessor(const RuntimeEnvironment& env)
-    : UrlAssetAccessor()
-{
-    _cesiumHeaders.emplace_back("X-Cesium-Client-Version:" + env.vsgCsVersion());
-    _cesiumHeaders.emplace_back("X-Cesium-Client-Engine:" + env.engine());
-    _cesiumHeaders.emplace_back("X-Cesium-Client-OS:" + env.osVersion());
+    _cesiumHeaders.emplace_back("X-Cesium-Client-Version:" + Version::get());
+    _cesiumHeaders.emplace_back("X-Cesium-Client-Engine:" + Version::getEngineVersion());
+    _cesiumHeaders.emplace_back("X-Cesium-Client-OS:" + Version::getOsVersion());
 }
 
 UrlAssetAccessor::~UrlAssetAccessor()
