@@ -118,8 +118,14 @@ namespace vsgCs
          * XXX This should be in a viewer operation.
          */
         void update();
-         
-        /** @brief Uusage message for vsg::Options command line parsing.
+
+        std::string vsgCsVersion() const;
+
+        std::string engine() const;
+
+        std::string osVersion() const;
+        
+        /** @brief Usage message for vsg::Options command line parsing.
          */
         static std::string optionsUsage();
         
@@ -146,5 +152,8 @@ namespace vsgCs
     protected:
         std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> _externals;
         std::optional<std::string> _csCacheFile;
+        std::string _vsgCsVersion;
+        std::string _engine;
+        std::string _osVersion;
     };
 }

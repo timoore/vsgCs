@@ -41,6 +41,39 @@ SOFTWARE.
 
 using namespace vsgCs;
 
+#if defined (__unix__) || (defined (__APPLE__) && defined (__MACH__))
+#include <sys/utsname.h>
+namespace
+{
+    std::string getOsString()
+    {
+        utsname buf;
+        std::string result;
+        if (uname(&buf))
+        {
+            return result;
+        }
+        result += buf.sysname;
+        result += " ";
+        result += buf.release;
+        result += " ";
+        result += buf.machine;
+        return result;
+    }
+}
+#elif defined(_WIN32)
+std::string getOsString()
+{
+    return "Windows";
+}
+#elif
+std::string getOsString()
+{
+    return "unknown";
+}
+#endif
+
+
 namespace
 {
     bool readBooleanArgument(vsg::CommandLine &arguments, const std::string& arg, bool defaultValue)
@@ -60,8 +93,11 @@ namespace
 }
 
 RuntimeEnvironment::RuntimeEnvironment()
-    : tracyContext(TracyContextValue::create())
+    : tracyContext(TracyContextValue::create()), _vsgCsVersion("0.9.0"), _osVersion(getOsString())
 {
+    std::string engine = "VSG ";
+    engine += vsgGetVersionString();
+    _engine = std::move(engine);
 }
 
 vsg::ref_ptr<vsg::Options> RuntimeEnvironment::initializeOptions(vsg::CommandLine &arguments,
@@ -385,7 +421,7 @@ std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> RuntimeEnvironment::ge
         return _externals;
     }
     auto logger = spdlog::default_logger();
-    auto urlAccessor = std::make_shared<UrlAssetAccessor>();
+    auto urlAccessor = std::make_shared<UrlAssetAccessor>(*this);
     std::shared_ptr<CesiumAsync::IAssetAccessor> assetAccessor;
     if (_csCacheFile.has_value())
     {
@@ -410,6 +446,21 @@ std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> RuntimeEnvironment::ge
 void RuntimeEnvironment::update()
 {
     getTilesetExternals()->pCreditSystem->startNextFrame();
+}
+ 
+std::string RuntimeEnvironment::vsgCsVersion() const
+{
+    return _vsgCsVersion;
+}
+
+std::string RuntimeEnvironment::engine() const
+{
+    return _engine;
+}
+
+std::string RuntimeEnvironment::osVersion() const
+{
+    return _osVersion;
 }
 
 vsg::ref_ptr<RuntimeEnvironment> RuntimeEnvironment::get()
