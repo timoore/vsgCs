@@ -85,10 +85,6 @@ if(HAVE_SYS_UTSNAME)
   target_compile_definitions(${LIB_NAME} PRIVATE HAVE_SYS_UTSNAME)
 endif()
 
-# This important define should probably be in the import definition
-# for spdlog in FindCesium.cmake. Without it there all sorts of
-# multiple definition errors.
-
 target_link_libraries(${LIB_NAME} PUBLIC
   vsg::vsg vsgImGui::vsgImGui Cesium3DTilesSelection CesiumRasterOverlays CesiumGltfContent CesiumGltfReader CesiumGltf)
 if(CESIUM_SPDLOG_HEADER_ONLY)
