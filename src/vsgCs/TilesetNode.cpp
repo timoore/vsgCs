@@ -315,8 +315,7 @@ namespace
             viewportSize[1] = renderGraph->renderArea.extent.height;
         }
         Cesium3DTilesSelection::ViewState result =
-            Cesium3DTilesSelection::ViewState::create(position, direction, up, viewportSize,
-                                                      fovx, fovy);
+            Cesium3DTilesSelection::ViewState::create(vsg2glm(view->camera->viewMatrix->transform()), vsg2glm(projMat->transform()), viewportSize);
         return {result};
     }
 }
