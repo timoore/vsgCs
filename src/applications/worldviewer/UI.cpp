@@ -88,8 +88,10 @@ namespace vsgCs
                       const vsg::ref_ptr<vsg::Options>&,
                       const vsg::ref_ptr<WorldNode>& worldNode,
                       const vsg::ref_ptr<vsg::Group>& scene,
+                      const vsg::ref_ptr<RuntimeEnvironment>& env,
                       bool debugManipulator)
     {
+        _ionIconComponent = CsApp::CreditComponent::create(env);
         createImGui(window);
         // Add the ImGui event handler first to handle events early
         viewer->addEventHandler(vsgImGui::SendEventsToImGui::create());
@@ -110,7 +112,6 @@ namespace vsgCs
 
     vsg::ref_ptr<vsgImGui::RenderImGui> UI::createImGui(const vsg::ref_ptr<vsg::Window>& window)
     {
-        _ionIconComponent = CsApp::CreditComponent::create();
         _renderImGui = vsgImGui::RenderImGui::create(window, _ionIconComponent);
         return _renderImGui;
     }

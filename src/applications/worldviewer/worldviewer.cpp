@@ -362,7 +362,7 @@ int main(int argc, char** argv)
         // graphical overlay.
         auto ui = vsgCs::UI::create();
         ui->createUI(window, viewer, camera, ellipsoidModel, environment->options, worldNode, vsg_scene,
-                     debugManipulator);
+                     environment, debugManipulator);
         // Basic VSG objects for rendering
         auto commandGraph = vsgCs::TracingCommandGraph::create(environment, window);
         auto renderGraph = vsgCs::TracingRenderGraph::create(window);
