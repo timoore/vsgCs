@@ -286,22 +286,7 @@ namespace
         glm::dvec3 position(Pcs[3][0], Pcs[3][1], Pcs[3][2]);
         glm::dvec3 direction(Pcs[1][0], Pcs[1][1], Pcs[1][2]);
         glm::dvec3 up(Pcs[2][0], Pcs[2][1], Pcs[2][2]);
-        // Have to assume that we have a perspective projection
-        double fovy = 0.0;
-        double fovx = 0.0;
         vsg::ref_ptr<vsg::ProjectionMatrix> projMat = view->camera->projectionMatrix;
-        auto* persp = dynamic_cast<vsg::Perspective*>(projMat.get());
-        if (persp)
-        {
-            fovy = vsg::radians(persp->fieldOfViewY);
-            fovx = std::atan(std::tan(fovy / 2.0) * persp->aspectRatio) * 2.0;
-        }
-        else
-        {
-            vsg::dmat4 perspMat = projMat->transform();
-            fovy = 2.0 * std::atan(-1.0 / perspMat[1][1]);
-            fovx = 2.0 * std::atan(1.0 / perspMat[0][0]);
-        }
         glm::dvec2 viewportSize;
         if (view->camera->viewportState)
         {
