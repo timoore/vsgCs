@@ -376,18 +376,25 @@ int main(int argc, char** argv)
 
         if (useEllipsoidPerspective)
         {
-            perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
+            perspective = vsg::EllipsoidPerspective::create(
+                lookAt, ellipsoidModel, 30.0,
+                static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height),
+                nearFarRatio, horizonMountainHeight);
         }
         else
         {
-            perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
+            perspective = vsg::Perspective::create(
+                30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height),
+                nearFarRatio * radius, radius * 4.5);
         }
-        auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
+        auto camera = vsg::Camera::create(perspective, lookAt,
+                                          vsg::ViewportState::create(window->extent2D()));
         // Create this application's user interface, including the trackball manipulator and the
         // graphical overlay.
         auto ui = vsgCs::UI::create();
         ui->createUI(window, viewer, camera, ellipsoidModel, environment->options, worldNode, vsg_scene,
                      debugManipulator);
+        ui->setViewpoint(lookAt, 0.0);
         // Basic VSG objects for rendering
         auto commandGraph = vsgCs::TracingCommandGraph::create(environment, window);
         auto renderGraph = vsgCs::TracingRenderGraph::create(window);
