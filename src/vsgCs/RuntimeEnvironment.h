@@ -118,8 +118,8 @@ namespace vsgCs
          * XXX This should be in a viewer operation.
          */
         void update();
-         
-        /** @brief Uusage message for vsg::Options command line parsing.
+        
+        /** @brief Usage message for vsg::Options command line parsing.
          */
         static std::string optionsUsage();
         

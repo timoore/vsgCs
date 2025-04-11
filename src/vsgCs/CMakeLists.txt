@@ -24,6 +24,7 @@ set(LIB_PUBLIC_HEADERS
   Styling.h
   TracingCommandGraph.h
   TilesetNode.h
+  Version.h
   vsgResourcePreparer.h
   runtimeSupport.h
   WorldAnchor.h
@@ -50,6 +51,7 @@ set(SOURCES
   TilesetNode.cpp
   UrlAssetAccessor.cpp
   runtimeSupport.cpp
+  ${CMAKE_CURRENT_BINARY_DIR}/Version.cpp
   vsgResourcePreparer.cpp
   pbr.cpp
   WorldAnchor.cpp
@@ -80,9 +82,13 @@ else()
   target_compile_definitions(${LIB_NAME} PUBLIC VSGCS_LIBRARY_STATIC)
 endif()
 
-# This important define should probably be in the import definition
-# for spdlog in FindCesium.cmake. Without it there all sorts of
-# multiple definition errors.
+include(CheckIncludeFileCXX)
+
+check_include_file_cxx("sys/utsname.h" HAVE_SYS_UTSNAME)
+
+if(HAVE_SYS_UTSNAME)
+  target_compile_definitions(${LIB_NAME} PRIVATE HAVE_SYS_UTSNAME)
+endif()
 
 target_link_libraries(${LIB_NAME} PUBLIC
   vsg::vsg vsgImGui::vsgImGui Cesium3DTilesSelection CesiumRasterOverlays CesiumGltfContent CesiumGltfReader CesiumGltf Microsoft.GSL::GSL)
@@ -106,6 +112,9 @@ install(TARGETS ${LIB_NAME} EXPORT vsgCsTargets
 
 configure_file("Config.h.in"
   "${PROJECT_BINARY_DIR}/include/vsgCs/Config.h")
+
+configure_file("Version.cpp.in"
+  "${CMAKE_CURRENT_BINARY_DIR}/Version.cpp")
   
 include(GenerateExportHeader)
 generate_export_header(vsgCs EXPORT_FILE_NAME Export.h)

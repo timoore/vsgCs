@@ -97,13 +97,13 @@ namespace vsgCs
         UrlAssetAccessor();
         ~UrlAssetAccessor() override;
 
-        virtual CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>>
+        CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>>
             get(const CesiumAsync::AsyncSystem& asyncSystem,
                 const std::string& url,
                 const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers)
             override;
 
-        virtual CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>>
+        CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>>
             request(
                 const CesiumAsync::AsyncSystem& asyncSystem,
                 const std::string& verb,
@@ -111,9 +111,14 @@ namespace vsgCs
                 const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers,
                 const std::span<const std::byte>& contentPayload) override;
 
-        virtual void tick() noexcept override;
+        void tick() noexcept override;
         CurlCache curlCache;
         std::string userAgent;
+    private:
+        curl_slist* setCommonOptions(CURL* curl,
+                                     const std::string& url,
+                                     const CesiumAsync::HttpHeaders& headers);
+        std::vector<std::string> _cesiumHeaders;
     };
 
     // RAII wrapper for the CurlCache.
