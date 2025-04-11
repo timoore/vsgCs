@@ -115,6 +115,11 @@ namespace vsgCs
         CurlCache curlCache;
         std::string userAgent;
         bool curlGlobalInitCalled;
+    private:
+        curl_slist* setCommonOptions(CURL* curl,
+                                     const std::string& url,
+                                     const CesiumAsync::HttpHeaders& headers);
+        std::vector<std::string> _cesiumHeaders;
     };
 
     // RAII wrapper for the CurlCache.
