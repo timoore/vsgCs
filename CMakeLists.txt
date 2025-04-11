@@ -53,6 +53,7 @@ find_package(PROJ REQUIRED)
 find_package(imgui REQUIRED)
 find_package(tinyxml2 REQUIRED)
 find_package(spdlog REQUIRED)
+find_package(Microsoft.GSL REQUIRED)
 
 if(PROJECT_IS_TOP_LEVEL)
   set(CMAKE_EXPORT_COMPILE_COMMANDS TRUE)
@@ -68,6 +69,12 @@ if(PROJECT_IS_TOP_LEVEL)
     )
   endif()
 endif()
+
+find_path(VALGRIND_H_PATH
+  valgrind.h
+  PATHS ${CMAKE_INCLUDE_PATH}/valgrind ${CMAKE_SYSTEM_INCLUDE_PATH}/valgrind)
+
+message("valgrind path: ${VALGRIND_H_PATH}")
 
 vsgCs_setup_build_vars()
 

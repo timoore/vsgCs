@@ -10,6 +10,7 @@ set(LIB_PUBLIC_HEADERS
   CsDebugColorizeTilesOverlay.h
   CsOverlay.h
   CesiumGltfBuilder.h
+  CppAllocator.h
   ${CMAKE_CURRENT_BINARY_DIR}/Export.h
   GeoNode.h
   GeospatialServices.h
@@ -57,9 +58,13 @@ set(SOURCES
 
 add_library(
     ${LIB_NAME}
-    ${LIB_PUBLIC_HEADERS}
     ${SOURCES}
 )
+
+if(VALGRIND_H_PATH)
+  list(APPEND LIB_PUBLIC_HEADERS CppAllocator.h)
+  target_sources(vsgCs PRIVATE CppAllocator.cpp)
+endif()
 
 set_target_properties(${LIB_NAME} PROPERTIES
   PUBLIC_HEADER "${LIB_PUBLIC_HEADERS}"
@@ -80,7 +85,7 @@ endif()
 # multiple definition errors.
 
 target_link_libraries(${LIB_NAME} PUBLIC
-  vsg::vsg vsgImGui::vsgImGui Cesium3DTilesSelection CesiumRasterOverlays CesiumGltfContent CesiumGltfReader CesiumGltf)
+  vsg::vsg vsgImGui::vsgImGui Cesium3DTilesSelection CesiumRasterOverlays CesiumGltfContent CesiumGltfReader CesiumGltf Microsoft.GSL::GSL)
 if(CESIUM_SPDLOG_HEADER_ONLY)
   target_link_libraries(${LIB_NAME} PUBLIC spdlog::spdlog_header_only)
 else()

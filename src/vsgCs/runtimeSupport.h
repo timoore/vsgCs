@@ -30,6 +30,7 @@ SOFTWARE.
 #include <vsgImGui/Texture.h>
 
 #include <Cesium3DTilesSelection/Tile.h>
+#include <CesiumUtility/IntrusivePointer.h>
 
 #include "vsgCs/Export.h"
 #include "vsgCs/Config.h"
@@ -188,7 +189,7 @@ namespace vsgCs
      * This returns vsg::Data because the vsg::Array2D template class does not have a more specific
      * superclass.
      */
-    vsg::ref_ptr<vsg::Data> VSGCS_EXPORT loadImage(CesiumGltf::ImageAsset& image, bool useMipMaps, bool sRGB);
+    vsg::ref_ptr<vsg::Data> VSGCS_EXPORT loadImage(CesiumUtility::IntrusivePointer<CesiumGltf::ImageAsset> image, bool useMipMaps, bool sRGB);
 
     int samplerLOD(const vsg::ref_ptr<vsg::Data>& data, bool generateMipMaps);
 
@@ -327,4 +328,17 @@ namespace vsgCs
     /** Called in the thread that is in fact the main thread.
      */
     void setMainThread();
+
+    /**
+     * VSG Object that holds a reference to a Cesium object
+     */
+    template<typename T>
+    struct IntrusivePointerContainer : public vsg::Inherit<vsg::Object, IntrusivePointerContainer<T>>
+    {
+        explicit IntrusivePointerContainer(CesiumUtility::IntrusivePointer<T> in_ptr)
+            : ptr(in_ptr)
+        {
+        }
+        CesiumUtility::IntrusivePointer<T> ptr;
+    };
 }

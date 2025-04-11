@@ -39,12 +39,15 @@ SOFTWARE.
 
 #include <gsl/util>
 
-#include <algorithm>
-#include <chrono>
+#ifdef HAVE_VALGRIND
+#include <valgrind.h>
+#include "vsgCs/CppAllocator.h"
+#endif
+
 #include <filesystem>
 #include <iomanip>
 #include <iostream>
-#include <thread>
+
 
 #include "vsgCs/GeoNode.h"
 #include "vsgCs/GltfLoader.h"
@@ -199,6 +202,28 @@ private:
 
 int main(int argc, char** argv)
 {
+    // The default allocator needs to be saved and restored when the
+    // program shuts down because static objects' constructors may
+    // have made allocations from it. There may be a better place to
+    // do this than in main(), but this runs about as early -- and the
+    // replacement runs as late -- as any live code can.
+#ifdef HAVE_VALGRIND
+    std::unique_ptr<vsg::Allocator> savedAllocator;
+    if (RUNNING_ON_VALGRIND)
+    {
+        auto& allocator = vsg::Allocator::instance();
+        savedAllocator = std::move(allocator);
+        allocator = std::make_unique<vsgCs::CppAllocator>();
+    }
+    auto restoreAllocator = gsl::finally([&savedAllocator]()
+    {
+        if (RUNNING_ON_VALGRIND)
+        {
+            auto& allocator = vsg::Allocator::instance();
+            allocator = std::move(savedAllocator);
+        }
+    });
+#endif
     try
     {
         // set up defaults and read command line arguments to override them

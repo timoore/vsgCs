@@ -35,6 +35,7 @@
         "vulkan-binding"
       ]
     },
+    "ms-gsl",
     {
       "name": "proj",
       "default-features": false
