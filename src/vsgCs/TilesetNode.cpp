@@ -330,11 +330,7 @@ void TilesetNode::UpdateTileset::run()
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     vsg::ref_ptr<TilesetNode> ref_tileset = tilesetNode;
 
-    if (!(ref_viewer && ref_tileset))
-    {
-        return;
-    }
-    if (!ref_tileset->_tileset)
+    if (!ref_viewer || !ref_tileset || !ref_tileset->_tileset)
     {
         return;
     }
@@ -350,8 +346,7 @@ void TilesetNode::UpdateTileset::run()
     for_each_view(viewer,
                   [&viewStates](const vsg::ref_ptr<vsg::View>& view, const vsg::ref_ptr<vsg::RenderGraph>& rg)
                   {
-                      auto viewState = createViewState(view, rg);
-                      if (viewState)
+                      if (auto viewState = createViewState(view, rg))
                       {
                           viewStates.push_back(viewState.value());
                       }

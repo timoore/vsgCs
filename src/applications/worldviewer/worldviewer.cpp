@@ -27,7 +27,9 @@ SOFTWARE.
 </editor-fold> */
 
 
+#include "CsApp/GeneralPerspective.h"
 #include <vsg/all.h>
+#include <vsg/state/ViewportState.h>
 #include <vulkan/vulkan_core.h>
 
 #ifdef vsgXchange_FOUND
@@ -210,6 +212,7 @@ public:
         // Options for the VSG trackball manipulator
         horizonMountainHeight = arguments.value(0.0, "--hmh");
         maxShadowDistance = arguments.value<double>(10000.0, "--sd");
+        twoCameras = arguments.read({"-2"});
     }
      std::vector<vsg::ref_ptr<vsg::View>>& createViews()
     {
@@ -242,24 +245,44 @@ public:
             setViewpointAfterLoad = true;
         }
         const VkExtent2D& extent = window->extent2D();
-        if (useEllipsoidPerspective)
+        double aspectRatio = static_cast<double>(extent.width) / extent.height;
+        if (twoCameras)
         {
-            perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0,
-                                                            static_cast<double>(extent.width) / extent.height,
-                                                            nearFarRatio, horizonMountainHeight);
+            auto lvp = vsg::ViewportState::create(0, 0, extent.width / 2, extent.height);
+            auto rvp = vsg::ViewportState::create(extent.width / 2, 0, extent.width / 2, extent.height);
+            // Something big
+            double zNear = 50;
+            double zFar = radius * 4.0;
+            double windowHeight = std::tan(vsg::radians(30.0 / 2.0)) * zNear;
+            double windowWidth = windowHeight * aspectRatio;
+            auto lproj = CsApp::GeneralPerspective::create(-windowWidth, 0.0,
+                                                           -windowHeight, windowHeight,
+                                                           zNear, zFar);
+            auto rproj = CsApp::GeneralPerspective::create(0.0, windowWidth,
+                                                           -windowHeight, windowHeight,
+                                                           zNear, zFar);
+            views.emplace_back(vsg::View::create(vsg::Camera::create(lproj, lookAt, lvp)));
+            views.emplace_back(vsg::View::create(vsg::Camera::create(rproj, lookAt, rvp)));
         }
         else
         {
-            perspective = vsg::Perspective::create(30.0,
-                                                   static_cast<double>(extent.width) / extent.height,
-                                                   nearFarRatio * radius, radius * 4.5);
+            if (useEllipsoidPerspective)
+            {
+                perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, aspectRatio,
+                                                                nearFarRatio, horizonMountainHeight);
+            }
+            else
+            {
+                perspective = vsg::Perspective::create(30.0, aspectRatio,
+                                                       nearFarRatio * radius, radius * 4.5);
+            }
+            auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
+            views.emplace_back(vsg::View::create(camera));
         }
-        auto camera = vsg::Camera::create(perspective, lookAt,
-                                          vsg::ViewportState::create(extent));
-
-        auto view = vsg::View::create(camera);
-        view->viewDependentState->maxShadowDistance = maxShadowDistance;
-        views.push_back(view);
+        for (auto& view : views)
+        {
+            view->viewDependentState->maxShadowDistance = maxShadowDistance;
+        }
         return views;
     }
     bool setViewpointAfterLoad = false;
@@ -271,6 +294,7 @@ public:
     double poi_latitude = invalid_value;
     double poi_longitude = invalid_value;
     double poi_distance = invalid_value;
+    bool twoCameras = false;
 protected:
     vsg::ref_ptr<vsgCs::RuntimeEnvironment> env;
     vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
