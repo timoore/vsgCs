@@ -304,8 +304,6 @@ namespace
         return {result};
     }
 }
-
-
     
 void TilesetNode::updateViews(const vsg::ref_ptr<vsg::Viewer>& viewer)
 {
@@ -359,6 +357,7 @@ void TilesetNode::UpdateTileset::run()
     {
         return;
     }
+    auto& tileset = *ref_tileset->_tileset;
     VSGCS_ZONESCOPEDN("update view");
     float deltaTime = 0.0f;
     vsg::ref_ptr<vsg::FrameStamp> currentFrameStamp(ref_viewer->getFrameStamp());
@@ -376,7 +375,7 @@ void TilesetNode::UpdateTileset::run()
                           viewStates.push_back(viewState.value());
                       }
                   });
-    ref_tileset->_viewUpdateResult = &ref_tileset->_tileset->updateView(viewStates, deltaTime);
+    ref_tileset->_viewUpdateResult = &tileset.updateViewGroup(tileset.getDefaultViewGroup(), viewStates, deltaTime);
     for (auto* tile : ref_tileset->_viewUpdateResult->tilesToRenderThisFrame)
     {
         fadeTile(tile, false);
@@ -385,6 +384,7 @@ void TilesetNode::UpdateTileset::run()
     {
         fadeTile(tile, true);
     }
+    tileset.loadTiles();
     ref_tileset->_lastFrameStamp = currentFrameStamp;
 }
 
