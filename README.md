@@ -6,13 +6,13 @@ Tiles](https://github.com/CesiumGS/3d-tiles) and other geospatial
     application. In particular, it can download assets from a 
     [Cesium ion](https://cesium.com/platform/cesium-ion/) server.
 
-<img src="doc/img/seattle.png" alt="Seattle with OSM buildings">
+<img src="doc/img/integration_card_vsgCs.png" alt="Seattle with OSM buildings">
 
 For streaming and loading content, vsgCs uses the [Cesium Native](https://github.com/CesiumGS/cesium-native)
 package, which also "powers Cesium's runtime integrations for
 [Cesium for Unreal](https://github.com/CesiumGS/cesium-unreal),
 [Cesium for Unity](https://github.com/CesiumGS/cesium-unity), and
-[Cesium for O3DE](https://github.com/CesiumGS/cesium-o3de)."
+[Cesium for Nvidia Omniverse](https://github.com/CesiumGS/cesium-omniverse)."
 
 ---
 

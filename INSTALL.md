@@ -9,7 +9,7 @@ with CMake](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started?pivo
 
 On Linux, vcpkg will complain if some development packages aren't
 installed in the system, although it's unclear if this makes any
-practical difference. On Fedora, to take an example, you can install
+practical difference. On Fedora, for example, you can install
 them with:
 ```
 sudo dnf install xorg-macros xproto xcb-proto libXdmcp-devel libXau-devel
@@ -34,11 +34,9 @@ in the `extern/vcpkg-overlays` subdirectories.
 
 ## Cesium Native
 
-For this release candidate, vsgCs is using a private fork of the
-Cesium Native library which is better integrated with `cmake`. This
-branch is quite close to a [pullrequest](https://github.com/CesiumGS/cesium-native/pull/1026) in
-the offical Cesium Native repository, and we intend to use Cesium
-Native releases once that PR is merged.
+vsgCs uses the official sources of Cesium Native and tracks its
+monthly releases. The commit of Cesium Native used in the build is set
+in [extern/vcpkg-overlays/cesium-native/portfile.cmake](extern/vcpkg-overlays/cesium-native/portfile.cmake).
 
 vsgCs is often used as a vehicle for developing Cesium Native, and it
 would be quite painful to create a vcpkg port and package for each
