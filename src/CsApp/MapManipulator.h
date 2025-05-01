@@ -123,7 +123,8 @@ namespace vsgCs
             ACTION_ZOOM,
             ACTION_ZOOM_IN,
             ACTION_ZOOM_OUT,
-            ACTION_EARTH_DRAG
+            ACTION_EARTH_DRAG,
+            ACTION_TOGGLE_PROJECTION
         };
 
         //! Vector of action types
@@ -769,6 +770,7 @@ namespace vsgCs
 
         void reinitializeHome();
 
+        vsg::ref_ptr<vsg::ProjectionMatrix> _savedProjection;
         // For graphical debugging
         friend class UpdateCenterOperation;
     };

@@ -24,13 +24,14 @@ SOFTWARE.
 
 #pragma once
 
+#include "vsgCs/RuntimeEnvironment.h"
 #include "vsgCs/runtimeSupport.h"
+
 #include <vsgImGui/RenderImGui.h>
 #include <vsgImGui/SendEventsToImGui.h>
+#include <vsgImGui/Texture.h>
 
 #include <CesiumAsync/Future.h>
-
-#include <vsgImGui/Texture.h>
 
 #include <tinyxml2.h>
 
@@ -43,6 +44,10 @@ namespace CsApp
     class CreditComponent : public vsg::Inherit<vsg::Command, CreditComponent>
     {
     public:
+        explicit CreditComponent(const vsg::ref_ptr<vsgCs::RuntimeEnvironment>& env)
+            : environment(env)
+        {
+        }
         void record(vsg::CommandBuffer& cb) const override;
     protected:
         // level of indirection because of deleted Future constructors?
@@ -53,6 +58,7 @@ namespace CsApp
             vsg::ref_ptr<vsgImGui::Texture> texture;
         };
         mutable std::map<std::string, RemoteImage> imageCache;
+        vsg::ref_ptr<vsgCs::RuntimeEnvironment> environment;
         vsg::ref_ptr<vsgImGui::Texture> getTexture(const std::string& url) const;
         void renderImg(vsg::CommandBuffer& cb, const tinyxml2::XMLElement* element) const; 
     };
