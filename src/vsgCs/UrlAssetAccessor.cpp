@@ -259,7 +259,7 @@ UrlAssetAccessor::get(const CesiumAsync::AsyncSystem& asyncSystem,
                 else
                 {
                     std::string curlMsg("curl: ");
-                    curlMsg += curl_easy_strerror(responseCode);
+                    curlMsg += curl.getErrBuf();
                     promise.reject(std::runtime_error(curlMsg));
                 }
             });
@@ -319,7 +319,7 @@ UrlAssetAccessor::request(const CesiumAsync::AsyncSystem& asyncSystem,
                 else
                 {
                     std::string curlMsg("curl: ");
-                    curlMsg += curl_easy_strerror(responseCode);
+                    curlMsg += curl.getErrBuf();
                     promise.reject(std::runtime_error(curlMsg));
                 }
             });
