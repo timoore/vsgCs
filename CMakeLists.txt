@@ -1,3 +1,8 @@
+# SSL works better on some systems with the system openssl library, in particular Fedora.
+if(VSGCS_USE_SYSTEM_OPENSSL)
+  set(VCPKG_OVERLAY_PORTS "extern/optional-overlays/openssl")
+endif()
+
 cmake_minimum_required(VERSION 3.22)
 
 project(vsgCs
