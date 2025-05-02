@@ -77,7 +77,6 @@ namespace
 
 vsg::ref_ptr<vsgImGui::Texture> CreditComponent::getTexture(const std::string& url) const
 {
-    auto env = vsgCs::RuntimeEnvironment::get();
     auto insertResult = imageCache.insert(std::pair(url, RemoteImage()));
     RemoteImage& remoteImage = insertResult.first->second;
     if (insertResult.second)
@@ -119,7 +118,6 @@ vsg::ref_ptr<vsgImGui::Texture> CreditComponent::getTexture(const std::string& u
 
 void CreditComponent::record(vsg::CommandBuffer& cb) const
 {
-    auto env = vsgCs::RuntimeEnvironment::get();
     // Shamelessly copied from imgui_demo.cpp simple overlay
     ImGuiWindowFlags window_flags = ImGuiWindowFlags_NoDecoration | ImGuiWindowFlags_AlwaysAutoResize | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoFocusOnAppearing | ImGuiWindowFlags_NoNav;
     const float PAD = 10.0f;
@@ -138,53 +136,55 @@ void CreditComponent::record(vsg::CommandBuffer& cb) const
     ImGui::PushStyleVar(ImGuiStyleVar_WindowBorderSize, 0.0f);
     ImGui::Begin("vsgCS UI", nullptr, window_flags);
 
-    auto creditSystem = vsgCs::RuntimeEnvironment::get()->getTilesetExternals()->pCreditSystem;
-    auto credits = creditSystem->getCreditsToShowThisFrame();
-    for (auto& credit : credits)
-    {
-        if (creditSystem->shouldBeShownOnScreen(credit))
-        {
-            auto html = creditSystem->getHtml(credit);
-            if (html.empty())
-            {
-                continue;
-            }
-            cleanHtml(html);
-            tinyxml2::XMLDocument doc;
-            tinyxml2::XMLError xerr = doc.Parse(html.c_str());
-            if (xerr != 0)
-            {
-                vsg::error("tinyxml2 error ", std::to_string(static_cast<int32_t>(xerr)), " ", html);
-                break;
-            }
-            auto* node = doc.FirstChildElement();
-            if (std::strcmp(node->Name(), "span") == 0)
-            {
-                node = node->FirstChildElement();
-            }
-            if (std::strcmp(node->Name(), "a") == 0)
-            {
-                std::string href(node->Attribute("href"));
-                auto* aContents = node->FirstChild();
-                if (auto* asText = aContents->ToText(); asText)
-                {
-                    ImGui::Text("%s", asText->Value());
-                    ImGui::SameLine();
+    auto creditSystem = environment->getTilesetExternals()->pCreditSystem;
+    const auto& snapshot = creditSystem->getSnapshot();
 
-                }
-                else
-                {
-                    auto* element = aContents->ToElement();
-                    if (element && strcmp(element->Name(), "img") == 0)
-                    {
-                        renderImg(cb, element);
-                    }
-                }
-            }
-            else if (std::strcmp(node->Name(), "img") == 0)
+    for (const auto& credit : snapshot.currentCredits)
+    {
+        if (!creditSystem->shouldBeShownOnScreen(credit))
+        {
+            continue;
+        }
+        auto html = creditSystem->getHtml(credit);
+        if (html.empty())
+        {
+            continue;
+        }
+        cleanHtml(html);
+        tinyxml2::XMLDocument doc;
+        tinyxml2::XMLError xerr = doc.Parse(html.c_str());
+        if (xerr != 0)
+        {
+            vsg::error("tinyxml2 error ", std::to_string(static_cast<int32_t>(xerr)), " ", html);
+            break;
+        }
+        auto* node = doc.FirstChildElement();
+        if (!std::strcmp(node->Name(), "span"))
+        {
+            node = node->FirstChildElement();
+        }
+        if (!std::strcmp(node->Name(), "a"))
+        {
+            std::string href(node->Attribute("href"));
+            auto* aContents = node->FirstChild();
+            if (auto* asText = aContents->ToText())
             {
-                renderImg(cb, node);
+                ImGui::Text("%s", asText->Value());
+                ImGui::SameLine();
+
             }
+            else
+            {
+                auto* element = aContents->ToElement();
+                if (element && !std::strcmp(element->Name(), "img"))
+                {
+                    renderImg(cb, element);
+                }
+            }
+        }
+        else if (!std::strcmp(node->Name(), "img"))
+        {
+            renderImg(cb, node);
         }
     }
 

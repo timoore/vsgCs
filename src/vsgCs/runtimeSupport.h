@@ -60,6 +60,13 @@ namespace vsgCs
         return result;
     }
 
+    inline glm::dmat4x4 vsg2glm(const vsg::dmat4& vsgmat)
+    {
+        glm::dmat4x4 result;
+        std::memcpy(glm::value_ptr(result), vsgmat.data(), sizeof(double) * 16);
+        return result;
+    }
+
     inline vsg::dvec2 glm2vsg(const glm::dvec2& vec2)
     {
         return vsg::dvec2(vec2.x, vec2.y);

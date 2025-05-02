@@ -3,6 +3,7 @@ set(LIB_NAME CsApp)
 set(LIB_PUBLIC_HEADERS
   CsViewer.h
   CreditComponent.h
+  GeneralPerspective.h
   MapManipulator.h
 )
 
