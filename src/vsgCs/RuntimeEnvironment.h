@@ -43,6 +43,7 @@ namespace vsgCs
     {
     public:
         RuntimeEnvironment();
+        ~RuntimeEnvironment() override;
         vsg::ref_ptr<vsg::Options> initializeOptions(vsg::CommandLine& arguments,
                                                      const vsg::ref_ptr<vsg::Options>& options= {});
         vsg::ref_ptr<vsg::WindowTraits> initializeTraits(vsg::CommandLine& arguments,
@@ -142,6 +143,8 @@ namespace vsgCs
         bool enableLodTransitionPeriod = false;
         vsg::ref_ptr<GraphicsEnvironment> genv;
         vsg::ref_ptr<TracyContextValue> tracyContext;
+        bool hasProj;
+        bool enableProjNetwork = true;
         static vsg::ref_ptr<RuntimeEnvironment> get();
     protected:
         std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> _externals;

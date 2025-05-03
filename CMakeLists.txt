@@ -1,15 +1,21 @@
 cmake_minimum_required(VERSION 3.22)
 
+option(VSGCS_USE_PROJ "Use the Proj library for coordinate system transformations" ON)
+
+if(VSGCS_USE_PROJ)
+  list(APPEND VCPKG_MANIFEST_FEATURES "proj")
+endif()
+
 project(vsgCs
     VERSION 0.9.0
     DESCRIPTION "VSG library for rendering 3D Tiles and Cesium ion assets"
     LANGUAGES CXX C
 )
 set(VSGCS_SOVERSION 0)
-SET(VSGCS_RELEASE_CANDIDATE 0)
+set(VSGCS_RELEASE_CANDIDATE 0)
 
 # We have some custom .cmake scripts not in the official distribution.
-SET(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${vsgCs_SOURCE_DIR}/CMakeModules")
+set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${vsgCs_SOURCE_DIR}/CMakeModules")
 
 include("vsgCsMacros")
 
@@ -49,7 +55,9 @@ else()
   find_package(cesium-native REQUIRED)
 endif()
 
-find_package(PROJ REQUIRED)
+if(VSGCS_USE_PROJ)
+  find_package(PROJ REQUIRED)
+endif()
 find_package(imgui REQUIRED)
 find_package(tinyxml2 REQUIRED)
 find_package(spdlog REQUIRED)
@@ -82,6 +90,21 @@ include(GNUInstallDirs)
 
 set(VSGCS_DATA_DIR "${CMAKE_INSTALL_DATADIR}/vsgCs")
 set(VSGCS_FULL_DATA_DIR "${CMAKE_INSTALL_FULL_DATADIR}/vsgCs")
+
+if(VSGCS_USE_PROJ)
+  if(VCPKG_INSTALLED_DIR)
+    option(VSGCS_INSTALL_PROJ_DATA "Install Proj data from vcpkg" ON)
+    if(VSGCS_INSTALL_PROJ_DATA)
+      set(VSGCS_FULL_PROJ_DATA_DIR "${VSGCS_FULL_DATA_DIR}/proj" CACHE PATH "Directory for Proj data")
+      install(
+        DIRECTORY "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/share/proj"
+        DESTINATION "${VSGCS_DATA_DIR}"
+        PATTERN "*.cmake" EXCLUDE)
+    endif()
+  else()
+    set(VSGCS_FULL_PROJ_DATA_DIR "" CACHE PATH "Directory for Proj data")
+  endif()
+endif()
 
 if(WIN32)
   set(CMAKE_INSTALL_UCRT_LIBRARIES YES)

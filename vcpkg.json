@@ -22,6 +22,14 @@
           "features": ["dependencies-only"]
         }
       ]
+    },
+    "proj": {
+      "description": ["Include Proj library for geodetic conversions",
+                      "selected from CMake by VSGCS_USE_PROJ"],
+
+      "dependencies": [
+        "proj"
+      ]
     }
   },
   "dependencies": [
@@ -36,10 +44,6 @@
       ]
     },
     "ms-gsl",
-    {
-      "name": "proj",
-      "default-features": false
-    },
     "spdlog",
     "tinyxml2",
     "vsg",

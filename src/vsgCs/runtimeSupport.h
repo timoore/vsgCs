@@ -33,7 +33,6 @@ SOFTWARE.
 #include <CesiumUtility/IntrusivePointer.h>
 
 #include "vsgCs/Export.h"
-#include "vsgCs/Config.h"
 
 #include <algorithm>
 #include <iterator>

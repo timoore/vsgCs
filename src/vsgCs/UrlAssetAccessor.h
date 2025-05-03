@@ -94,7 +94,7 @@ namespace vsgCs
     class VSGCS_EXPORT UrlAssetAccessor
         : public CesiumAsync::IAssetAccessor {
     public:
-        UrlAssetAccessor();
+        explicit UrlAssetAccessor(bool doGlobalCurlInit = true);
         ~UrlAssetAccessor() override;
 
         CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>>
@@ -119,6 +119,7 @@ namespace vsgCs
                                      const std::string& url,
                                      const CesiumAsync::HttpHeaders& headers);
         std::vector<std::string> _cesiumHeaders;
+        bool curlGlobalInitCalled;
     };
 
     // RAII wrapper for the CurlCache.
