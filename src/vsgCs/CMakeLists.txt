@@ -82,6 +82,12 @@ else()
   target_compile_definitions(${LIB_NAME} PUBLIC VSGCS_LIBRARY_STATIC)
 endif()
 
+if(NOT VSGCS_USE_SYSTEM_OPENSSL AND VCPKG_INSTALLED_DIR)
+  target_compile_definitions(${LIB_NAME}
+    PRIVATE VSGCS_OPENSSL_CONF="${VSGCS_FULL_DATA_DIR}/etc/ssl/openssl.cnf"
+  )
+endif()
+
 include(CheckIncludeFileCXX)
 
 check_include_file_cxx("sys/utsname.h" HAVE_SYS_UTSNAME)

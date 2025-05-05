@@ -1,9 +1,9 @@
+cmake_minimum_required(VERSION 3.22)
+
 # SSL works better on some systems with the system openssl library, in particular Fedora.
 if(VSGCS_USE_SYSTEM_OPENSSL)
   set(VCPKG_OVERLAY_PORTS "extern/optional-overlays/openssl")
 endif()
-
-cmake_minimum_required(VERSION 3.22)
 
 option(VSGCS_USE_PROJ "Use the Proj library for coordinate system transformations" ON)
 
@@ -122,9 +122,6 @@ endif()
 add_subdirectory(src)
 add_subdirectory(data)
 
-include(FeatureSummary)
-feature_summary(WHAT ALL)
-
 option(BUILD_TRACY "build with tracy profiling and server" OFF)
 
 if (BUILD_TRACY)
@@ -133,4 +130,13 @@ if (BUILD_TRACY)
   add_subdirectory(3rdparty/tracy)
   set_target_properties(TracyClient PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 endif()
+
+if(NOT VSGCS_USE_SYSTEM_OPENSSL AND VCPKG_INSTALLED_DIR)
+  install(
+    DIRECTORY "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/etc/ssl"
+    DESTINATION "${VSGCS_DATA_DIR}/etc")
+endif()
+
+include(FeatureSummary)
+feature_summary(WHAT ALL)
 
