@@ -38,17 +38,56 @@ SOFTWARE.
 #include <vsg/core/Allocator.h>
 
 #include <cstdint>
+#include <cstdlib>
 #include <type_traits>
 #include <vsg/core/Data.h>
 #include <vsg/maths/vec2.h>
 #include <vsg/maths/vec4.h>
 
+// For setenv stuff
+#ifdef WIN32
+#include <stdlib.h>
+#else
+#include <unistd.h>
+#endif
+
 namespace vsgCs
 {
     using namespace Cesium3DTilesSelection;
+    void setEnv(const char* var, const char* val)
+    {
+#ifdef WIN32
+        if (val)
+        {
+            _putenv_s(var, val);
+        }
+        else
+        {
+            _putenv_s(var, "");
+        }
+#else
+        if (val)
+        {
+            setenv(val, var, 1);
+        }
+        else
+        {
+            unsetenv(var);
+        }
+#endif
+    }
+
     void startup()
     {
         Cesium3DTilesContent::registerAllTileContentTypes();
+        // If we are using OpenSSL from vcpkg, point it at its
+        // configuration file.
+#if defined(VSGCS_OPENSSL_CONF)
+        if (!getenv("OPENSSL_CONF"))
+        {
+            setEnv("OPENSSL_CONF", VSGCS_OPENSSL_CONF);
+        }
+#endif
     }
 
     void shutdown()

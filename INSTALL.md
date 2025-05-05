@@ -32,6 +32,17 @@ package manager. Look in vsgCs' `CMakeLists.txt` files for calls to
 `find_package` for prerequisites, as well as in the `vcpkg.json` files
 in the `extern/vcpkg-overlays` subdirectories.
 
+## OpenSSL and Linux
+
+OpenSSL is a core library that, while not used directly by vsgCs, is
+used by several of its dependencies. In particular libCurl, which does
+all of vsgCs' http transfers, uses it to set up SSL connections. By
+default the OpenSSL library is supplied by vcpkg. However, there may
+be a need to use the host system's own OpenSSL implementation, for
+example to take advantage of a configuration option that isn't
+implemented in the vcpkg version of OpenSSL. You can set the
+`VSGCS_USE_SYSTEM_OPENSSL` CMake variable to enable this behavior.
+
 ## Cesium Native
 
 vsgCs uses the official sources of Cesium Native and tracks its
