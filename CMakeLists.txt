@@ -109,9 +109,12 @@ if (BUILD_TRACY)
 endif()
 
 if(NOT VSGCS_USE_SYSTEM_OPENSSL AND VCPKG_INSTALLED_DIR)
-  install(
-    DIRECTORY "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/etc/ssl"
-    DESTINATION "${VSGCS_DATA_DIR}/etc")
+  set(_SSLConfigDir "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/etc/ssl")
+  if(IS_DIRECTORY "${_SSLConfigDir}")
+    install(
+      DIRECTORY "${_SSLConfigDir}"
+      DESTINATION "${VSGCS_DATA_DIR}/etc")
+  endif()
 endif()
 
 include(FeatureSummary)
