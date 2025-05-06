@@ -83,6 +83,27 @@ namespace vsgCs
                                                                JSONObjectFactory*,
                                                                const vsg::ref_ptr<vsg::Object>& object);
     JSONObjectFactory::Registrar r("DebugColorizeTilesRasterOverlay", buildCsDebugColorizeTilesOverlay);
+
+    vsg::ref_ptr<vsg::Object> buildCsWebMapTileServiceRasterOverlay(const rapidjson::Value& json,
+        JSONObjectFactory* factory,
+        const vsg::ref_ptr<vsg::Object>& object);
+    JSONObjectFactory::Registrar rWebMapTileServiceRasterOverlay("WebMapTileServiceRasterOverlay", buildCsWebMapTileServiceRasterOverlay);
+
+    vsg::ref_ptr<vsg::Object> buildCsWebMapServiceRasterOverlay(const rapidjson::Value& json,
+        JSONObjectFactory* factory,
+        const vsg::ref_ptr<vsg::Object>& object);
+    JSONObjectFactory::Registrar rWebMapServiceRasterOverlay("WebMapServiceRasterOverlay", buildCsWebMapServiceRasterOverlay);
+
+    vsg::ref_ptr<vsg::Object> buildCsTileMapServiceRasterOverlay(const rapidjson::Value& json,
+        JSONObjectFactory* factory,
+        const vsg::ref_ptr<vsg::Object>& object);
+    JSONObjectFactory::Registrar rTileMapServiceRasterOverlay("TileMapServiceRasterOverlay", buildCsTileMapServiceRasterOverlay);
+
+    vsg::ref_ptr<vsg::Object> buildCsUrlTemplateRasterOverlay(const rapidjson::Value& json,
+        JSONObjectFactory* factory,
+        const vsg::ref_ptr<vsg::Object>& object);
+    JSONObjectFactory::Registrar rUrlTemplateRasterOverlay("UrlTemplateRasterOverlay", buildCsUrlTemplateRasterOverlay);
+
     vsg::ref_ptr<vsg::Object> buildStyling(const rapidjson::Value& json,
                                            JSONObjectFactory*,
                                            const vsg::ref_ptr<vsg::Object>&);
