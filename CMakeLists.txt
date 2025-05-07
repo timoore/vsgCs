@@ -6,6 +6,11 @@ if(VSGCS_USE_PROJ)
   list(APPEND VCPKG_MANIFEST_FEATURES "proj")
 endif()
 
+# SSL works better on some systems with the system openssl library, in particular Fedora.
+if(VSGCS_USE_SYSTEM_OPENSSL)
+  set(VCPKG_OVERLAY_PORTS "extern/optional-overlays/openssl")
+endif()
+
 project(vsgCs
     VERSION 0.9.0
     DESCRIPTION "VSG library for rendering 3D Tiles and Cesium ion assets"
@@ -117,9 +122,6 @@ endif()
 add_subdirectory(src)
 add_subdirectory(data)
 
-include(FeatureSummary)
-feature_summary(WHAT ALL)
-
 option(BUILD_TRACY "build with tracy profiling and server" OFF)
 
 if (BUILD_TRACY)
@@ -128,4 +130,16 @@ if (BUILD_TRACY)
   add_subdirectory(3rdparty/tracy)
   set_target_properties(TracyClient PROPERTIES COMPILE_WARNING_AS_ERROR OFF)
 endif()
+
+if(NOT VSGCS_USE_SYSTEM_OPENSSL AND VCPKG_INSTALLED_DIR)
+  set(_SSLConfigDir "${VCPKG_INSTALLED_DIR}/${VCPKG_TARGET_TRIPLET}/etc/ssl")
+  if(IS_DIRECTORY "${_SSLConfigDir}")
+    install(
+      DIRECTORY "${_SSLConfigDir}"
+      DESTINATION "${VSGCS_DATA_DIR}/etc")
+  endif()
+endif()
+
+include(FeatureSummary)
+feature_summary(WHAT ALL)
 
