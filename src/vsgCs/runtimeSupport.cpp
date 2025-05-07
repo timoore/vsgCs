@@ -68,7 +68,7 @@ namespace vsgCs
 #else
         if (val)
         {
-            setenv(val, var, 1);
+            setenv(var, val, 1);
         }
         else
         {
