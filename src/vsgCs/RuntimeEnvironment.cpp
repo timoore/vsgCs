@@ -38,6 +38,7 @@ SOFTWARE.
 #include <spdlog/spdlog.h>
 
 #include <memory>
+#include <stdlib.h>
 
 using namespace vsgCs;
 
@@ -62,6 +63,23 @@ namespace
 RuntimeEnvironment::RuntimeEnvironment()
     : tracyContext(TracyContextValue::create())
 {
+#if defined(VSGCS_OPENSSL_CONF)
+    // If we are using OpenSSL from vcpkg, point it at its configuration file.
+    if (!std::getenv("OPENSSL_CONF"))
+    {
+        opensslSettings = OPENSSL_INIT_new();
+        OPENSSL_INIT_set_config_filename(opensslSettings, VSGCS_OPENSSL_CONF);
+        OPENSSL_init_ssl(0, opensslSettings);
+    }
+#endif
+}
+
+RuntimeEnvironment::~RuntimeEnvironment()
+{
+    if (opensslSettings)
+    {
+        OPENSSL_INIT_free(opensslSettings);
+    }
 }
 
 vsg::ref_ptr<vsg::Options> RuntimeEnvironment::initializeOptions(vsg::CommandLine &arguments,

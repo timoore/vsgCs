@@ -44,10 +44,6 @@ SOFTWARE.
 #include <vsg/maths/vec2.h>
 #include <vsg/maths/vec4.h>
 
-#include <openssl/ssl.h>
-
-#include <stdlib.h>
-
 namespace vsgCs
 {
     using namespace Cesium3DTilesSelection;
@@ -57,25 +53,11 @@ namespace vsgCs
     void startup()
     {
         Cesium3DTilesContent::registerAllTileContentTypes();
-        // If we are using OpenSSL from vcpkg, point it at its
-        // configuration file.
-#if defined(VSGCS_OPENSSL_CONF)
-        if (!std::getenv("OPENSSL_CONF"))
-        {
-            opensslSettings = OPENSSL_INIT_new();
-            OPENSSL_INIT_set_config_filename(opensslSettings, VSGCS_OPENSSL_CONF);
-            OPENSSL_init_ssl(0, opensslSettings);
-        }
-#endif
     }
 
     void shutdown()
     {
         getAsyncSystemWrapper().shutdown();
-        if (opensslSettings)
-        {
-            OPENSSL_INIT_free(opensslSettings);
-        }
     }
 
     vsg::ref_ptr<vsg::LookAt> makeLookAtFromTile(const Cesium3DTilesSelection::Tile* tile,

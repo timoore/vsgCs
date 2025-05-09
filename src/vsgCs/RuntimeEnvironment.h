@@ -31,6 +31,8 @@ SOFTWARE.
 #include <vsg/core/Inherit.h>
 #include <vsg/io/Options.h>
 
+#include <openssl/ssl.h>
+
 namespace vsgCs
 {
 
@@ -43,6 +45,7 @@ namespace vsgCs
     {
     public:
         RuntimeEnvironment();
+        virtual ~RuntimeEnvironment();
         vsg::ref_ptr<vsg::Options> initializeOptions(vsg::CommandLine& arguments,
                                                      const vsg::ref_ptr<vsg::Options>& options= {});
         vsg::ref_ptr<vsg::WindowTraits> initializeTraits(vsg::CommandLine& arguments,
@@ -146,5 +149,6 @@ namespace vsgCs
     protected:
         std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> _externals;
         std::optional<std::string> _csCacheFile;
+        OPENSSL_INIT_SETTINGS* opensslSettings = nullptr;
     };
 }
