@@ -38,6 +38,7 @@ SOFTWARE.
 #include <spdlog/spdlog.h>
 
 #include <memory>
+#include <stdlib.h>
 
 using namespace vsgCs;
 
@@ -67,11 +68,25 @@ RuntimeEnvironment::RuntimeEnvironment()
 #else
     hasProj = false;
 #endif
+#if defined(VSGCS_OPENSSL_CONF)
+    // If we are using OpenSSL from vcpkg, point it at its configuration file.
+    if (!std::getenv("OPENSSL_CONF"))
+    {
+        opensslSettings = OPENSSL_INIT_new();
+        OPENSSL_INIT_set_config_filename(opensslSettings, VSGCS_OPENSSL_CONF);
+        OPENSSL_init_ssl(0, opensslSettings);
+    }
+#endif
     curl_global_init(CURL_GLOBAL_ALL);
 }
 
 RuntimeEnvironment::~RuntimeEnvironment()
 {
+    if (opensslSettings)
+    {
+        OPENSSL_INIT_free(opensslSettings);
+    }
+
     curl_global_cleanup();
 }
 

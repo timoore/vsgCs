@@ -31,6 +31,8 @@ SOFTWARE.
 #include <vsg/core/Inherit.h>
 #include <vsg/io/Options.h>
 
+#include <openssl/ssl.h>
+
 namespace vsgCs
 {
 
@@ -149,5 +151,6 @@ namespace vsgCs
     protected:
         std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> _externals;
         std::optional<std::string> _csCacheFile;
+        OPENSSL_INIT_SETTINGS* opensslSettings = nullptr;
     };
 }

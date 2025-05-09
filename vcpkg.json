@@ -43,6 +43,11 @@
       ]
     },
     "ms-gsl",
+    {
+      "name": "proj",
+      "default-features": false
+    },
+    "openssl",
     "spdlog",
     "tinyxml2",
     "vsg",
