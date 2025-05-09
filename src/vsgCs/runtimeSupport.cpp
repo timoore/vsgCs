@@ -33,6 +33,7 @@ SOFTWARE.
 #include <Cesium3DTilesSelection/BoundingVolume.h>
 #include <Cesium3DTilesSelection/Tile.h>
 #include <CesiumAsync/IAssetResponse.h>
+#include <CesiumGeometry/OrientedBoundingBox.h>
 #include <CesiumGltfReader/ImageDecoder.h>
 
 #include <vsg/core/Allocator.h>
@@ -61,9 +62,21 @@ namespace vsgCs
     }
 
     vsg::ref_ptr<vsg::LookAt> makeLookAtFromTile(const Cesium3DTilesSelection::Tile* tile,
-                                                 double distance)
+                                                 double distance,
+                                                 bool localModel)
     {
         auto boundingVolume = tile->getBoundingVolume();
+        if (localModel)
+        {
+            CesiumGeometry::OrientedBoundingBox csBoundingBox
+                = getOrientedBoundingBoxFromBoundingVolume(boundingVolume);
+            CesiumGeometry::BoundingSphere csSphere = csBoundingBox.toSphere();
+            vsg::dvec3 vPosition = glm2vsg(csSphere.getCenter());
+            double radius = csSphere.getRadius();
+            vsg::dvec3 eye = vsg::dvec3(0.0, -2.0 * radius, 0.0);
+            vsg::dvec3 up(0.0, 0.0, 1.0);
+            return vsg::LookAt::create(vPosition + eye, vPosition, up);
+        }
         auto globeRectangle = estimateGlobeRectangle(boundingVolume);
         if (globeRectangle)
         {
