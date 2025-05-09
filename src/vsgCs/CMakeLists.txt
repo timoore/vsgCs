@@ -1,4 +1,5 @@
 find_package(CURL REQUIRED)
+find_package(OpenSSL REQUIRED)
 
 set(LIB_NAME vsgCs)
 
@@ -103,7 +104,7 @@ if(CESIUM_SPDLOG_HEADER_ONLY)
 else()
   target_link_libraries(${LIB_NAME} PUBLIC spdlog::spdlog)
 endif()
-target_link_libraries(${LIB_NAME} PRIVATE CURL::libcurl)
+target_link_libraries(${LIB_NAME} PRIVATE CURL::libcurl OpenSSL::SSL)
 if(VSGCS_USE_PROJ)
   target_link_libraries(${LIB_NAME} PRIVATE PROJ::proj)
 endif()

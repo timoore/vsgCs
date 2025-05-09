@@ -44,6 +44,7 @@
       ]
     },
     "ms-gsl",
+    "openssl",
     "spdlog",
     "tinyxml2",
     "vsg",
