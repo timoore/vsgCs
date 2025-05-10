@@ -436,7 +436,6 @@ std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> RuntimeEnvironment::ge
 
 void RuntimeEnvironment::update()
 {
-    getTilesetExternals()->pCreditSystem->startNextFrame();
 }
  
 vsg::ref_ptr<RuntimeEnvironment> RuntimeEnvironment::get()

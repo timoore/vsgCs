@@ -31,6 +31,7 @@ SOFTWARE.
 
 #include <algorithm>
 #include <cstring>
+#include <curl/curl.h>
 
 
 using namespace vsgCs;
@@ -157,9 +158,8 @@ size_t UrlAssetResponse::dataCallback(char* buffer, size_t size, size_t nitems, 
     {
         return cnt;
     }
-    size_t resultSize = response->_result.size();
-    response->_result.resize(resultSize + cnt);
-    std::memcpy(&response->_result[resultSize], buffer, cnt);
+    auto* bufPtr = reinterpret_cast<std::byte*>(buffer);
+    response->_result.insert(response->_result.end(), bufPtr, bufPtr + cnt);
     return cnt;
 }
 
@@ -205,6 +205,7 @@ UrlAssetAccessor::setCommonOptions(CURL* curl,
                                    const std::string& url,
                                    const CesiumAsync::HttpHeaders& headers)
 {
+    curl_easy_setopt(curl, CURLOPT_BUFFERSIZE, 1024 * 1024);
     curl_easy_setopt(curl, CURLOPT_USERAGENT, userAgent.c_str());
     curl_easy_setopt(curl, CURLOPT_FOLLOWLOCATION, 1L);
     curl_easy_setopt(curl, CURLOPT_ACCEPT_ENCODING, "");

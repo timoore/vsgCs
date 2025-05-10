@@ -24,11 +24,13 @@ SOFTWARE.
 
 #pragma once
 
+#include "CsApp/CreditComponent.h"
+#include "CsApp/MapManipulator.h"
+#include "vsgCs/RuntimeEnvironment.h"
+
 #include <vsg/all.h>
 #include <vsgImGui/RenderImGui.h>
 #include <vsgImGui/SendEventsToImGui.h>
-#include "CsApp/CreditComponent.h"
-#include "CsApp/MapManipulator.h"
 
 namespace vsgCs
 {
@@ -42,6 +44,7 @@ namespace vsgCs
                       const vsg::ref_ptr<vsg::Options>& options,
                       const vsg::ref_ptr<WorldNode>& worldNode,
                       const vsg::ref_ptr<vsg::Group>& scene,
+                      const vsg::ref_ptr<RuntimeEnvironment>& env,
                       bool debugManipulator = false);
         vsg::ref_ptr<vsgImGui::RenderImGui> getImGui()
         {
