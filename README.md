@@ -53,6 +53,14 @@ See [usage instructions](USAGE.md).
 
 ---
 
+
+## Contributing
+
+See [instructions for contributing](CONTRIBUTE.md) fixes and features to vsgCs.
+
+---
+
+
 ## Status
 
 vsgCs and `worldviewer` have been tested with the Cesium World Terrain
