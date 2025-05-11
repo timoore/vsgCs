@@ -12,12 +12,11 @@ if(VSGCS_USE_SYSTEM_OPENSSL)
 endif()
 
 project(vsgCs
-    VERSION 0.9.0
+    VERSION 1.0.0
     DESCRIPTION "VSG library for rendering 3D Tiles and Cesium ion assets"
     LANGUAGES CXX C
 )
 set(VSGCS_SOVERSION 0)
-set(VSGCS_RELEASE_CANDIDATE 0)
 
 # We have some custom .cmake scripts not in the official distribution.
 set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};${vsgCs_SOURCE_DIR}/CMakeModules")
