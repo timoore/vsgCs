@@ -79,6 +79,7 @@ which should produce:
 
 <img src="doc/img/world.png" alt="the world">
 
+`worldviewer` can take, as arguments, one .json file that defines a WorldNode, and then any number of additional tile set sources. These can either be a vsgCs .json that defines a TilesetNode object, or the location of an actual 3D Tiles tileset; the latter's URI should end in `tileset.json`. Any file that can be loaded by vsgXchange can also be specified, although it must contain a transform to place it on the globe.
 
 ## Google Maps Photorealistic 3D Tiles
 
