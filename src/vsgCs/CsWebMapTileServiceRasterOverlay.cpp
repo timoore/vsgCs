@@ -33,42 +33,42 @@ using namespace vsgCs;
 CesiumRasterOverlays::RasterOverlay* CsWebMapTileServiceRasterOverlay::createOverlay(
     const CesiumRasterOverlays::RasterOverlayOptions& options)
 {
-    if (this->BaseUrl.empty())
+    if (baseUrl.empty())
     {
         // Don't create an overlay with an empty base URL.
         return nullptr;
     }
 
     CesiumRasterOverlays::WebMapTileServiceRasterOverlayOptions wmtsOptions;
-    if (!Style.empty())
+    if (!style.empty())
     {
-        wmtsOptions.style = (this->Style);
+        wmtsOptions.style = style;
     }
-    if (!Layer.empty())
+    if (!layer.empty())
     {
-        wmtsOptions.layer = (this->Layer);
+        wmtsOptions.layer = layer;
     }
-    if (!Format.empty())
+    if (!format.empty())
     {
-        wmtsOptions.format = (this->Format);
+        wmtsOptions.format = format;
     }
-    if (!TileMatrixSetID.empty())
+    if (!tileMatrixSetID.empty())
     {
-        wmtsOptions.tileMatrixSetID = (this->TileMatrixSetID);
-    }
-
-    if (bSpecifyZoomLevels && MaximumLevel > MinimumLevel)
-    {
-        wmtsOptions.minimumLevel = MinimumLevel;
-        wmtsOptions.maximumLevel = MaximumLevel;
+        wmtsOptions.tileMatrixSetID = tileMatrixSetID;
     }
 
-    wmtsOptions.tileWidth = this->TileWidth;
-    wmtsOptions.tileHeight = this->TileHeight;
+    if (bSpecifyZoomLevels && maximumLevel > minimumLevel)
+    {
+        wmtsOptions.minimumLevel = minimumLevel;
+        wmtsOptions.maximumLevel = maximumLevel;
+    }
+
+    wmtsOptions.tileWidth = tileWidth;
+    wmtsOptions.tileHeight = tileHeight;
 
     const CesiumGeospatial::Ellipsoid& ellipsoid = options.ellipsoid;
 
-    if (this->Projection ==
+    if (projection ==
         ECesiumWebMapTileServiceRasterOverlayProjection::Geographic)
     {
         wmtsOptions.projection = CesiumGeospatial::GeographicProjection(ellipsoid);
@@ -82,10 +82,10 @@ CesiumRasterOverlays::RasterOverlay* CsWebMapTileServiceRasterOverlay::createOve
     {
         CesiumGeospatial::GlobeRectangle globeRectangle =
             CesiumGeospatial::GlobeRectangle::fromDegrees(
-                RectangleWest,
-                RectangleSouth,
-                RectangleEast,
-                RectangleNorth);
+                rectangleWest,
+                rectangleSouth,
+                rectangleEast,
+                rectangleNorth);
         CesiumGeometry::Rectangle coverageRectangle =
             CesiumGeospatial::projectRectangleSimple(
                 *wmtsOptions.projection,
@@ -93,32 +93,32 @@ CesiumRasterOverlays::RasterOverlay* CsWebMapTileServiceRasterOverlay::createOve
         wmtsOptions.coverageRectangle = coverageRectangle;
         wmtsOptions.tilingScheme = CesiumGeometry::QuadtreeTilingScheme(
             coverageRectangle,
-            RootTilesX,
-            RootTilesY);
+            rootTilesX,
+            rootTilesY);
     }
 
     if (bSpecifyTileMatrixSetLabels)
     {
-        if (!TileMatrixSetLabels.empty())
+        if (!tileMatrixSetLabels.empty())
         {
             std::vector<std::string> labels;
-            for (const auto& label : this->TileMatrixSetLabels)
+            for (const auto& label : tileMatrixSetLabels)
             {
-                labels.emplace_back((label));
+                labels.emplace_back(label);
             }
             wmtsOptions.tileMatrixLabels = labels;
         }
     }
     else
     {
-        if (!TileMatrixSetLabelPrefix.empty())
+        if (!tileMatrixSetLabelPrefix.empty())
         {
             std::vector<std::string> labels;
             for (size_t level = 0; level <= 25; ++level)
             {
-                std::string label(TileMatrixSetLabelPrefix);
+                std::string label(tileMatrixSetLabelPrefix);
                 label.append(std::to_string(level));
-                labels.emplace_back((label));
+                labels.emplace_back(label);
             }
             wmtsOptions.tileMatrixLabels = labels;
         }
@@ -126,16 +126,16 @@ CesiumRasterOverlays::RasterOverlay* CsWebMapTileServiceRasterOverlay::createOve
 
     std::vector<CesiumAsync::IAssetAccessor::THeader> headers;
 
-    for (const auto& [Key, Value] : this->RequestHeaders)
+    for (const auto& [Key, Value] : requestHeaders)
     {
         headers.push_back(CesiumAsync::IAssetAccessor::THeader{
-            (Key),
-            (Value) });
+            Key,
+            Value });
     }
 
     return new CesiumRasterOverlays::WebMapTileServiceRasterOverlay(
-        (this->MaterialLayerKey),
-        (this->BaseUrl),
+        MaterialLayerKey,
+        baseUrl,
         headers,
         wmtsOptions,
         options);
@@ -151,13 +151,27 @@ namespace vsgCs
         factory->build(json, "CsOverlay", overlay);
         overlay->MaterialLayerKey = CesiumUtility::JsonHelpers::getStringOrDefault(json, "materialKey",
             "Overlay0");
-        overlay->BaseUrl = CesiumUtility::JsonHelpers::getStringOrDefault(json, "baseUrl", "");
-        overlay->Layer = CesiumUtility::JsonHelpers::getStringOrDefault(json, "layer", "");
-        overlay->Style = CesiumUtility::JsonHelpers::getStringOrDefault(json, "style", "");
-        overlay->Format = CesiumUtility::JsonHelpers::getStringOrDefault(json, "format", "");
-        overlay->TileMatrixSetID = CesiumUtility::JsonHelpers::getStringOrDefault(json, "tileMatrixSetID", "");
+        overlay->baseUrl = CesiumUtility::JsonHelpers::getStringOrDefault(json, "baseUrl", "");
+        overlay->layer = CesiumUtility::JsonHelpers::getStringOrDefault(json, "layer", "");
+        overlay->style = CesiumUtility::JsonHelpers::getStringOrDefault(json, "style", "");
+        overlay->format = CesiumUtility::JsonHelpers::getStringOrDefault(json, "format", overlay->format);
+        overlay->tileMatrixSetID = CesiumUtility::JsonHelpers::getStringOrDefault(json, "tileMatrixSetID", "");
+        overlay->tileMatrixSetLabelPrefix = CesiumUtility::JsonHelpers::getStringOrDefault(json, "tileMatrixSetLabelPrefix", "");
         std::string projection = CesiumUtility::JsonHelpers::getStringOrDefault(json, "projection", "");
-        overlay->Projection = projection == "geographic" ? ECesiumWebMapTileServiceRasterOverlayProjection::Geographic : ECesiumWebMapTileServiceRasterOverlayProjection::WebMercator;
+        overlay->projection = projection == "geographic" ? ECesiumWebMapTileServiceRasterOverlayProjection::Geographic : ECesiumWebMapTileServiceRasterOverlayProjection::WebMercator;
+        overlay->tileWidth = CesiumUtility::JsonHelpers::getInt32OrDefault(json, "tileWidth", overlay->tileWidth);
+        overlay->tileHeight = CesiumUtility::JsonHelpers::getInt32OrDefault(json, "tileHeight", overlay->tileHeight);
+        overlay->minimumLevel = CesiumUtility::JsonHelpers::getInt32OrDefault(json, "minimumLevel", overlay->minimumLevel);
+        overlay->maximumLevel = CesiumUtility::JsonHelpers::getInt32OrDefault(json, "maximumLevel", overlay->maximumLevel);
+        const auto requestHeaders = json.FindMember("requestHeaders");
+        if (requestHeaders != json.MemberEnd() && requestHeaders->value.IsObject())
+        {
+            auto obj = requestHeaders->value.GetObject();
+            for (auto itr = obj.MemberBegin(); itr != obj.MemberEnd(); ++itr)
+            {
+                overlay->requestHeaders.insert(std::make_pair(itr->name.GetString(), itr->value.GetString()));
+            }
+        }
 
         return overlay;
     }

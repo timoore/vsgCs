@@ -33,7 +33,7 @@ using namespace vsgCs;
 CesiumRasterOverlays::RasterOverlay* CsUrlTemplateRasterOverlay::createOverlay(
     const CesiumRasterOverlays::RasterOverlayOptions& options)
 {
-    if (this->TemplateUrl.empty())
+    if (templateUrl.empty())
     {
         // Don't create an overlay with an empty base URL.
         return nullptr;
@@ -41,15 +41,15 @@ CesiumRasterOverlays::RasterOverlay* CsUrlTemplateRasterOverlay::createOverlay(
 
     CesiumRasterOverlays::UrlTemplateRasterOverlayOptions urlTemplateOptions;
 
-    urlTemplateOptions.minimumLevel = MinimumLevel;
-    urlTemplateOptions.maximumLevel = MaximumLevel;
+    urlTemplateOptions.minimumLevel = minimumLevel;
+    urlTemplateOptions.maximumLevel = maximumLevel;
 
-    urlTemplateOptions.tileWidth = this->TileWidth;
-    urlTemplateOptions.tileHeight = this->TileHeight;
+    urlTemplateOptions.tileWidth = tileWidth;
+    urlTemplateOptions.tileHeight = tileHeight;
 
     const CesiumGeospatial::Ellipsoid& ellipsoid = options.ellipsoid;
 
-    if (this->Projection ==
+    if (projection ==
         ECesiumUrlTemplateRasterOverlayProjection::Geographic)
     {
         urlTemplateOptions.projection =
@@ -65,10 +65,10 @@ CesiumRasterOverlays::RasterOverlay* CsUrlTemplateRasterOverlay::createOverlay(
     {
         CesiumGeospatial::GlobeRectangle globeRectangle =
             CesiumGeospatial::GlobeRectangle::fromDegrees(
-                RectangleWest,
-                RectangleSouth,
-                RectangleEast,
-                RectangleNorth);
+                rectangleWest,
+                rectangleSouth,
+                rectangleEast,
+                rectangleNorth);
         CesiumGeometry::Rectangle coverageRectangle =
             CesiumGeospatial::projectRectangleSimple(
                 *urlTemplateOptions.projection,
@@ -76,22 +76,22 @@ CesiumRasterOverlays::RasterOverlay* CsUrlTemplateRasterOverlay::createOverlay(
         urlTemplateOptions.coverageRectangle = coverageRectangle;
         urlTemplateOptions.tilingScheme = CesiumGeometry::QuadtreeTilingScheme(
             coverageRectangle,
-            RootTilesX,
-            RootTilesY);
+            rootTilesX,
+            rootTilesY);
     }
 
     std::vector<CesiumAsync::IAssetAccessor::THeader> headers;
 
-    for (const auto& [Key, Value] : this->RequestHeaders)
+    for (const auto& [Key, Value] : requestHeaders)
     {
         headers.push_back(CesiumAsync::IAssetAccessor::THeader{
-            (Key),
-            (Value) });
+            Key,
+            Value });
     }
 
     return new CesiumRasterOverlays::UrlTemplateRasterOverlay(
-        (this->MaterialLayerKey),
-        (this->TemplateUrl),
+        MaterialLayerKey,
+        templateUrl,
         headers,
         urlTemplateOptions,
         options);
@@ -107,9 +107,22 @@ namespace vsgCs
         factory->build(json, "CsOverlay", overlay);
         overlay->MaterialLayerKey = CesiumUtility::JsonHelpers::getStringOrDefault(json, "materialKey",
             "Overlay0");
-        overlay->TemplateUrl = CesiumUtility::JsonHelpers::getStringOrDefault(json, "url", "");
+        overlay->templateUrl = CesiumUtility::JsonHelpers::getStringOrDefault(json, "url", "");
         std::string projection = CesiumUtility::JsonHelpers::getStringOrDefault(json, "projection", "");
-        overlay->Projection = projection == "geographic" ? ECesiumUrlTemplateRasterOverlayProjection::Geographic : ECesiumUrlTemplateRasterOverlayProjection::WebMercator;
+        overlay->projection = projection == "geographic" ? ECesiumUrlTemplateRasterOverlayProjection::Geographic : ECesiumUrlTemplateRasterOverlayProjection::WebMercator;
+        overlay->tileWidth = CesiumUtility::JsonHelpers::getInt32OrDefault(json, "tileWidth", overlay->tileWidth);
+        overlay->tileHeight = CesiumUtility::JsonHelpers::getInt32OrDefault(json, "tileHeight", overlay->tileHeight);
+        overlay->minimumLevel = CesiumUtility::JsonHelpers::getInt32OrDefault(json, "minimumLevel", overlay->minimumLevel);
+        overlay->maximumLevel = CesiumUtility::JsonHelpers::getInt32OrDefault(json, "maximumLevel", overlay->maximumLevel);
+        const auto requestHeaders = json.FindMember("requestHeaders");
+        if (requestHeaders != json.MemberEnd() && requestHeaders->value.IsObject())
+        {
+            auto obj = requestHeaders->value.GetObject();
+            for (auto itr = obj.MemberBegin(); itr != obj.MemberEnd(); ++itr)
+            {
+                overlay->requestHeaders.insert(std::make_pair(itr->name.GetString(), itr->value.GetString()));
+            }
+        }
 
         return overlay;
     }

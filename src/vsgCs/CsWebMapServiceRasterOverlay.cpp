@@ -33,34 +33,34 @@ using namespace vsgCs;
 CesiumRasterOverlays::RasterOverlay* CsWebMapServiceRasterOverlay::createOverlay(
     const CesiumRasterOverlays::RasterOverlayOptions& options)
 {
-    if (this->BaseUrl.empty())
+    if (baseUrl.empty())
     {
         // Don't create an overlay with an empty base URL.
         return nullptr;
     }
 
     CesiumRasterOverlays::WebMapServiceRasterOverlayOptions wmsOptions;
-    if (MaximumLevel > MinimumLevel)
+    if (maximumLevel > minimumLevel)
     {
-        wmsOptions.minimumLevel = MinimumLevel;
-        wmsOptions.maximumLevel = MaximumLevel;
+        wmsOptions.minimumLevel = minimumLevel;
+        wmsOptions.maximumLevel = maximumLevel;
     }
-    wmsOptions.layers = (Layers);
-    wmsOptions.tileWidth = TileWidth;
-    wmsOptions.tileHeight = TileHeight;
+    wmsOptions.layers = layers;
+    wmsOptions.tileWidth = tileWidth;
+    wmsOptions.tileHeight = tileHeight;
 
     std::vector<CesiumAsync::IAssetAccessor::THeader> headers;
 
-    for (const auto& [Key, Value] : this->RequestHeaders)
+    for (const auto& [Key, Value] : requestHeaders)
     {
         headers.push_back(CesiumAsync::IAssetAccessor::THeader{
-            (Key),
-            (Value) });
+            Key,
+            Value });
     }
 
     return new CesiumRasterOverlays::WebMapServiceRasterOverlay(
-        (this->MaterialLayerKey),
-        (this->BaseUrl),
+        MaterialLayerKey,
+        baseUrl,
         headers,
         wmsOptions,
         options);
@@ -76,8 +76,21 @@ namespace vsgCs
         factory->build(json, "CsOverlay", overlay);
         overlay->MaterialLayerKey = CesiumUtility::JsonHelpers::getStringOrDefault(json, "materialKey",
             "Overlay0");
-        overlay->BaseUrl = CesiumUtility::JsonHelpers::getStringOrDefault(json, "baseUrl", "");
-        overlay->Layers = CesiumUtility::JsonHelpers::getStringOrDefault(json, "layers", "");
+        overlay->baseUrl = CesiumUtility::JsonHelpers::getStringOrDefault(json, "baseUrl", "");
+        overlay->layers = CesiumUtility::JsonHelpers::getStringOrDefault(json, "layers", "");
+        overlay->tileWidth = CesiumUtility::JsonHelpers::getInt32OrDefault(json, "tileWidth", overlay->tileWidth);
+        overlay->tileHeight = CesiumUtility::JsonHelpers::getInt32OrDefault(json, "tileHeight", overlay->tileHeight);
+        overlay->minimumLevel = CesiumUtility::JsonHelpers::getInt32OrDefault(json, "minimumLevel", overlay->minimumLevel);
+        overlay->maximumLevel = CesiumUtility::JsonHelpers::getInt32OrDefault(json, "maximumLevel", overlay->maximumLevel);
+        const auto requestHeaders = json.FindMember("requestHeaders");
+        if (requestHeaders != json.MemberEnd() && requestHeaders->value.IsObject())
+        {
+            auto obj = requestHeaders->value.GetObject();
+            for (auto itr = obj.MemberBegin(); itr != obj.MemberEnd(); ++itr)
+            {
+                overlay->requestHeaders.insert(std::make_pair(itr->name.GetString(), itr->value.GetString()));
+            }
+        }
 
         return overlay;
     }
