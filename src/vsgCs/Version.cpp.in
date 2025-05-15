@@ -1,0 +1,106 @@
+/* <editor-fold desc="MIT License">
+
+Copyright(c) 2025 Timothy Moore
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+</editor-fold> */
+
+#include "vsgCs/Version.h"
+
+#include <vsg/core/Version.h>
+
+#if defined(HAVE_SYS_UTSNAME)
+#include <sys/utsname.h>
+namespace
+{
+    std::string getOsString()
+    {
+        utsname buf{};
+        std::string result;
+        if (uname(&buf))
+        {
+            return result;
+        }
+        result += buf.sysname;
+        result += " ";
+        result += buf.release;
+        result += " ";
+        result += buf.machine;
+        return result;
+    }
+}
+#elif defined(_WIN32)
+namespace
+{
+    std::string getOsString()
+    {
+        return "Windows";
+    }
+}
+#elif
+namespace
+{
+    std::string getOsString()
+    {
+        return "unknown";
+    }
+}
+#endif
+
+namespace vsgCs::Version
+{
+    const std::string& get()
+    {
+        static const std::string version("@vsgCs_VERSION@");
+        return version;
+    }
+
+    unsigned getMajor()
+    {
+        return @vsgCs_VERSION_MAJOR@;
+    }
+    
+    unsigned getMinor()
+    {
+        return @vsgCs_VERSION_MINOR@ + 0;
+    }
+
+    unsigned getPatch()
+    {
+        return @vsgCs_VERSION_PATCH@ + 0;
+    }
+    
+    unsigned getTweak()
+    {
+        return @vsgCs_VERSION_TWEAK@ + 0;
+    }
+
+    const std::string& getOsVersion()
+    {
+        static const std::string osVersion(getOsString());
+        return osVersion;
+    }
+
+    const std::string& getEngineVersion()
+    {
+        static std::string engineVersion("VSG " VSG_VERSION_STRING);
+        return engineVersion;
+    }
+}

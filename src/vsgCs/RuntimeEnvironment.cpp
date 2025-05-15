@@ -38,6 +38,7 @@ SOFTWARE.
 #include <spdlog/spdlog.h>
 
 #include <memory>
+#include <stdlib.h>
 
 using namespace vsgCs;
 
@@ -62,6 +63,31 @@ namespace
 RuntimeEnvironment::RuntimeEnvironment()
     : tracyContext(TracyContextValue::create())
 {
+#ifdef VSGCS_USE_PROJ
+    hasProj = true;
+#else
+    hasProj = false;
+#endif
+#if defined(VSGCS_OPENSSL_CONF)
+    // If we are using OpenSSL from vcpkg, point it at its configuration file.
+    if (!std::getenv("OPENSSL_CONF"))
+    {
+        opensslSettings = OPENSSL_INIT_new();
+        OPENSSL_INIT_set_config_filename(opensslSettings, VSGCS_OPENSSL_CONF);
+        OPENSSL_init_ssl(0, opensslSettings);
+    }
+#endif
+    curl_global_init(CURL_GLOBAL_ALL);
+}
+
+RuntimeEnvironment::~RuntimeEnvironment()
+{
+    if (opensslSettings)
+    {
+        OPENSSL_INIT_free(opensslSettings);
+    }
+
+    curl_global_cleanup();
 }
 
 vsg::ref_ptr<vsg::Options> RuntimeEnvironment::initializeOptions(vsg::CommandLine &arguments,
@@ -162,6 +188,7 @@ void RuntimeEnvironment::initializeCs(vsg::CommandLine& arguments)
         vsg::warn("Tracy is not enabled in this build.");
     }
 #endif
+    enableProjNetwork = readBooleanArgument(arguments, "proj-network", true);
 }
 
 void RuntimeEnvironment::initialize(vsg::CommandLine &arguments,
@@ -385,7 +412,7 @@ std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> RuntimeEnvironment::ge
         return _externals;
     }
     auto logger = spdlog::default_logger();
-    auto urlAccessor = std::make_shared<UrlAssetAccessor>();
+    auto urlAccessor = std::make_shared<UrlAssetAccessor>(false);
     std::shared_ptr<CesiumAsync::IAssetAccessor> assetAccessor;
     if (_csCacheFile.has_value())
     {
@@ -409,9 +436,8 @@ std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> RuntimeEnvironment::ge
 
 void RuntimeEnvironment::update()
 {
-    getTilesetExternals()->pCreditSystem->startNextFrame();
 }
-
+ 
 vsg::ref_ptr<RuntimeEnvironment> RuntimeEnvironment::get()
 {
     static auto runtimeEnvironment = RuntimeEnvironment::create();
@@ -446,7 +472,9 @@ std::string RuntimeEnvironment::csUsage()
         "--ion-token-file filename file containing user's ion token\n"
         "--cesium-cache filename\t cache file for 3D Tiles remote requests\n"
         "--shader-debug-info\t generate symbols for shader source debugging\n"
-        "--lod-transition\t enable noise-based LOD transition\n"};
+        "--lod-transition\t enable noise-based LOD transition\n"
+        "--[no-]proj-network\t disable / enable Proj network use (default true)\n"
+    };
 }
 
 std::string RuntimeEnvironment::usage()

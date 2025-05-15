@@ -30,9 +30,9 @@ SOFTWARE.
 #include <vsgImGui/Texture.h>
 
 #include <Cesium3DTilesSelection/Tile.h>
+#include <CesiumUtility/IntrusivePointer.h>
 
 #include "vsgCs/Export.h"
-#include "vsgCs/Config.h"
 
 #include <algorithm>
 #include <iterator>
@@ -45,7 +45,8 @@ namespace vsgCs
     void VSGCS_EXPORT startup();
     void VSGCS_EXPORT shutdown();
     vsg::ref_ptr<vsg::LookAt> VSGCS_EXPORT makeLookAtFromTile(const Cesium3DTilesSelection::Tile* tile,
-                                                              double distance);
+                                                              double distance,
+                                                              bool localModel = false);
 
     inline void setdmat4(vsg::dmat4& vmat, const glm::dmat4x4& glmmat)
     {
@@ -56,6 +57,13 @@ namespace vsgCs
     {
         vsg::dmat4 result;
         setdmat4(result, glmmat);
+        return result;
+    }
+
+    inline glm::dmat4x4 vsg2glm(const vsg::dmat4& vsgmat)
+    {
+        glm::dmat4x4 result;
+        std::memcpy(glm::value_ptr(result), vsgmat.data(), sizeof(double) * 16);
         return result;
     }
 
@@ -188,7 +196,7 @@ namespace vsgCs
      * This returns vsg::Data because the vsg::Array2D template class does not have a more specific
      * superclass.
      */
-    vsg::ref_ptr<vsg::Data> VSGCS_EXPORT loadImage(CesiumGltf::ImageAsset& image, bool useMipMaps, bool sRGB);
+    vsg::ref_ptr<vsg::Data> VSGCS_EXPORT loadImage(CesiumUtility::IntrusivePointer<CesiumGltf::ImageAsset> image, bool useMipMaps, bool sRGB);
 
     int samplerLOD(const vsg::ref_ptr<vsg::Data>& data, bool generateMipMaps);
 
@@ -327,4 +335,17 @@ namespace vsgCs
     /** Called in the thread that is in fact the main thread.
      */
     void setMainThread();
+
+    /**
+     * VSG Object that holds a reference to a Cesium object
+     */
+    template<typename T>
+    struct IntrusivePointerContainer : public vsg::Inherit<vsg::Object, IntrusivePointerContainer<T>>
+    {
+        explicit IntrusivePointerContainer(CesiumUtility::IntrusivePointer<T> in_ptr)
+            : ptr(in_ptr)
+        {
+        }
+        CesiumUtility::IntrusivePointer<T> ptr;
+    };
 }

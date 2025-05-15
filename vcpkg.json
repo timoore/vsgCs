@@ -2,6 +2,7 @@
   "$schema": "https://raw.githubusercontent.com/microsoft/vcpkg-tool/main/docs/vcpkg.schema.json",
   "name": "vsgcs",
   "version": "0.9.0",
+  "$comment": "proj is added by CMakeLists.txt if VSGCS_USE_PROJ is true",
   "default-features": [
     "cesium-native-port"
   ],
@@ -22,6 +23,14 @@
           "features": ["dependencies-only"]
         }
       ]
+    },
+    "proj": {
+      "description": ["Include Proj library for geodetic conversions",
+                      "selected from CMake by VSGCS_USE_PROJ"],
+
+      "dependencies": [
+        "proj"
+      ]
     }
   },
   "dependencies": [
@@ -35,10 +44,8 @@
         "vulkan-binding"
       ]
     },
-    {
-      "name": "proj",
-      "default-features": false
-    },
+    "ms-gsl",
+    "openssl",
     "spdlog",
     "tinyxml2",
     "vsg",

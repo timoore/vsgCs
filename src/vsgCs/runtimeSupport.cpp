@@ -33,11 +33,24 @@ SOFTWARE.
 #include <Cesium3DTilesSelection/BoundingVolume.h>
 #include <Cesium3DTilesSelection/Tile.h>
 #include <CesiumAsync/IAssetResponse.h>
+#include <CesiumGeometry/OrientedBoundingBox.h>
 #include <CesiumGltfReader/ImageDecoder.h>
+
+#include <vsg/core/Allocator.h>
+
+#include <cstdint>
+#include <cstdlib>
+#include <type_traits>
+#include <vsg/core/Data.h>
+#include <vsg/maths/vec2.h>
+#include <vsg/maths/vec4.h>
 
 namespace vsgCs
 {
     using namespace Cesium3DTilesSelection;
+
+    OPENSSL_INIT_SETTINGS* opensslSettings = nullptr;
+
     void startup()
     {
         Cesium3DTilesContent::registerAllTileContentTypes();
@@ -49,9 +62,21 @@ namespace vsgCs
     }
 
     vsg::ref_ptr<vsg::LookAt> makeLookAtFromTile(const Cesium3DTilesSelection::Tile* tile,
-                                                 double distance)
+                                                 double distance,
+                                                 bool localModel)
     {
         auto boundingVolume = tile->getBoundingVolume();
+        if (localModel)
+        {
+            CesiumGeometry::OrientedBoundingBox csBoundingBox
+                = getOrientedBoundingBoxFromBoundingVolume(boundingVolume);
+            CesiumGeometry::BoundingSphere csSphere = csBoundingBox.toSphere();
+            vsg::dvec3 vPosition = glm2vsg(csSphere.getCenter());
+            double radius = csSphere.getRadius();
+            vsg::dvec3 eye = vsg::dvec3(0.0, -2.0 * radius, 0.0);
+            vsg::dvec3 up(0.0, 0.0, 1.0);
+            return vsg::LookAt::create(vPosition + eye, vPosition, up);
+        }
         auto globeRectangle = estimateGlobeRectangle(boundingVolume);
         if (globeRectangle)
         {
@@ -162,7 +187,8 @@ namespace vsgCs
         return result;
     }
 
-    vsg::ref_ptr<vsg::ImageInfo> makeImage(std::span<const std::byte> data, bool useMipMaps, bool sRGB,
+    vsg::ref_ptr<vsg::ImageInfo> makeImage(std::span<const std::byte> data,
+                                           bool useMipMaps, bool sRGB,
                                            VkSamplerAddressMode addressX,
                                            VkSamplerAddressMode addressY,
                                            VkFilter minFilter,
@@ -180,7 +206,7 @@ namespace vsgCs
             }
             return {};
         }
-        auto imageData = loadImage(*result.pImage, useMipMaps, sRGB);
+        auto imageData = loadImage(result.pImage, useMipMaps, sRGB);
         auto sampler = makeSampler(addressX, addressY, minFilter, maxFilter,
                                    samplerLOD(imageData, useMipMaps));
         env->options->sharedObjects->share(sampler);
@@ -375,29 +401,31 @@ namespace
     }
 
     vsg::ref_ptr<vsg::Data>
-    makeArray(uint32_t width, uint32_t height, void* data, vsg::Data::Properties in_properties)
+    makeArray(uint32_t width, uint32_t height, vsg::Data::Properties in_properties, void* data)
     {
         auto [block_width, block_height] = getBlockSize(in_properties.format);
         auto mem_width = width / block_width;
         auto mem_height = height / block_height;
+        auto maker = [&](auto typedData) -> vsg::ref_ptr<vsg::Data>
+        {
+            using elementType = std::remove_pointer_t<decltype(typedData)>;
+            if (typedData)
+            {
+                return vsg::Array2D<elementType>::create(mem_width, mem_height, typedData, in_properties);
+            }
+            return vsg::Array2D<elementType>::create(mem_width, mem_height, in_properties);
+        };
         switch (in_properties.format)
         {
         case VK_FORMAT_R8_SRGB:
         case VK_FORMAT_R8_UNORM:
-            return vsg::ubyteArray2D::create(mem_width, mem_height,
-                                             reinterpret_cast<vsg::ubyteArray2D::value_type*>(data),
-                                             in_properties);
+            return maker(reinterpret_cast<uint8_t*>(data));
         case VK_FORMAT_R8G8_SRGB:
         case VK_FORMAT_R8G8_UNORM:
-            return vsg::ubvec2Array2D::create(mem_width, mem_height,
-                                             reinterpret_cast<vsg::ubvec2Array2D::value_type*>(data),
-                                             in_properties);
-
+            return maker(reinterpret_cast<vsg::ubvec2*>(data));
         case VK_FORMAT_R8G8B8A8_SRGB:
         case VK_FORMAT_R8G8B8A8_UNORM:
-            return vsg::ubvec4Array2D::create(mem_width, mem_height,
-                                             reinterpret_cast<vsg::ubvec4Array2D::value_type*>(data),
-                                             in_properties);
+            return maker(reinterpret_cast<vsg::ubvec4*>(data));
         case VK_FORMAT_ETC2_R8G8B8_SRGB_BLOCK:
         case VK_FORMAT_ETC2_R8G8B8_UNORM_BLOCK:
         case VK_FORMAT_BC1_RGB_SRGB_BLOCK:
@@ -406,9 +434,7 @@ namespace
         case VK_FORMAT_PVRTC2_4BPP_SRGB_BLOCK_IMG:
         case VK_FORMAT_PVRTC2_4BPP_UNORM_BLOCK_IMG:
         case VK_FORMAT_EAC_R11_UNORM_BLOCK:
-            return vsg::block64Array2D::create(mem_width, mem_height,
-                                               reinterpret_cast<vsg::block64Array2D::value_type*>(data),
-                                               in_properties);
+            return maker(reinterpret_cast<vsg::block64*>(data));
         case VK_FORMAT_ETC2_R8G8B8A8_SRGB_BLOCK:
         case VK_FORMAT_ETC2_R8G8B8A8_UNORM_BLOCK:
         case VK_FORMAT_BC3_SRGB_BLOCK:
@@ -419,25 +445,16 @@ namespace
         case VK_FORMAT_ASTC_4x4_SRGB_BLOCK:
         case VK_FORMAT_ASTC_4x4_UNORM_BLOCK:
         case VK_FORMAT_EAC_R11G11_UNORM_BLOCK:
-            return vsg::block128Array2D::create(mem_width, mem_height,
-                                                reinterpret_cast<vsg::block128Array2D::value_type*>(data),
-                                                in_properties);
+            return maker(reinterpret_cast<vsg::block128*>(data));
         default:
             return {};
         }
     }
 
-    void* rgbExpand(CesiumGltf::ImageAsset& image)
+    void rgbExpand(CesiumGltf::ImageAsset& image, void* destData)
     {
         VSGCS_ZONESCOPED;
-        size_t sourceSize = image.pixelData.size();
-        size_t destSize = sourceSize * 4 / 3;
-        uint8_t* destData = nullptr;
-        {
-            VSGCS_ZONESCOPEDN("rgbExpand allocate");
-            destData = new (vsg::allocate(sizeof(uint8_t) * destSize, vsg::ALLOCATOR_AFFINITY_DATA)) uint8_t[destSize];
-        }
-        uint8_t* pDest = destData;
+        auto* pDest = static_cast<uint8_t*>(destData);
         auto srcItr = image.pixelData.begin();
         while (srcItr != image.pixelData.end())
         {
@@ -447,30 +464,42 @@ namespace
             }
             *pDest++ = 1;
         }
-        return destData;
     }
 }
 
 namespace vsgCs
 {
 
-vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageAsset& image, bool useMipMaps, bool sRGB)
+vsg::ref_ptr<vsg::Data> loadImage(CesiumUtility::IntrusivePointer<CesiumGltf::ImageAsset> image, bool useMipMaps, bool sRGB)
 {
     VSGCS_ZONESCOPED;
-    if (image.pixelData.empty() || image.width == 0 || image.height == 0)
+    if (image->pixelData.empty() || image->width == 0 || image->height == 0)
     {
         return {};
     }
-    VkFormat pixelFormat = cesiumToVk(image, sRGB);
+    VkFormat pixelFormat = cesiumToVk(*image, sRGB);
     if (pixelFormat == VK_FORMAT_UNDEFINED)
     {
         return {};
     }
     vsg::Data::Properties props;
+    // Assume that the ImageCesium raw format will be fine to upload into Vulkan, except for
+    // R8G8B8 uncompressed textures, which are rarely supported.
+    bool expand = false;
+    if (pixelFormat == VK_FORMAT_R8G8B8_UNORM)
+    {
+        pixelFormat = VK_FORMAT_R8G8B8A8_UNORM;
+        expand = true;
+    }
+    else if (pixelFormat == VK_FORMAT_R8G8B8_SRGB)
+    {
+        pixelFormat = VK_FORMAT_R8G8B8A8_SRGB;
+        expand = true;
+    }
     props.format = pixelFormat;
     if (useMipMaps)
     {
-        props.maxNumMipmaps = static_cast<uint8_t>(std::max(image.mipPositions.size(), static_cast<size_t>(1)));
+        props.maxNumMipmaps = static_cast<uint8_t>(std::max(image->mipPositions.size(), static_cast<size_t>(1)));
     }
     else
     {
@@ -478,27 +507,19 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumGltf::ImageAsset& image, bool useMipMaps
     }
     std::tie(props.blockWidth, props.blockHeight) = getBlockSize(pixelFormat);
     props.origin = vsg::BOTTOM_LEFT;
-    // Assume that the ImageCesium raw format will be fine to upload into Vulkan, except for
-    // R8G8B8 uncompressed textures, which are rarely supported.
-    void* imageSource = nullptr;
-    if (pixelFormat == VK_FORMAT_R8G8B8_UNORM || pixelFormat == VK_FORMAT_R8G8B8_SRGB)
+    vsg::ref_ptr<vsg::Data> result;
+    if (expand)
     {
-        imageSource = rgbExpand(image);
+        result = makeArray(image->width, image->height, props, nullptr);
+        rgbExpand(*image, result->dataPointer());
     }
     else
     {
-        auto* destData
-            = new (vsg::allocate(sizeof(uint8_t) * image.pixelData.size(), vsg::ALLOCATOR_AFFINITY_DATA))
-            uint8_t[image.pixelData.size()];
-        std::transform(image.pixelData.begin(), image.pixelData.end(), destData,
-                       [](std::byte b)
-                       {
-                           return std::to_integer<uint8_t>(b);
-                       });
-        imageSource = destData;
+        props.allocatorType = vsg::ALLOCATOR_TYPE_NO_DELETE;
+        result = makeArray(image->width, image->height, props, image->pixelData.data());
+        result->setObject("cesiumObject", IntrusivePointerContainer<CesiumGltf::ImageAsset>::create(image));;
     }
-    // Assume that there is no advantage in sharing the texture data; might be very false!
-    return makeArray(image.width, image.height, imageSource, props);
+    return result;
 }
     std::string getTileUrl(const vsg::Object* obj)
     {

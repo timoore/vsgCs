@@ -142,9 +142,10 @@ void TilesetNode::shutdown()
         // Kind of gross, but the overlay is going to call TilesetNode::removeOverlay, which mutates
         // the _overlays vector.
         vsg::ref_ptr<TilesetNode> ref_this(this);
-        while (!_overlays.empty())
+        std::vector<vsg::ref_ptr<CsOverlay>> overlaysCopy(_overlays);
+        for (auto& overlay : overlaysCopy)
         {
-            (*(_overlays.end() - 1))->removeFromTileset(ref_this);
+            overlay->removeFromTileset(ref_this);
         }
         ++_tilesetsBeingDestroyed;
         _tileset->getAsyncDestructionCompleteEvent().thenInMainThread(
@@ -168,7 +169,7 @@ void TilesetNode::t_traverse(V& visitor) const
 {
     if (_viewUpdateResult)
     {
-        for (auto* tile : _viewUpdateResult->tilesToRenderThisFrame)
+        for (const auto& tile : _viewUpdateResult->tilesToRenderThisFrame)
         {
             const auto& tileContent = tile->getContent();
             if (tileContent.isRenderContent())
@@ -179,7 +180,7 @@ void TilesetNode::t_traverse(V& visitor) const
                 renderResources->model->accept(visitor);
             }
         }
-        for (auto* tile : _viewUpdateResult->tilesFadingOut)
+        for (const auto& tile : _viewUpdateResult->tilesFadingOut)
         {
             const auto& tileContent = tile->getContent();
             if (tileContent.isRenderContent()
@@ -286,22 +287,7 @@ namespace
         glm::dvec3 position(Pcs[3][0], Pcs[3][1], Pcs[3][2]);
         glm::dvec3 direction(Pcs[1][0], Pcs[1][1], Pcs[1][2]);
         glm::dvec3 up(Pcs[2][0], Pcs[2][1], Pcs[2][2]);
-        // Have to assume that we have a perspective projection
-        double fovy = 0.0;
-        double fovx = 0.0;
         vsg::ref_ptr<vsg::ProjectionMatrix> projMat = view->camera->projectionMatrix;
-        auto* persp = dynamic_cast<vsg::Perspective*>(projMat.get());
-        if (persp)
-        {
-            fovy = vsg::radians(persp->fieldOfViewY);
-            fovx = std::atan(std::tan(fovy / 2.0) * persp->aspectRatio) * 2.0;
-        }
-        else
-        {
-            vsg::dmat4 perspMat = projMat->transform();
-            fovy = 2.0 * std::atan(-1.0 / perspMat[1][1]);
-            fovx = 2.0 * std::atan(1.0 / perspMat[0][0]);
-        }
         glm::dvec2 viewportSize;
         if (view->camera->viewportState)
         {
@@ -315,13 +301,10 @@ namespace
             viewportSize[1] = renderGraph->renderArea.extent.height;
         }
         Cesium3DTilesSelection::ViewState result =
-            Cesium3DTilesSelection::ViewState::create(position, direction, up, viewportSize,
-                                                      fovx, fovy);
+            Cesium3DTilesSelection::ViewState(vsg2glm(view->camera->viewMatrix->transform()), vsg2glm(projMat->transform()), viewportSize);
         return {result};
     }
 }
-
-
     
 void TilesetNode::updateViews(const vsg::ref_ptr<vsg::Viewer>& viewer)
 {
@@ -341,19 +324,41 @@ void TilesetNode::updateViews(const vsg::ref_ptr<vsg::Viewer>& viewer)
                   });
 }
 
+namespace
+{
+    void fadeTile(const auto& tile, bool fadeOut)
+    {
+        const auto& tileContent = tile->getContent();
+        if (tileContent.isRenderContent())
+        {
+            const auto* renderResources
+                = reinterpret_cast<const RenderResources*>(tileContent.getRenderContent()
+                                                           ->getRenderResources());
+            auto uboData = CesiumGltfBuilder::getTileData(renderResources->model);
+            if (uboData)
+            {
+                auto fadePercentage = tileContent.getRenderContent()->getLodTransitionFadePercentage();
+                auto [fadeValue, oldFadeOut] = pbr::getFadeValue(uboData);
+                if (fadeValue != fadePercentage || fadeOut != oldFadeOut)
+                {
+                    pbr::setFadeValue(uboData, fadePercentage, fadeOut);
+                    uboData->dirty();
+                }
+            }
+        }
+    }
+}
+
 void TilesetNode::UpdateTileset::run()
 {
     vsg::ref_ptr<vsg::Viewer> ref_viewer = viewer;
     vsg::ref_ptr<TilesetNode> ref_tileset = tilesetNode;
 
-    if (!(ref_viewer && ref_tileset))
+    if (!ref_viewer || !ref_tileset || !ref_tileset->_tileset)
     {
         return;
     }
-    if (!ref_tileset->_tileset)
-    {
-        return;
-    }
+    auto& tileset = *ref_tileset->_tileset;
     VSGCS_ZONESCOPEDN("update view");
     float deltaTime = 0.0f;
     vsg::ref_ptr<vsg::FrameStamp> currentFrameStamp(ref_viewer->getFrameStamp());
@@ -366,55 +371,21 @@ void TilesetNode::UpdateTileset::run()
     for_each_view(viewer,
                   [&viewStates](const vsg::ref_ptr<vsg::View>& view, const vsg::ref_ptr<vsg::RenderGraph>& rg)
                   {
-                      auto viewState = createViewState(view, rg);
-                      if (viewState)
+                      if (auto viewState = createViewState(view, rg))
                       {
                           viewStates.push_back(viewState.value());
                       }
                   });
-    ref_tileset->_viewUpdateResult = &ref_tileset->_tileset->updateView(viewStates, deltaTime);
-    for (auto* tile : ref_tileset->_viewUpdateResult->tilesToRenderThisFrame)
+    ref_tileset->_viewUpdateResult = &tileset.updateViewGroup(tileset.getDefaultViewGroup(), viewStates, deltaTime);
+    for (const auto& tile : ref_tileset->_viewUpdateResult->tilesToRenderThisFrame)
     {
-        const auto& tileContent = tile->getContent();
-        if (tileContent.isRenderContent())
-        {
-            const auto* renderResources
-                = reinterpret_cast<const RenderResources*>(tileContent.getRenderContent()
-                                                           ->getRenderResources());
-            auto uboData = CesiumGltfBuilder::getTileData(renderResources->model);
-            if (uboData)
-            {
-                auto fadePercentage = tileContent.getRenderContent()->getLodTransitionFadePercentage();
-                auto [fadeValue, fadeOut] = pbr::getFadeValue(uboData);
-                if (fadeValue != fadePercentage || fadeOut)
-                {
-                    pbr::setFadeValue(uboData, fadePercentage, false);
-                    uboData->dirty();
-                }
-            }
-        }
+        fadeTile(tile, false);
     }
-    for (auto* tile : ref_tileset->_viewUpdateResult->tilesFadingOut)
+    for (const auto& tile : ref_tileset->_viewUpdateResult->tilesFadingOut)
     {
-        const auto& tileContent = tile->getContent();
-        if (tileContent.isRenderContent())
-        {
-            const auto* renderResources
-                = reinterpret_cast<const RenderResources*>(tileContent.getRenderContent()
-                                                           ->getRenderResources());
-            auto uboData = CesiumGltfBuilder::getTileData(renderResources->model);
-            if (uboData)
-            {
-                auto fadeoutPercentage = tileContent.getRenderContent()->getLodTransitionFadePercentage();
-                auto [fadeValue, fadeOut] = pbr::getFadeValue(uboData);
-                if (fadeValue != fadeoutPercentage || !fadeOut)
-                {
-                    pbr::setFadeValue(uboData, fadeoutPercentage, true);
-                    uboData->dirty();
-                }
-            }
-        }
+        fadeTile(tile, true);
     }
+    tileset.loadTiles();
     ref_tileset->_lastFrameStamp = currentFrameStamp;
 }
 

@@ -123,7 +123,8 @@ namespace vsgCs
             ACTION_ZOOM,
             ACTION_ZOOM_IN,
             ACTION_ZOOM_OUT,
-            ACTION_EARTH_DRAG
+            ACTION_EARTH_DRAG,
+            ACTION_TOGGLE_PROJECTION
         };
 
         //! Vector of action types
@@ -683,7 +684,7 @@ namespace vsgCs
         virtual void handleMovementAction(const ActionType& type, vsg::dvec2 delta, vsg::time_point time);
         virtual void handleContinuousAction(const Action& action, vsg::time_point time);
 
-        void clearEvents();
+        void clearEvents(bool clearKeyPress = true);
         vsg::ref_ptr<WorldNode> getMapNode() const;
 
         struct State
@@ -769,6 +770,7 @@ namespace vsgCs
 
         void reinitializeHome();
 
+        vsg::ref_ptr<vsg::ProjectionMatrix> _savedProjection;
         // For graphical debugging
         friend class UpdateCenterOperation;
     };

@@ -9,8 +9,12 @@
 #include "vsgCs/WorldNode.h"
 
 
+#include <tuple>
+#include <utility>
+#include <vsg/app/ProjectionMatrix.h>
 #include <vsg/io/Options.h>
 #include <vsg/maths/common.h>
+#include <vsg/maths/vec4.h>
 #include <vsg/utils/ComputeBounds.h>
 #include <vsg/utils/LineSegmentIntersector.h>
 #include <vsg/ui/ApplicationEvent.h>
@@ -563,13 +567,13 @@ MapManipulator::configureDefaultSettings()
     options.add(OPTION_SCALE_Y, 9.0);
 
     _settings->bindMouse(ACTION_PAN, MOUSE_LEFT_BUTTON, 0L);
-    _settings->bindMouse(ACTION_PAN, MOUSE_LEFT_BUTTON, vsg::MODKEY_Control, options);
 
     // rotate with either the middle button or the left+right buttons:
     _settings->bindMouse(ACTION_ROTATE, MOUSE_MIDDLE_BUTTON, 0L);
     _settings->bindMouse(ACTION_ROTATE, MOUSE_LEFT_BUTTON | MOUSE_RIGHT_BUTTON, 0L);
     _settings->bindMouse(ACTION_ROTATE, MOUSE_MIDDLE_BUTTON, vsg::MODKEY_Control, options);
-    _settings->bindMouse(ACTION_ROTATE, MOUSE_LEFT_BUTTON | MOUSE_RIGHT_BUTTON, vsg::MODKEY_Control, options);
+    // Throw this bone to users with a touchpad.
+    _settings->bindMouse(ACTION_ROTATE, MOUSE_LEFT_BUTTON, vsg::MODKEY_Control, options);
 
     options.add(OPTION_SCALE_X, 4.0);
     options.add(OPTION_SCALE_Y, 4.0);
@@ -589,11 +593,10 @@ MapManipulator::configureDefaultSettings()
     options.add(OPTION_GOTO_RANGE_FACTOR, 0.4);
     _settings->bindMouseDoubleClick(ACTION_GOTO, MOUSE_LEFT_BUTTON, 0L, options);
 
-    // double click the right button (or CTRL-left button) to zoom out to a point
+    // double click the right button to zoom out to a point
     options.clear();
     options.add(OPTION_GOTO_RANGE_FACTOR, 2.5);
     _settings->bindMouseDoubleClick(ACTION_GOTO, MOUSE_RIGHT_BUTTON, 0L, options);
-    _settings->bindMouseDoubleClick(ACTION_GOTO, MOUSE_LEFT_BUTTON, vsg::MODKEY_Control, options);
 
     // map multi-touch pinch to a discrete zoom
     options.clear();
@@ -607,6 +610,8 @@ MapManipulator::configureDefaultSettings()
     _settings->setLockAzimuthWhilePanning(true);
 
     _settings->setZoomToMouse(false);
+
+    _settings->bindKey(ACTION_TOGGLE_PROJECTION, vsg::KEY_p);
 }
 
 void
@@ -1321,10 +1326,13 @@ MapManipulator::home()
 }
 
 void
-MapManipulator::clearEvents()
+MapManipulator::clearEvents(bool clearKeyPress)
 {
     _continuous = false;
-    _keyPress.reset();
+    if (clearKeyPress)
+    {
+        _keyPress.reset();
+    }
     _buttonPress.reset();
     _buttonRelease.reset();
     _task.reset();
@@ -1363,7 +1371,7 @@ MapManipulator::apply(vsg::ButtonPressEvent& buttonPress)
     //std::cout << "ButtonPressEvent" << std::endl;
 
     // simply record the button press event.
-    clearEvents();
+    clearEvents(false);
 
     _buttonPress = buttonPress;
 
@@ -1738,6 +1746,18 @@ MapManipulator::zoom(double, double dy)
     //    return;
     //}
 
+    if (auto orthoProj = _camera->projectionMatrix.cast<vsg::Orthographic>())
+    {
+        double factor = 1.0625;
+        if (dy > 0) {
+            factor = 1.0 / factor;
+        }
+        orthoProj->left *= factor;
+        orthoProj->right *= factor;
+        orthoProj->top *= factor;
+        orthoProj->bottom *= factor;
+        return;
+    }
     if (!_settings->getZoomToMouse())
     {
         double scale = 1.0f + dy;
@@ -2026,13 +2046,65 @@ MapManipulator::handleMouseClickAction(
     return false;
 }
 
+namespace
+{
+    auto getProjectionBounds(const vsg::dmat4& projMat, double zVal)
+    {
+        auto inverseMat = vsg::inverse(projMat);
+        vsg::dvec4 lCoord = inverseMat * vsg::dvec4{-1.0, 0.0, zVal, 1.0};
+        lCoord /= lCoord.w;
+        vsg::dvec4 rCoord = inverseMat * vsg::dvec4{1.0, 0.0, zVal, 1.0};
+        rCoord /= rCoord.w;
+        vsg::dvec4 bCoord = inverseMat * vsg::dvec4{0.0, 1.0, zVal, 1.0};
+        bCoord /= bCoord.w;
+        vsg::dvec4 tCoord = inverseMat * vsg::dvec4{0.0, -1.0, zVal, 1.0};
+        tCoord /= tCoord.w;
+        return std::make_tuple(lCoord.x, rCoord.x, bCoord.y, tCoord.y);
+    }
+
+    auto getZNearFar(const vsg::dmat4& projMat)
+    {
+        auto inverseMat = vsg::inverse(projMat);
+        auto nearCoord = inverseMat * vsg::dvec4{0.0, 0.0, 1.0, 1.0};
+        nearCoord /= nearCoord.w;
+        auto farCoord = inverseMat * vsg::dvec4{0.0, 0.0, 0.0, 1.0};
+        farCoord /= farCoord.w;
+        return std::make_tuple(-nearCoord.z, -farCoord.z);
+    }
+
+    vsg::ref_ptr<vsg::Orthographic>
+    transferProjection(const vsg::ref_ptr<vsg::EllipsoidPerspective>& ellipsoidProjection)
+    {
+        auto projMat = ellipsoidProjection->transform();
+        auto [l, r, b, t] = getProjectionBounds(projMat, .125);
+        auto [zNear, zFar] = getZNearFar(projMat);
+        return vsg::Orthographic::create(l, r, b, t, zNear, zFar);
+    }
+}
+
 bool
 MapManipulator::handleKeyboardAction(
     const Action& action,
     vsg::time_point now,
     double duration)
 {
-    vsg::dvec2 d(0.0, 0.0);
+    if (action._type == ACTION_TOGGLE_PROJECTION)
+    {
+        auto& cameraProj = _camera->projectionMatrix;
+        if (_savedProjection)
+        {
+            std::swap(_savedProjection, cameraProj);
+            return true;
+        }
+        if (auto ellipseProj = cameraProj.cast<vsg::EllipsoidPerspective>())
+        {
+            auto newProj = transferProjection(ellipseProj);
+            _savedProjection = _camera->projectionMatrix;
+            _camera->projectionMatrix = newProj;
+        }
+        return true;
+    }
+    vsg::dvec2 d(0.0, 0.0) ;
 
     switch (action._dir)
     {

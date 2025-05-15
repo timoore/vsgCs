@@ -27,7 +27,10 @@ SOFTWARE.
 </editor-fold> */
 
 
+#include "CsApp/GeneralPerspective.h"
 #include <vsg/all.h>
+#include <vsg/state/ViewportState.h>
+#include <vulkan/vulkan_core.h>
 
 #ifdef vsgXchange_FOUND
 #include <vsgXchange/all.h>
@@ -39,12 +42,15 @@ SOFTWARE.
 
 #include <gsl/util>
 
-#include <algorithm>
-#include <chrono>
+#ifdef HAVE_VALGRIND
+#include <valgrind.h>
+#include "vsgCs/CppAllocator.h"
+#endif
+
 #include <filesystem>
 #include <iomanip>
 #include <iostream>
-#include <thread>
+#include <vector>
 
 #include "vsgCs/GeoNode.h"
 #include "vsgCs/GltfLoader.h"
@@ -73,7 +79,8 @@ void usage(const char* name)
         << "--poi lat lon\t\t coordinates of initial point of interest\n"
         << "--distance dist\t\t distance from point of interest\n"
         << "--time HH::MM\t\t time in UTC (default 12:00)\n"
-        << "--help\t\t\t print this message\n";
+        << "--help\t\t\t print this message\n"
+        << "--local-model\t\t treat tilesets as model with trackball navigation\n";
 }
 
 class VsgCsScenegraphBuilder
@@ -195,10 +202,149 @@ private:
     vsg::CommandLine& arguments;
     vsg::ref_ptr<vsgCs::RuntimeEnvironment> env;
 };
+
+class ViewState
+{
+public:
+    ViewState(vsg::CommandLine& arguments,
+                const vsg::ref_ptr<vsgCs::RuntimeEnvironment>& env_,
+                const vsg::ref_ptr<vsg::EllipsoidModel>& ellipsoidModel_,
+                const vsg::ref_ptr<vsg::Window>& window_)
+        : ellipsoidModel(ellipsoidModel_), env(env_), window(window_)
+    {
+        useEllipsoidPerspective = !arguments.read({"--disble-EllipsoidPerspective", "--dep"});
+        while (arguments.read("--poi", poi_latitude, poi_longitude)) {};
+        while (arguments.read("--distance", poi_distance)) {};
+        // Options for the VSG trackball manipulator
+        horizonMountainHeight = arguments.value(0.0, "--hmh");
+        maxShadowDistance = arguments.value<double>(10000.0, "--sd");
+        twoCameras = arguments.read({"-2"});
+        localModel = arguments.read({"--local-model"});
+        if (localModel)
+        {
+            useEllipsoidPerspective = false;
+            ellipsoidModel.reset();
+        }
+    }
+
+    std::vector<vsg::ref_ptr<vsg::View>>& createViews()
+    {
+        views.clear();
+        vsg::dvec3 centre(0.0, 0.0, 0.0);
+        double radius = 2000.0;
+        if (!localModel && ellipsoidModel)
+        {
+            radius = ellipsoidModel->radiusEquator();
+        }
+
+        double nearFarRatio = 0.0005;
+
+        // set up the camera
+        vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
+        if (!localModel && poi_latitude != invalid_value && poi_longitude != invalid_value)
+        {
+            double height = (poi_distance != invalid_value) ? poi_distance : radius * 3.5;
+            auto ecef = ellipsoidModel->convertLatLongAltitudeToECEF({poi_latitude, poi_longitude, 0.0});
+            auto ecef_normal = vsg::normalize(ecef);
+
+            centre = ecef;
+            vsg::dvec3 eye = centre + ecef_normal * height;
+            vsg::dvec3 up = vsg::normalize(vsg::cross(ecef_normal, vsg::cross(vsg::dvec3(0.0, 0.0, 1.0), ecef_normal)));
+
+            // set up the camera
+            lookAt = vsg::LookAt::create(eye, centre, up);
+        }
+        else
+        {
+            // Establish a viewpoint when enough of the world has been loaded to know its bounds.
+            lookAt = vsg::LookAt::create(centre + vsg::dvec3(radius * 3.5, 0.0, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
+            setViewpointAfterLoad = true;
+        }
+        const VkExtent2D& extent = window->extent2D();
+        double aspectRatio = static_cast<double>(extent.width) / extent.height;
+        if (twoCameras)
+        {
+            auto lvp = vsg::ViewportState::create(0, 0, extent.width / 2, extent.height);
+            auto rvp = vsg::ViewportState::create(extent.width / 2, 0, extent.width / 2, extent.height);
+            // Something big
+            double zNear = 50;
+            double zFar = radius * 4.0;
+            double windowHeight = std::tan(vsg::radians(30.0 / 2.0)) * zNear;
+            double windowWidth = windowHeight * aspectRatio;
+            auto lproj = CsApp::GeneralPerspective::create(-windowWidth, 0.0,
+                                                           -windowHeight, windowHeight,
+                                                           zNear, zFar);
+            auto rproj = CsApp::GeneralPerspective::create(0.0, windowWidth,
+                                                           -windowHeight, windowHeight,
+                                                           zNear, zFar);
+            views.emplace_back(vsg::View::create(vsg::Camera::create(lproj, lookAt, lvp)));
+            views.emplace_back(vsg::View::create(vsg::Camera::create(rproj, lookAt, rvp)));
+        }
+        else
+        {
+            if (useEllipsoidPerspective)
+            {
+                perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, aspectRatio,
+                                                                nearFarRatio, horizonMountainHeight);
+            }
+            else
+            {
+                perspective = vsg::Perspective::create(30.0, aspectRatio,
+                                                       nearFarRatio * radius, radius * 4.5);
+            }
+            auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(extent));
+            views.emplace_back(vsg::View::create(camera));
+        }
+        for (auto& view : views)
+        {
+            view->viewDependentState->maxShadowDistance = maxShadowDistance;
+        }
+        return views;
+    }
+    bool setViewpointAfterLoad = false;
+    std::vector<vsg::ref_ptr<vsg::View>> views;
+    bool useEllipsoidPerspective = true;
+    double horizonMountainHeight = 0.0;
+    double maxShadowDistance = 10000.0;
+    const double invalid_value = std::numeric_limits<double>::max();
+    double poi_latitude = invalid_value;
+    double poi_longitude = invalid_value;
+    double poi_distance = invalid_value;
+    bool twoCameras = false;
+    bool localModel = false;
+
+    vsg::ref_ptr<vsg::LookAt> lookAt;
+    vsg::ref_ptr<vsg::EllipsoidModel> ellipsoidModel;
+protected:
+    vsg::ref_ptr<vsgCs::RuntimeEnvironment> env;
+    vsg::ref_ptr<vsg::Window> window;
+};
 }
 
 int main(int argc, char** argv)
 {
+    // The default allocator needs to be saved and restored when the
+    // program shuts down because static objects' constructors may
+    // have made allocations from it. There may be a better place to
+    // do this than in main(), but this runs about as early -- and the
+    // replacement runs as late -- as any live code can.
+#ifdef HAVE_VALGRIND
+    std::unique_ptr<vsg::Allocator> savedAllocator;
+    if (RUNNING_ON_VALGRIND)
+    {
+        auto& allocator = vsg::Allocator::instance();
+        savedAllocator = std::move(allocator);
+        allocator = std::make_unique<vsgCs::CppAllocator>();
+    }
+    auto restoreAllocator = gsl::finally([&savedAllocator]()
+    {
+        if (RUNNING_ON_VALGRIND)
+        {
+            auto& allocator = vsg::Allocator::instance();
+            allocator = std::move(savedAllocator);
+        }
+    });
+#endif
     try
     {
         // set up defaults and read command line arguments to override them
@@ -227,16 +373,6 @@ int main(int argc, char** argv)
         // time to load.
         auto numFrames = arguments.value(-1, "-f");
         auto pathFilename = arguments.value(std::string(), "-p");
-        // Options for the VSG trackball manipulator
-        auto horizonMountainHeight = arguments.value(0.0, "--hmh");
-        bool useEllipsoidPerspective = !arguments.read({"--disble-EllipsoidPerspective", "--dep"});
-
-        const double invalid_value = std::numeric_limits<double>::max();
-        double poi_latitude = invalid_value;
-        double poi_longitude = invalid_value;
-        double poi_distance = invalid_value;
-        while (arguments.read("--poi", poi_latitude, poi_longitude)) {};
-        while (arguments.read("--distance", poi_distance)) {};
         if (int log_level = 0; arguments.read("--log-level", log_level))
         {
             vsg::Logger::instance()->level = static_cast<vsg::Logger::Level>(log_level);
@@ -261,7 +397,6 @@ int main(int argc, char** argv)
 #if 0
         auto shadowMaps = arguments.value<uint32_t>(0, "--shadow-maps");
 #endif
-        auto maxShadowDistance = arguments.value<double>(10000.0, "--sd");
         bool debugManipulator = arguments.read({"--debug-manipulator"});
 
         if (arguments.errors())
@@ -305,79 +440,48 @@ int main(int argc, char** argv)
             std::cout << "Could not create windows.\n";
             return 1;
         }
-        VsgCsScenegraphBuilder graphBuilder(arguments, environment);
-        auto worldNode = graphBuilder.worldNode;
-        auto modelRoot = graphBuilder.xchangeModels;
         // VSG's EllipsoidModel provides ellipsoid parameters (e.g. WGS84), mostly for the benefit
         // of the trackball manipulator.
         auto ellipsoidModel = vsg::EllipsoidModel::create();
-        worldNode->setObject("EllipsoidModel", ellipsoidModel);
+        // vsgCS::RuntimeEnvironment needs the vsg::Viewer object for creation of Vulkan objects
+        environment->setViewer(viewer);
+        ViewState viewState(arguments, environment, ellipsoidModel, window);
+        VsgCsScenegraphBuilder graphBuilder(arguments, environment);
+        auto worldNode = graphBuilder.worldNode;
+        auto modelRoot = graphBuilder.xchangeModels;
+        if (viewState.ellipsoidModel)
+        {
+            worldNode->setObject("EllipsoidModel", viewState.ellipsoidModel);
+        }
         vsg_scene->addChild(worldNode);
         if (modelRoot)
         {
             vsg_scene->addChild(modelRoot);
         }
         viewer->addWindow(window);
-        // vsgCS::RuntimeEnvironment needs the vsg::Viewer object for creation of Vulkan objects
-        environment->setViewer(viewer);
-        vsg::dvec3 centre(0.0, 0.0, 0.0);
-        double radius = ellipsoidModel->radiusEquator();
-
-        double nearFarRatio = 0.0005;
-
-        // set up the camera
-        vsg::ref_ptr<vsg::LookAt> lookAt;
-        vsg::ref_ptr<vsg::ProjectionMatrix> perspective;
-        bool setViewpointAfterLoad = false;
-        if (poi_latitude != invalid_value && poi_longitude != invalid_value)
-        {
-            double height = (poi_distance != invalid_value) ? poi_distance : radius * 3.5;
-            auto ecef = ellipsoidModel->convertLatLongAltitudeToECEF({poi_latitude, poi_longitude, 0.0});
-            auto ecef_normal = vsg::normalize(ecef);
-
-            centre = ecef;
-            vsg::dvec3 eye = centre + ecef_normal * height;
-            vsg::dvec3 up = vsg::normalize(vsg::cross(ecef_normal, vsg::cross(vsg::dvec3(0.0, 0.0, 1.0), ecef_normal)));
-
-            // set up the camera
-            lookAt = vsg::LookAt::create(eye, centre, up);
-        }
-        else
-        {
-            // Establish a viewpoint when enough of the world has been loaded to know its bounds.
-            lookAt = vsg::LookAt::create(centre + vsg::dvec3(radius * 3.5, 0.0, 0.0), centre, vsg::dvec3(0.0, 0.0, 1.0));
-            setViewpointAfterLoad = true;
-        }
-
-        if (useEllipsoidPerspective)
-        {
-            perspective = vsg::EllipsoidPerspective::create(lookAt, ellipsoidModel, 30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio, horizonMountainHeight);
-        }
-        else
-        {
-            perspective = vsg::Perspective::create(30.0, static_cast<double>(window->extent2D().width) / static_cast<double>(window->extent2D().height), nearFarRatio * radius, radius * 4.5);
-        }
-        auto camera = vsg::Camera::create(perspective, lookAt, vsg::ViewportState::create(window->extent2D()));
-        // Create this application's user interface, including the trackball manipulator and the
-        // graphical overlay.
-        auto ui = vsgCs::UI::create();
-        ui->createUI(window, viewer, camera, ellipsoidModel, environment->options, worldNode, vsg_scene,
-                     debugManipulator);
+        auto views = viewState.createViews();
         // Basic VSG objects for rendering
         auto commandGraph = vsgCs::TracingCommandGraph::create(environment, window);
         auto renderGraph = vsgCs::TracingRenderGraph::create(window);
         // The classic VSG background, translated into sRGB values.
         renderGraph->setClearValues({{0.02899f, 0.02899f, 0.13321f}});
         commandGraph->addChild(renderGraph);
-
-        auto view = vsg::View::create(camera);
-        view->viewDependentState->maxShadowDistance = maxShadowDistance;
-        if (useHeadlight)
+        for (auto& view : views)
         {
-            view->addChild(vsg::createHeadlight());
+            if (useHeadlight)
+            {
+                view->addChild(vsg::createHeadlight());
+            }
+            view->addChild(vsg_scene);
+            renderGraph->addChild(view);
         }
-        view->addChild(vsg_scene);
-        renderGraph->addChild(view);
+        // Create this application's user interface, including the trackball manipulator and the
+        // graphical overlay.
+        auto ui = vsgCs::UI::create();
+        auto uiCamera = views[0]->camera;
+        ui->createUI(window, viewer, uiCamera, ellipsoidModel, environment->options, worldNode, vsg_scene,
+                     environment, debugManipulator);
+        ui->setViewpoint(viewState.lookAt, 0.0);
         // Attach the ImGui graphical interface
         renderGraph->addChild(ui->getImGui());
         viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
@@ -403,13 +507,14 @@ int main(int argc, char** argv)
         // rendering main loop
         while (viewer->advanceToNextFrame() && (numFrames < 0 || (numFrames--) > 0))
         {
-            if (setViewpointAfterLoad
+            if (viewState.setViewpointAfterLoad
                 && worldNode->getRootTile())
             {
-                lookAt = vsgCs::makeLookAtFromTile(worldNode->getRootTile(),
-                                                   poi_distance);
+                auto lookAt = vsgCs::makeLookAtFromTile(worldNode->getRootTile(),
+                                                        viewState.poi_distance,
+                                                        viewState.localModel);
                 ui->setViewpoint(lookAt, 1.0);
-                setViewpointAfterLoad = false;
+                viewState.setViewpointAfterLoad = false;
             }
             // pass any events into EventHandlers assigned to the Viewer
             viewer->handleEvents();

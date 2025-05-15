@@ -32,6 +32,7 @@ SOFTWARE.
 #include <curl/curl.h>
 
 #include <mutex>
+#include <forward_list>
 #include <vector>
 #include <memory>
 
@@ -45,48 +46,39 @@ namespace vsgCs
     
     struct CurlCache
     {
-        struct CacheEntry
+        struct CurlObject
         {
-            CacheEntry()
-                : curl(nullptr), free(false)
+            CurlObject()
+                : curl(nullptr)
             {
             }
-            CacheEntry(CURL* in_curl, bool in_free)
-                : curl(in_curl), free(in_free)
+            explicit CurlObject(CURL* in_curl)
+                : curl(in_curl)
             {
             }
             CURL* curl;
-            bool free;
+            char errbuf[CURL_ERROR_SIZE];
         };
         std::mutex cacheMutex;
-        std::vector<CacheEntry> cache;
-        CURL* get()
+        std::forward_list<std::unique_ptr<CurlObject>> cache;
+        std::unique_ptr<CurlObject> get()
         {
             std::lock_guard<std::mutex> lock(cacheMutex);
-            for (auto& entry : cache)
+            if (!cache.empty())
             {
-                if (entry.free)
-                {
-                    entry.free = false;
-                    return entry.curl;
-                }
+                std::unique_ptr<CurlObject> result = std::move(cache.front());
+                cache.pop_front();
+                return result;
             }
-            cache.emplace_back(curl_easy_init(), false);
-            return cache.back().curl;
+            CURL *curl = curl_easy_init();
+            auto result = std::make_unique<CurlObject>(curl);
+            curl_easy_setopt(curl, CURLOPT_ERRORBUFFER, result->errbuf);
+            return result;
         }
-        void release(CURL* curl)
+        void release(std::unique_ptr<CurlObject> curlObject)
         {
             std::lock_guard<std::mutex> lock(cacheMutex);
-            for (auto& entry : cache)
-            {
-                if (curl == entry.curl)
-                {
-                    curl_easy_reset(curl);
-                    entry.free = true;
-                    return;
-                }
-            }
-            throw std::logic_error("releasing a curl handle that is not in the cache");
+            cache.emplace_front(std::move(curlObject));
         }
     };
 
@@ -94,16 +86,16 @@ namespace vsgCs
     class VSGCS_EXPORT UrlAssetAccessor
         : public CesiumAsync::IAssetAccessor {
     public:
-        UrlAssetAccessor();
+        explicit UrlAssetAccessor(bool doGlobalCurlInit = true);
         ~UrlAssetAccessor() override;
 
-        virtual CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>>
+        CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>>
             get(const CesiumAsync::AsyncSystem& asyncSystem,
                 const std::string& url,
                 const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers)
             override;
 
-        virtual CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>>
+        CesiumAsync::Future<std::shared_ptr<CesiumAsync::IAssetRequest>>
             request(
                 const CesiumAsync::AsyncSystem& asyncSystem,
                 const std::string& verb,
@@ -111,9 +103,15 @@ namespace vsgCs
                 const std::vector<CesiumAsync::IAssetAccessor::THeader>& headers,
                 const std::span<const std::byte>& contentPayload) override;
 
-        virtual void tick() noexcept override;
+        void tick() noexcept override;
         CurlCache curlCache;
         std::string userAgent;
+    private:
+        curl_slist* setCommonOptions(CURL* curl,
+                                     const std::string& url,
+                                     const CesiumAsync::HttpHeaders& headers);
+        std::vector<std::string> _cesiumHeaders;
+        bool curlGlobalInitCalled;
     };
 
     // RAII wrapper for the CurlCache.
@@ -121,7 +119,7 @@ namespace vsgCs
     class CurlHandle
     {
     public:
-        CurlHandle(UrlAssetAccessor* in_accessor)
+        explicit CurlHandle(UrlAssetAccessor* in_accessor)
             : _accessor(in_accessor)
 
         {
@@ -130,16 +128,18 @@ namespace vsgCs
 
         ~CurlHandle()
         {
-            _accessor->curlCache.release(_curl);
+            _accessor->curlCache.release(std::move(_curl));
         }
 
         CURL* operator()() const
         {
-            return _curl;
+            return _curl->curl;
         }
-
+        const char *getErrBuf() const {
+          return _curl->errbuf;
+        }
     private:
         UrlAssetAccessor* _accessor;
-        CURL* _curl;
+        std::unique_ptr<CurlCache::CurlObject> _curl;
     };
 }

@@ -31,6 +31,8 @@ SOFTWARE.
 #include <vsg/core/Inherit.h>
 #include <vsg/io/Options.h>
 
+#include <openssl/ssl.h>
+
 namespace vsgCs
 {
 
@@ -43,6 +45,7 @@ namespace vsgCs
     {
     public:
         RuntimeEnvironment();
+        ~RuntimeEnvironment() override;
         vsg::ref_ptr<vsg::Options> initializeOptions(vsg::CommandLine& arguments,
                                                      const vsg::ref_ptr<vsg::Options>& options= {});
         vsg::ref_ptr<vsg::WindowTraits> initializeTraits(vsg::CommandLine& arguments,
@@ -118,8 +121,8 @@ namespace vsgCs
          * XXX This should be in a viewer operation.
          */
         void update();
-         
-        /** @brief Uusage message for vsg::Options command line parsing.
+        
+        /** @brief Usage message for vsg::Options command line parsing.
          */
         static std::string optionsUsage();
         
@@ -142,9 +145,12 @@ namespace vsgCs
         bool enableLodTransitionPeriod = false;
         vsg::ref_ptr<GraphicsEnvironment> genv;
         vsg::ref_ptr<TracyContextValue> tracyContext;
+        bool hasProj;
+        bool enableProjNetwork = true;
         static vsg::ref_ptr<RuntimeEnvironment> get();
     protected:
         std::shared_ptr<Cesium3DTilesSelection::TilesetExternals> _externals;
         std::optional<std::string> _csCacheFile;
+        OPENSSL_INIT_SETTINGS* opensslSettings = nullptr;
     };
 }

@@ -1,6 +1,6 @@
 {
   "name": "cesium-native",
-  "version-string": "0.44.0",
+  "version-string": "0.47.0",
   "features": {
     "dependencies-only": {
       "description": "install port's dependencies without the port"
@@ -14,7 +14,6 @@
     "expected-lite",
     "fmt",
     "glm",
-    "ms-gsl",
     "rapidjson",
     "spdlog",
     "stb",

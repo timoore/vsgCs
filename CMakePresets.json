@@ -30,12 +30,11 @@
       "binaryDir": "${sourceDir}/build",
       "cacheVariables": {
         "CMAKE_TOOLCHAIN_FILE": "$env{VCPKG_ROOT}/scripts/buildsystems/vcpkg.cmake",
-        "VCPKG_TARGET_TRIPLET": "x64-windows-static-md",
-        "VCPKG_TRIPLET": "x64-windows-static-md"
+        "VCPKG_TARGET_TRIPLET": "x64-windows-static-md"
       }
     },
     {
-      "name": "Strict",
+      "name": "strict",
       "cacheVariables": {
         "CMAKE_COMPILE_WARNING_AS_ERROR": "YES"
       }
@@ -54,6 +53,17 @@
         "VCPKG_CHAINLOAD_TOOLCHAIN_FILE": "${sourceDir}/CMakeModules/LinuxClangToolchain.cmake",
         "VCPKG_TARGET_TRIPLET": "x64-linux-clang",
         "VCPKG_HOST_TRIPLET": "x64-linux-clang"
+      }
+    },
+    {
+      "name": "linux-debinfo",
+      "inherits": "vcpkg",
+      "binaryDir": "${sourceDir}/build-debinfo",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "RelWithDebInfo",
+        "CMAKE_CXX_FLAGS_RELWITHDEBINFO": "-O2 -g -DNDEBUG -fno-omit-frame-pointer -mno-omit-leaf-frame-pointer",
+        "VCPKG_TARGET_TRIPLET": "x64-linux-relwithdebinfo",
+        "VCPKG_HOST_TRIPLET": "x64-linux-relwithdebinfo"
       }
     }
   ],

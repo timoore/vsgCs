@@ -74,19 +74,24 @@ struct BoundingSphereOperation
         return {center, sphereRadius};
     }
 
-  vsg::dsphere operator()(const CesiumGeospatial::BoundingRegion& region) const
+    vsg::dsphere operator()(const CesiumGeospatial::BoundingRegion& region) const
     {
         return (*this)(region.getBoundingBox());
     }
 
-  vsg::dsphere operator()(const CesiumGeospatial::BoundingRegionWithLooseFittingHeights& region) const
+    vsg::dsphere operator()(const CesiumGeospatial::BoundingRegionWithLooseFittingHeights& region) const
     {
         return (*this)(region.getBoundingRegion());
     }
 
-  vsg::dsphere operator()(const CesiumGeospatial::S2CellBoundingVolume& s2) const
+    vsg::dsphere operator()(const CesiumGeospatial::S2CellBoundingVolume& s2) const
     {
         return (*this)(s2.computeBoundingRegion());
+    }
+
+    vsg::dsphere operator()(const CesiumGeometry::BoundingCylinderRegion& cyl) const
+    {
+        return(*this)(cyl.toOrientedBoundingBox());
     }
 };
 
@@ -320,7 +325,8 @@ vsg::ref_ptr<vsg::ImageInfo> CesiumGltfBuilder::loadTexture(CesiumGltf::ImageAss
                                                             bool useMipMaps,
                                                             bool sRGB)
 {
-    auto data = loadImage(image, useMipMaps, sRGB);
+    auto pimage = CesiumUtility::IntrusivePointer(&image);
+    auto data = loadImage(pimage, useMipMaps, sRGB);
     if (!data)
     {
         return {};

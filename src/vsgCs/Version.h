@@ -1,6 +1,6 @@
 /* <editor-fold desc="MIT License">
 
-Copyright(c) 2023 Timothy Moore
+Copyright(c) 2025 Timothy Moore
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,31 +24,19 @@ SOFTWARE.
 
 #pragma once
 
-#include <vsg/all.h>
-#include <vsgImGui/RenderImGui.h>
-#include <vsgImGui/SendEventsToImGui.h>
-#include "CsApp/CreditComponent.h"
+#include "vsgCs/Export.h"
 
-namespace vsgCs
+#include <string>
+
+
+namespace vsgCs::Version
 {
-    class UI : public vsg::Inherit<vsg::Object, UI>
-    {
-        public:
-        bool createUI(const vsg::ref_ptr<vsg::Window>& window,
-                      const vsg::ref_ptr<vsg::Viewer>& viewer,
-                      const vsg::ref_ptr<vsg::Camera>& camera,
-                      const vsg::ref_ptr<vsg::EllipsoidModel>& ellipsoidModel,
-                      const vsg::ref_ptr<vsg::Options>& options);
-        vsg::ref_ptr<vsgImGui::RenderImGui> getImGui()
-        {
-            return _renderImGui;
-        }
-        void setViewpoint(const vsg::ref_ptr<vsg::LookAt>& lookAt, float duration);
-        protected:
-        vsg::ref_ptr<vsgImGui::RenderImGui> createImGui(const vsg::ref_ptr<vsg::Window>& window);
+    const std::string& VSGCS_EXPORT get();
+    unsigned VSGCS_EXPORT getMajor();
+    unsigned VSGCS_EXPORT getMinor();
+    unsigned VSGCS_EXPORT getPatch();
+    unsigned VSGCS_EXPORT getTweak();
 
-        vsg::ref_ptr<vsgImGui::RenderImGui> _renderImGui;
-        vsg::ref_ptr<CsApp::CreditComponent> _ionIconComponent;
-        vsg::ref_ptr<vsg::Trackball> _trackball;
-    };
+    const std::string& VSGCS_EXPORT getOsVersion();
+    const std::string& VSGCS_EXPORT getEngineVersion();
 }
