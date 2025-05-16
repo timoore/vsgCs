@@ -1,0 +1,20 @@
+{
+  "Type": "World",
+  "tilesets": [
+    {
+      "Type": "Tileset",
+      "ionAssetID": 1,
+      "overlays": [
+        {
+          "Type": "UrlTemplateRasterOverlay",
+          "url": "http://tiles.openrailwaymap.org/standard/{z}/{x}/{reverseY}.png"
+        },
+        {
+          "Type": "IonRasterOverlay",
+          "assetId": 2,
+          "comment": "Bing Maps Aerial"
+        }
+      ]
+    }
+  ]
+}

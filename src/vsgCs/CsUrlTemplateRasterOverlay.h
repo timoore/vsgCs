@@ -50,7 +50,7 @@ namespace vsgCs
     public:
         CsUrlTemplateRasterOverlay(
             std::string in_url = std::string())
-            : TemplateUrl(in_url)
+            : templateUrl(std::move(in_url))
         {
         }
 
@@ -86,14 +86,14 @@ namespace vsgCs
          * - `{width}` - The width of each tile in pixels.
          * - `{height}` - The height of each tile in pixels.
          */
-        std::string TemplateUrl;
+        std::string templateUrl;
 
         /**
          * The type of projection used to project the imagery onto the globe.
          * For instance, EPSG:4326 uses geographic projection and EPSG:3857 uses Web
          * Mercator.
          */
-        ECesiumUrlTemplateRasterOverlayProjection Projection =
+        ECesiumUrlTemplateRasterOverlayProjection projection =
             ECesiumUrlTemplateRasterOverlayProjection::WebMercator;
 
         /**
@@ -109,7 +109,7 @@ namespace vsgCs
          *
          * Only applicable if "Specify Tiling Scheme" is set to true.
          */
-        int32_t RootTilesX = 1;
+        int32_t rootTilesX = 1;
 
         /**
          * If specified, this determines the number of tiles at the
@@ -117,7 +117,7 @@ namespace vsgCs
          *
          * Only applicable if "Specify Tiling Scheme" is set to true.
          */
-        int32_t RootTilesY = 1;
+        int32_t rootTilesY = 1;
 
         /**
          * The west boundary of the bounding rectangle used for the quadtree tiling
@@ -125,7 +125,7 @@ namespace vsgCs
          *
          * Only applicable if "Specify Tiling Scheme" is set to true.
          */
-        double RectangleWest = -180;
+        double rectangleWest = -180;
 
         /**
          * The south boundary of the bounding rectangle used for the quadtree tiling
@@ -133,7 +133,7 @@ namespace vsgCs
          *
          * Only applicable if "Specify Tiling Scheme" is set to true.
          */
-        double RectangleSouth = -90;
+        double rectangleSouth = -90;
 
         /**
          * The east boundary of the bounding rectangle used for the quadtree tiling
@@ -141,7 +141,7 @@ namespace vsgCs
          *
          * Only applicable if "Specify Tiling Scheme" is set to true.
          */
-        double RectangleEast = 180;
+        double rectangleEast = 180;
 
         /**
          * The north boundary of the bounding rectangle used for the quadtree tiling
@@ -149,7 +149,7 @@ namespace vsgCs
          *
          * Only applicable if "Specify Tiling Scheme" is set to true.
          */
-        double RectangleNorth = 90;
+        double rectangleNorth = 90;
 
         /**
          * Minimum zoom level.
@@ -158,27 +158,27 @@ namespace vsgCs
          * level is small, such as four or less. A larger number is likely to result
          * in rendering problems.
          */
-        int32_t MinimumLevel = 0;
+        int32_t minimumLevel = 0;
 
         /**
          * Maximum zoom level.
          */
-        int32_t MaximumLevel = 25;
+        int32_t maximumLevel = 25;
 
         /**
          * The pixel width of the image tiles.
          */
-        int32_t TileWidth = 256;
+        int32_t tileWidth = 256;
 
         /**
          * The pixel height of the image tiles.
          */
-        int32_t TileHeight = 256;
+        int32_t tileHeight = 256;
 
         /**
          * HTTP headers to be attached to each request made for this raster overlay.
          */
-        std::map<std::string, std::string> RequestHeaders;
+        std::map<std::string, std::string> requestHeaders;
 
         CesiumRasterOverlays::RasterOverlay* createOverlay(
             const CesiumRasterOverlays::RasterOverlayOptions& options) override;

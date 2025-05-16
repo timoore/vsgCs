@@ -49,8 +49,8 @@ namespace vsgCs
     {
     public:
         CsWebMapTileServiceRasterOverlay(
-            std::string in_BaseUrl = std::string())
-            : BaseUrl(in_BaseUrl)
+            std::string in_baseUrl = std::string())
+            : baseUrl(std::move(in_baseUrl))
         {
         }
 
@@ -59,27 +59,27 @@ namespace vsgCs
          * This URL should not include query parameters. For example:
          * https://tile.openstreetmap.org/{TileMatrix}/{TileCol}/{TileRow}.png
          */
-        std::string BaseUrl;
+        std::string baseUrl;
 
         /**
          * The layer name for WMTS requests.
          */
-        std::string Layer;
+        std::string layer;
 
         /**
          * The style name for WMTS requests.
          */
-        std::string Style;
+        std::string style;
 
         /**
          * The MIME type for images to retrieve from the server.
          */
-        std::string Format = "image/jpeg";
+        std::string format = "image/jpeg";
 
         /**
          * The tile matrix set identifier for WMTS requests.
          */
-        std::string TileMatrixSetID;
+        std::string tileMatrixSetID;
 
         /**
          * The prefix to use for the tile matrix set labels. For instance, setting
@@ -87,7 +87,7 @@ namespace vsgCs
          * "EPSG:4326:2", ...]
          * Only applicable when "Specify Tile Matrix Set Labels" is false.
          */
-        std::string TileMatrixSetLabelPrefix;
+        std::string tileMatrixSetLabelPrefix;
 
         /**
          * Set this to true to specify tile matrix set labels manually. If false, the
@@ -101,14 +101,14 @@ namespace vsgCs
          *
          * Only applicable when "Specify Tile Matrix Set Labels" is true.
          */
-        std::vector<std::string> TileMatrixSetLabels;
+        std::vector<std::string> tileMatrixSetLabels;
 
         /**
          * The type of projection used to project the WMTS imagery onto the globe.
          * For instance, EPSG:4326 uses geographic projection and EPSG:3857 uses Web
          * Mercator.
          */
-        ECesiumWebMapTileServiceRasterOverlayProjection Projection =
+        ECesiumWebMapTileServiceRasterOverlayProjection projection =
             ECesiumWebMapTileServiceRasterOverlayProjection::WebMercator;
 
         /**
@@ -125,7 +125,7 @@ namespace vsgCs
          *
          * Only applicable if "Specify Tiling Scheme" is set to true.
          */
-        int32_t RootTilesX = 1;
+        int32_t rootTilesX = 1;
 
         /**
          * The number of tiles corresponding to TileRow, also known as
@@ -134,7 +134,7 @@ namespace vsgCs
          *
          * Only applicable if "Specify Tiling Scheme" is set to true.
          */
-        int32_t RootTilesY = 1;
+        int32_t rootTilesY = 1;
 
         /**
          * The west boundary of the bounding rectangle used for the quadtree tiling
@@ -142,7 +142,7 @@ namespace vsgCs
          *
          * Only applicable if "Specify Tiling Scheme" is set to true.
          */
-        double RectangleWest = -180;
+        double rectangleWest = -180;
 
         /**
          * The south boundary of the bounding rectangle used for the quadtree tiling
@@ -150,7 +150,7 @@ namespace vsgCs
          *
          * Only applicable if "Specify Tiling Scheme" is set to true.
          */
-        double RectangleSouth = -90;
+        double rectangleSouth = -90;
 
         /**
          * The east boundary of the bounding rectangle used for the quadtree tiling
@@ -158,7 +158,7 @@ namespace vsgCs
          *
          * Only applicable if "Specify Tiling Scheme" is set to true.
          */
-        double RectangleEast = 180;
+        double rectangleEast = 180;
 
         /**
          * The north boundary of the bounding rectangle used for the quadtree tiling
@@ -166,7 +166,7 @@ namespace vsgCs
          *
          * Only applicable if "Specify Tiling Scheme" is set to true.
          */
-        double RectangleNorth = 90;
+        double rectangleNorth = 90;
 
         /**
          * Set this to true to directly specify the minimum and maximum zoom levels
@@ -182,27 +182,27 @@ namespace vsgCs
          * level is small, such as four or less. A larger number is likely to result
          * in rendering problems.
          */
-        int32_t MinimumLevel = 0;
+        int32_t minimumLevel = 0;
 
         /**
          * Maximum zoom level.
          */
-        int32_t MaximumLevel = 25;
+        int32_t maximumLevel = 25;
 
         /**
          * The pixel width of the image tiles.
          */
-        int32_t TileWidth = 256;
+        int32_t tileWidth = 256;
 
         /**
          * The pixel height of the image tiles.
          */
-        int32_t TileHeight = 256;
+        int32_t tileHeight = 256;
 
         /**
          * HTTP headers to be attached to each request made for this raster overlay.
          */
-        std::map<std::string, std::string> RequestHeaders;
+        std::map<std::string, std::string> requestHeaders;
 
         CesiumRasterOverlays::RasterOverlay* createOverlay(
             const CesiumRasterOverlays::RasterOverlayOptions& options) override;

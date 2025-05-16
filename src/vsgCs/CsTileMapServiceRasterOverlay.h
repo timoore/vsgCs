@@ -33,15 +33,15 @@ namespace vsgCs
     {
     public:
         CsTileMapServiceRasterOverlay(
-            std::string in_Url = std::string())
-            : Url(in_Url)
+            std::string in_url = std::string())
+            : url(std::move(in_url))
         {
         }
 
         /**
          * The base URL of the Tile Map Service (TMS).
          */
-        std::string Url;
+        std::string url;
 
         /**
          * True to directly specify minum and maximum zoom levels available from the
@@ -53,17 +53,17 @@ namespace vsgCs
         /**
          * Minimum zoom level.
          */
-        int32_t MinimumLevel = 0;
+        int32_t minimumLevel = 0;
 
         /**
          * Maximum zoom level.
          */
-        int32_t MaximumLevel = 10;
+        int32_t maximumLevel = 10;
 
         /**
          * HTTP headers to be attached to each request made for this raster overlay.
          */
-        std::map<std::string, std::string> RequestHeaders;
+        std::map<std::string, std::string> requestHeaders;
 
         CesiumRasterOverlays::RasterOverlay* createOverlay(
             const CesiumRasterOverlays::RasterOverlayOptions& options) override;

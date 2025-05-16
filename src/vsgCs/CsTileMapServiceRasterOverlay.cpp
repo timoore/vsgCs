@@ -33,31 +33,31 @@ using namespace vsgCs;
 CesiumRasterOverlays::RasterOverlay* CsTileMapServiceRasterOverlay::createOverlay(
     const CesiumRasterOverlays::RasterOverlayOptions& options)
 {
-    if (this->Url.empty())
+    if (url.empty())
     {
         // Don't create an overlay with an empty URL.
         return nullptr;
     }
 
     CesiumRasterOverlays::TileMapServiceRasterOverlayOptions tmsOptions;
-    if (MaximumLevel > MinimumLevel && bSpecifyZoomLevels)
+    if (maximumLevel > minimumLevel && bSpecifyZoomLevels)
     {
-        tmsOptions.minimumLevel = MinimumLevel;
-        tmsOptions.maximumLevel = MaximumLevel;
+        tmsOptions.minimumLevel = minimumLevel;
+        tmsOptions.maximumLevel = maximumLevel;
     }
 
     std::vector<CesiumAsync::IAssetAccessor::THeader> headers;
 
-    for (const auto& [Key, Value] : this->RequestHeaders)
+    for (const auto& [Key, Value] : requestHeaders)
     {
         headers.push_back(CesiumAsync::IAssetAccessor::THeader{
-            (Key),
-            (Value) });
+            Key,
+            Value });
     }
 
     return new CesiumRasterOverlays::TileMapServiceRasterOverlay(
-        (this->MaterialLayerKey),
-        (this->Url),
+        MaterialLayerKey,
+        url,
         headers,
         tmsOptions,
         options);
@@ -73,7 +73,18 @@ namespace vsgCs
         factory->build(json, "CsOverlay", overlay);
         overlay->MaterialLayerKey = CesiumUtility::JsonHelpers::getStringOrDefault(json, "materialKey",
             "Overlay0");
-        overlay->Url = CesiumUtility::JsonHelpers::getStringOrDefault(json, "url", "");
+        overlay->url = CesiumUtility::JsonHelpers::getStringOrDefault(json, "url", "");
+        overlay->minimumLevel = CesiumUtility::JsonHelpers::getInt32OrDefault(json, "minimumLevel", overlay->minimumLevel);
+        overlay->maximumLevel = CesiumUtility::JsonHelpers::getInt32OrDefault(json, "maximumLevel", overlay->maximumLevel);
+        const auto requestHeaders = json.FindMember("requestHeaders");
+        if (requestHeaders != json.MemberEnd() && requestHeaders->value.IsObject())
+        {
+            auto obj = requestHeaders->value.GetObject();
+            for (auto itr = obj.MemberBegin(); itr != obj.MemberEnd(); ++itr)
+            {
+                overlay->requestHeaders.insert(std::make_pair(itr->name.GetString(), itr->value.GetString()));
+            }
+        }
 
         return overlay;
     }

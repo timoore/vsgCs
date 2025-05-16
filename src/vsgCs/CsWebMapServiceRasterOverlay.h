@@ -33,8 +33,8 @@ namespace vsgCs
     {
     public:
         CsWebMapServiceRasterOverlay(
-            std::string in_BaseUrl = std::string())
-            : BaseUrl(in_BaseUrl)
+            std::string in_baseUrl = std::string())
+            : baseUrl(std::move(in_baseUrl))
         {
         }
 
@@ -43,22 +43,22 @@ namespace vsgCs
          * e.g.
          * https://services.ga.gov.au/gis/services/NM_Culture_and_Infrastructure/MapServer/WMSServer
          */
-        std::string BaseUrl;
+        std::string baseUrl;
 
         /**
          * Comma-separated layer names to request from the server.
          */
-        std::string Layers;
+        std::string layers;
 
         /**
          * Image width
          */
-        int32_t TileWidth = 256;
+        int32_t tileWidth = 256;
 
         /**
          * Image height
          */
-        int32_t TileHeight = 256;
+        int32_t tileHeight = 256;
 
         /**
          * Minimum zoom level.
@@ -67,17 +67,17 @@ namespace vsgCs
          * level is small, such as four or less. A larger number is likely to
          * result in rendering problems.
          */
-        int32_t MinimumLevel = 0;
+        int32_t minimumLevel = 0;
 
         /**
          * Maximum zoom level.
          */
-        int32_t MaximumLevel = 14;
+        int32_t maximumLevel = 14;
 
         /**
          * HTTP headers to be attached to each request made for this raster overlay.
          */
-        std::map<std::string, std::string> RequestHeaders;
+        std::map<std::string, std::string> requestHeaders;
 
         CesiumRasterOverlays::RasterOverlay* createOverlay(
             const CesiumRasterOverlays::RasterOverlayOptions& options) override;
