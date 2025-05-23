@@ -28,11 +28,17 @@ SOFTWARE.
 #include "GraphicsEnvironment.h"
 #include "runtimeSupport.h"
 
+#include <CesiumGltf/TextureInfo.h>
 #include <vsg/core/Inherit.h>
+#include <vsg/core/ref_ptr.h>
 #include <vsg/io/Logger.h>
+#include <vsg/nodes/StateGroup.h>
 #include <vsg/utils/GraphicsPipelineConfigurator.h>
 
 #include <array>
+#include <memory>
+#include <utility>
+#include <string>
 
 namespace vsgCs
 {
@@ -94,13 +100,96 @@ namespace vsgCs
         vsg::ref_ptr<Styling> styling;
     };
 
+    // For a model, build all the state necessary to render a glTF
+    // primitve. This includes the Vulkan pipeline and a descriptor set
+    // (probably). Part of the pipeline state depends on the vertex
+    // attributes that are present, so building up the arrays for the
+    // VertexIndexDraw and VertexDraw commands is handled here too.
+
+    class ModelStateBuilder;
+    
+    // Application-wide object for creating state in glTF files of a
+    // certain type e.g., 3D Tiles with overlays, generic glTF, or
+    // special state needed by a user of vsgCs.
+    class GltfStateBuilder : public std::enable_shared_from_this<GltfStateBuilder>
+    {
+    public:
+        static std::shared_ptr<GltfStateBuilder> create();
+        virtual std::unique_ptr<ModelStateBuilder> createModelStateBuilder(CesiumGltf::Model* model) = 0;
+    };
+
+    class IPrimitiveStateBuilder;
+    
+    // A state builder for a model, used in creating its scene
+    // graph. It might cache state data per glTF material, for example.
+    class IModelStateBuilder {
+    public:
+        virtual std::unique_ptr<IPrimitiveStateBuilder> create(int32_t primitiveIndex) = 0;
+    };
+
+    // State builder for rendering an individual primitive.
+    class IPrimitiveStateBuilder
+    {
+    public:
+        virtual ~IPrimitiveStateBuilder() = default;
+        virtual void assignArray(const std::string& name,
+                                 const vsg::ref_ptr<vsg::Data> &array,
+                                 VkVertexInputRate vertexInputRate) = 0;
+        void assignArray(const std::string& name,
+                         const vsg::ref_ptr<vsg::Data>& array) {
+            assignArray(name, array, VK_VERTEX_INPUT_RATE_VERTEX);
+        }
+        virtual void addShaderDefine(std::string symbol) = 0;
+        virtual void finalizeState() = 0;
+        virtual vsg::DataList &getVertexArrays() = 0;
+        virtual vsg::ref_ptr<vsg::StateGroup> getFinalStateGroup() = 0;
+
+    };
+
+    class PrimitiveStateBuilder;
+
+    class ModelStateBuilder : public IModelStateBuilder
+    {
+
+    };
+
+    class PrimitiveStateBuilder : public IPrimitiveStateBuilder
+    {
+    public:
+        // WIP constructor until ModelStateBuilder is fleshed out
+        PrimitiveStateBuilder(
+            const vsg::ref_ptr<vsg::DescriptorConfigurator> &in_descConf,
+            VkPrimitiveTopology topology,
+            vsg::ref_ptr<vsgCs::GraphicsEnvironment> in_genv);
+
+        void assignArray(const std::string& name,
+                         const vsg::ref_ptr<vsg::Data> &array,
+                         VkVertexInputRate vertexInputRate) override;
+        void addShaderDefine(std::string symbol) override;
+        void finalizeState() override;
+
+        vsg::DataList &getVertexArrays() override
+        {
+            return vertexArrays;
+        }
+
+        vsg::ref_ptr<vsg::StateGroup> getFinalStateGroup() override;
+
+        vsg::DataList vertexArrays;
+        vsg::ref_ptr<vsg::GraphicsPipelineConfigurator> pipelineConf;
+        vsg::ref_ptr<vsgCs::GraphicsEnvironment> genv;
+    };
+
     // This class should load a standard glTF model, without having builtin support for extensions
     // or our own 3D Tiles cruft. Not there yet...
     class VSGCS_EXPORT ModelBuilder
     {
     public:
-        ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, CesiumGltf::Model* model,
-                     const CreateModelOptions& options,
+        ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment> &genv,
+                   CesiumGltf::Model *model, const CreateModelOptions &options,
+                   ExtensionList enabledExtensions = {});
+        ModelBuilder(std::shared_ptr<ModelStateBuilder> modelStateBuilder,
+                   CesiumGltf::Model *model, const CreateModelOptions &options,
                      ExtensionList enabledExtensions = {});
         ~ModelBuilder();
         vsg::ref_ptr<vsg::Group> operator()();
@@ -116,10 +205,9 @@ namespace vsgCs
         vsg::ref_ptr<CsMaterial> loadMaterial(int i, VkPrimitiveTopology topology);
         vsg::ref_ptr<vsg::Data> loadImage(int i, bool useMipMaps, bool sRGB);
         vsg::ref_ptr<vsg::ImageInfo> loadTexture(const CesiumGltf::Texture& texture, bool sRGB);
-        template<typename TI>
         bool loadMaterialTexture(vsg::ref_ptr<CsMaterial> cmat,
                                  const std::string& name,
-                                 const std::optional<TI>& texInfo,
+                                 const std::optional<CesiumGltf::TextureInfo>& texInfo,
                                  bool sRGB)
         {
             using namespace CesiumGltf;
@@ -181,7 +269,11 @@ namespace vsgCs
         }
         ExtensionList _activeExtensions;
         vsg::ref_ptr<Stylist> _stylist;
+
+      protected:
+      std::shared_ptr<ModelStateBuilder> _modelStateBuilder;
     };
+
     // Helper function for getting an attribute accessor by name.
     const CesiumGltf::Accessor* getAccessor(const CesiumGltf::Model* model,
                                             const CesiumGltf::MeshPrimitive* primitive,

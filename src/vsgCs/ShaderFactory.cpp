@@ -37,6 +37,7 @@ vsg::ref_ptr<vsg::ShaderSet> ShaderFactory::getShaderSet(ShaderDomain domain, Vk
 {
     vsg::ref_ptr<vsg::ShaderSet> result;
     const auto key = std::make_pair(domain, topology);
+    std::lock_guard mapLock(_mapMutex);
     auto itr = _shaderSetMap.find(key);
     if (itr == _shaderSetMap.end())
     {

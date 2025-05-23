@@ -35,10 +35,11 @@ SOFTWARE.
 #include <CesiumGltf/ExtensionExtMeshGpuInstancing.h>
 #include <CesiumGltf/ExtensionTextureWebp.h>
 
+#include <memory>
 #include <vsg/maths/transform.h>
 
 #include <algorithm>
-#include <iterator>
+#include <utility>
 
 using namespace vsgCs;
 using namespace CesiumGltf;
@@ -818,6 +819,62 @@ namespace
     }
 }
 
+PrimitiveStateBuilder::PrimitiveStateBuilder(
+    const vsg::ref_ptr<vsg::DescriptorConfigurator> &in_descConf,
+    VkPrimitiveTopology topology,
+    vsg::ref_ptr<vsgCs::GraphicsEnvironment> in_genv)
+    : pipelineConf(vsg::GraphicsPipelineConfigurator::create(in_descConf->shaderSet)),
+    genv(std::move(in_genv))
+{
+    pipelineConf->descriptorConfigurator = in_descConf;
+    SetPipelineStates  sps(topology, in_descConf->blending, in_descConf->two_sided,
+                           genv->features.depthClamp);
+    pipelineConf->accept(sps);
+    if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+    {
+        pipelineConf->shaderHints->defines.insert("VSGCS_SIZE_TO_ERROR");
+    }
+}
+
+void PrimitiveStateBuilder::assignArray(const std::string& name,
+                                        const vsg::ref_ptr<vsg::Data> &array,
+                                        VkVertexInputRate vertexInputRate) {
+    pipelineConf->assignArray(vertexArrays, name, vertexInputRate, array);
+}
+
+void PrimitiveStateBuilder::addShaderDefine(std::string symbol)
+{
+    pipelineConf->shaderHints->defines.insert(std::move(symbol));
+}
+
+void PrimitiveStateBuilder::finalizeState()
+{
+  pipelineConf->init();
+  // XXX Need to think hard about sharing the graphics pipeline at
+  // this level.
+  genv->sharedObjects->share(pipelineConf->bindGraphicsPipeline);
+}
+
+vsg::ref_ptr<vsg::StateGroup> PrimitiveStateBuilder::getFinalStateGroup()
+{
+    auto stateGroup = vsg::StateGroup::create();
+    stateGroup->add(pipelineConf->bindGraphicsPipeline);
+
+    if (auto descSet = getDescriptorSet(pipelineConf->descriptorConfigurator, pbr::PRIMITIVE_DESCRIPTOR_SET))
+    {
+        auto bindDescriptorSet
+            = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineConf->layout,
+                                             pbr::PRIMITIVE_DESCRIPTOR_SET,
+                                             descSet);
+        stateGroup->add(bindDescriptorSet);
+    }
+    // assign any custom ArrayState that may be required.
+    stateGroup->prototypeArrayState
+        = pipelineConf->shaderSet->getSuitableArrayState(pipelineConf->shaderHints->defines);
+    return stateGroup;
+}
+
+
 vsg::ref_ptr<vsg::Node>
 ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
                             const CesiumGltf::Mesh* mesh,
@@ -839,17 +896,10 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     }
     auto csMaterial = loadMaterial(primitive->material, topology);
     auto descConf = csMaterial->descriptorConfig;
-    auto pipelineConf = vsg::GraphicsPipelineConfigurator::create(descConf->shaderSet);
-    pipelineConf->descriptorConfigurator = descConf;
-    SetPipelineStates  sps(topology, descConf->blending, descConf->two_sided,
-                           _genv->features.depthClamp);
-    pipelineConf->accept(sps);
-    if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
-    {
-        pipelineConf->shaderHints->defines.insert("VSGCS_SIZE_TO_ERROR");
-    }
-    bool generateTangents = csMaterial->texInfo.count("normalMap") != 0
-        && primitive->attributes.count("TANGENT") == 0;
+    std::unique_ptr<IPrimitiveStateBuilder> stateBuilder
+        = std::make_unique<PrimitiveStateBuilder>(descConf, topology, _genv);
+    bool generateTangents = csMaterial->texInfo.contains("normalMap")
+        && !primitive->attributes.contains("TANGENT");
     const Accessor* indicesAccessor = Model::getSafe(&_model->accessors, primitive->indices);
     const Accessor* normalAccessor = getAccessor(_model, primitive, "NORMAL");
     bool hasNormals = normalAccessor != nullptr;
@@ -865,30 +915,29 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     {
         return {};
     }
-    vsg::DataList vertexArrays;
     auto positions = createData(_model, pPositionAccessor, expansionIndices);
-    pipelineConf->assignArray(vertexArrays, "vsg_Vertex", VK_VERTEX_INPUT_RATE_VERTEX, positions);
+    stateBuilder->assignArray("vsg_Vertex", positions);
     if (normalAccessor)
     {
-        pipelineConf->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX,
+        stateBuilder->assignArray("vsg_Normal",
                             ref_ptr_cast<vsg::vec3Array>(createData(_model, normalAccessor, expansionIndices)));
     }
     else if (!isTriangleTopology(topology)) // Can not make normals
     {
         if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
         {
-            pipelineConf->shaderHints->defines.insert("VSGCS_BILLBOARD_NORMAL");
+            stateBuilder->addShaderDefine("VSGCS_BILLBOARD_NORMAL");
         }
         auto normal = vsg::vec3Value::create(vsg::vec3(0.0f, 1.0f, 0.0f));
-        pipelineConf->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_INSTANCE, normal);
+        stateBuilder->assignArray("vsg_Normal", normal);
     }
     else
     {
         auto posArray = ref_ptr_cast<vsg::vec3Array>(positions);
         auto normals = vsg::vec3Array::create(posArray->size());
         generateNormals(posArray, normals, topology);
-        pipelineConf->shaderHints->defines.insert("VSGCS_FLAT_SHADING");
-        pipelineConf->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX, normals);
+        stateBuilder->addShaderDefine("VSGCS_FLAT_SHADING");
+        stateBuilder->assignArray("vsg_Normal", normals);
     }
 
     // XXX
@@ -909,7 +958,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         {
             styledColors = expandArray(_model, primStyling.colors, expansionIndices);
         }
-        pipelineConf->assignArray(vertexArrays, "vsg_Color", primStyling.vertexRate, styledColors);
+        stateBuilder->assignArray("vsg_Color",  styledColors, primStyling.vertexRate);
     }
     else
     {
@@ -922,11 +971,11 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         if (!colorData)
         {
             auto color = vsg::vec4Value::create(colorWhite);
-            pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, color);
+            stateBuilder->assignArray("vsg_Color", color, VK_VERTEX_INPUT_RATE_INSTANCE);
         }
         else
         {
-            pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colorData);
+            stateBuilder->assignArray("vsg_Color", colorData);
         }
     }
     // Textures...
@@ -948,12 +997,12 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
             }
             if (texdata.valid())
             {
-                pipelineConf->assignArray(vertexArrays, arrayName, VK_VERTEX_INPUT_RATE_VERTEX, texdata);
+                stateBuilder->assignArray(arrayName, texdata);
             }
             else
             {
                 auto texcoord = vsg::vec2Value::create(vsg::vec2(0.0f, 0.0f));
-                pipelineConf->assignArray(vertexArrays, arrayName, VK_VERTEX_INPUT_RATE_INSTANCE, texcoord);
+                stateBuilder->assignArray(arrayName, texcoord, VK_VERTEX_INPUT_RATE_INSTANCE);
             }
         }
     };
@@ -965,20 +1014,17 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     if (instanceData)
     {
         instanceCount = static_cast<uint32_t>((*instanceData)[0]->size());
-        pipelineConf->shaderHints->defines.insert("VSGCS_INSTANCES");
-        pipelineConf->assignArray(vertexArrays, "vsg_instance0", VK_VERTEX_INPUT_RATE_INSTANCE,
-                                  (*instanceData)[0]);
-        pipelineConf->assignArray(vertexArrays, "vsg_instance1", VK_VERTEX_INPUT_RATE_INSTANCE,
-                                  (*instanceData)[1]);
-        pipelineConf->assignArray(vertexArrays, "vsg_instance2", VK_VERTEX_INPUT_RATE_INSTANCE,
-                                  (*instanceData)[2]);
+        stateBuilder->addShaderDefine("VSGCS_INSTANCES");
+        stateBuilder->assignArray("vsg_instance0", (*instanceData)[0], VK_VERTEX_INPUT_RATE_INSTANCE);
+        stateBuilder->assignArray("vsg_instance1", (*instanceData)[1], VK_VERTEX_INPUT_RATE_INSTANCE);
+        stateBuilder->assignArray("vsg_instance2", (*instanceData)[2],VK_VERTEX_INPUT_RATE_INSTANCE);
     }
     vsg::ref_ptr<vsg::Command> drawCommand;
     if (indicesAccessor && !expansionIndices)
     {
         vsg::ref_ptr<vsg::Data> indices = createAccessorView(*_model, *indicesAccessor, IndexVisitor());
         auto vid = vsg::VertexIndexDraw::create();
-        vid->assignArrays(vertexArrays);
+        vid->assignArrays(stateBuilder->getVertexArrays());
         vid->assignIndices(indices);
         vid->indexCount = static_cast<uint32_t>(indices->valueCount());
         vid->instanceCount = instanceCount;
@@ -987,30 +1033,15 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     else
     {
         auto vd = vsg::VertexDraw::create();
-        vd->assignArrays(vertexArrays);
+        vd->assignArrays(stateBuilder->getVertexArrays());
         vd->vertexCount = static_cast<uint32_t>(positions->valueCount());
         vd->instanceCount = instanceCount;
         drawCommand = vd;
     }
     drawCommand->setValue("name", name);
-    pipelineConf->init();
-    _genv->sharedObjects->share(pipelineConf->bindGraphicsPipeline);
+    stateBuilder->finalizeState();
 
-    auto stateGroup = vsg::StateGroup::create();
-    stateGroup->add(pipelineConf->bindGraphicsPipeline);
-
-    if (auto descSet = getDescriptorSet(descConf, pbr::PRIMITIVE_DESCRIPTOR_SET); descSet)
-    {
-        auto bindDescriptorSet
-            = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineConf->layout,
-                                             pbr::PRIMITIVE_DESCRIPTOR_SET,
-                                             descSet);
-        stateGroup->add(bindDescriptorSet);
-    }
-    // assign any custom ArrayState that may be required.
-    stateGroup->prototypeArrayState
-        = pipelineConf->shaderSet->getSuitableArrayState(pipelineConf->shaderHints->defines);
-
+    auto stateGroup = stateBuilder->getFinalStateGroup();
     stateGroup->addChild(drawCommand);
     vsg::dsphere boundingSphere = computeBoundsFromGltf(pPositionAccessor, instanceData);
     if (descConf->blending)
