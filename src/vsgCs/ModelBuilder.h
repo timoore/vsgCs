@@ -256,32 +256,10 @@ namespace vsgCs
         vsg::ref_ptr<CsMaterial> loadMaterial(int i, VkPrimitiveTopology topology);
         vsg::ref_ptr<vsg::Data> loadImage(int i, bool useMipMaps, bool sRGB);
         vsg::ref_ptr<vsg::ImageInfo> loadTexture(const CesiumGltf::Texture& texture, bool sRGB);
-        bool loadMaterialTexture(vsg::ref_ptr<CsMaterial> cmat,
+        bool loadMaterialTexture(const vsg::ref_ptr<CsMaterial>& cmat,
                                  const std::string& name,
                                  const std::optional<CesiumGltf::TextureInfo>& texInfo,
-                                 bool sRGB)
-        {
-            using namespace CesiumGltf;
-            if (!texInfo || texInfo.value().index < 0
-                || static_cast<unsigned>(texInfo.value().index) >= _model->textures.size())
-            {
-                if (texInfo && texInfo.value().index >= 0)
-                {
-                    vsg::warn("Texture index must be less than ", _model->textures.size(),
-                              " but is ", texInfo.value().index);
-                }
-                return false;
-            }
-            const Texture& texture = _model->textures[texInfo.value().index];
-            auto imageInfo = loadTexture(texture, sRGB);
-            if (imageInfo)
-            {
-                cmat->descriptorConfig->assignTexture(name, imageInfo->imageView->image->data, imageInfo->sampler);
-                cmat->texInfo.insert({name, TexInfo{static_cast<int>(texInfo.value().texCoord)}});
-                return true;
-            }
-            return false;
-        }
+                                 bool sRGB);
         std::string makeName(const CesiumGltf::Mesh* mesh, const CesiumGltf::MeshPrimitive* primitive) const;
 
         vsg::ref_ptr<GraphicsEnvironment>_genv;
