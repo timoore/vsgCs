@@ -40,6 +40,7 @@ SOFTWARE.
 
 #include <algorithm>
 #include <utility>
+#include <vulkan/vulkan_core.h>
 
 using namespace vsgCs;
 using namespace CesiumGltf;
@@ -211,6 +212,7 @@ ModelBuilder::ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, Cesium
     {
         _stylist = options.styling->getStylist(this);
     }
+    _modelStateBuilder = std::make_shared<ModelStateBuilder>(this, genv);
 }
 
 // The default constructor is defined in order to avoid circular dependencies in the header file
@@ -819,15 +821,32 @@ namespace
     }
 }
 
-PrimitiveStateBuilder::PrimitiveStateBuilder(
-    const vsg::ref_ptr<vsg::DescriptorConfigurator> &in_descConf,
-    VkPrimitiveTopology topology,
-    vsg::ref_ptr<vsgCs::GraphicsEnvironment> in_genv)
-    : pipelineConf(vsg::GraphicsPipelineConfigurator::create(in_descConf->shaderSet)),
-    genv(std::move(in_genv))
+ModelStateBuilder::ModelStateBuilder(ModelBuilder *in_modelBuilder, vsg::ref_ptr<vsgCs::GraphicsEnvironment> in_genv)
+    : modelBuilder(in_modelBuilder), genv(std::move(in_genv))
 {
-    pipelineConf->descriptorConfigurator = in_descConf;
-    SetPipelineStates  sps(topology, in_descConf->blending, in_descConf->two_sided,
+}
+
+std::unique_ptr<IPrimitiveStateBuilder>
+ModelStateBuilder::create(const CesiumGltf::MeshPrimitive *primitive) {
+    VkPrimitiveTopology topology;
+    if (!gltfToVk(primitive->mode, topology))
+    {
+        vsg::warn(": Can't map glTF mode ", primitive->mode, " to Vulkan topology");
+        return {};
+    }
+    auto csMaterial = modelBuilder->loadMaterial(primitive->material, topology);
+    return std::make_unique<PrimitiveStateBuilder>(csMaterial, topology, genv);
+}
+
+PrimitiveStateBuilder::PrimitiveStateBuilder(
+    vsg::ref_ptr<CsMaterial> in_material, VkPrimitiveTopology topology,
+    vsg::ref_ptr<vsgCs::GraphicsEnvironment> in_genv)
+    : material(std::move(in_material)), genv(std::move(in_genv)), _topology(topology)
+{
+    const auto& descConf = material->descriptorConfig;
+    pipelineConf = vsg::GraphicsPipelineConfigurator::create(descConf->shaderSet);
+    pipelineConf->descriptorConfigurator = descConf;
+    SetPipelineStates  sps(topology, descConf->blending, descConf->two_sided,
                            genv->features.depthClamp);
     pipelineConf->accept(sps);
     if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
@@ -874,6 +893,20 @@ vsg::ref_ptr<vsg::StateGroup> PrimitiveStateBuilder::getFinalStateGroup()
     return stateGroup;
 }
 
+uint32_t addInstanceData(IPrimitiveStateBuilder &stateBuilder,
+                         const ModelBuilder::InstanceData *instanceData)
+{
+    uint32_t instanceCount = 1;
+    if (instanceData)
+    {
+        instanceCount = static_cast<uint32_t>((*instanceData)[0]->size());
+        stateBuilder.addShaderDefine("VSGCS_INSTANCES");
+        stateBuilder.assignArray("vsg_instance0", (*instanceData)[0], VK_VERTEX_INPUT_RATE_INSTANCE);
+        stateBuilder.assignArray("vsg_instance1", (*instanceData)[1], VK_VERTEX_INPUT_RATE_INSTANCE);
+        stateBuilder.assignArray("vsg_instance2", (*instanceData)[2],VK_VERTEX_INPUT_RATE_INSTANCE);
+    }
+    return instanceCount;
+}
 
 vsg::ref_ptr<vsg::Node>
 ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
@@ -888,17 +921,12 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     }
 
     std::string name = makeName(mesh, primitive);
-    VkPrimitiveTopology topology;
-    if (!gltfToVk(primitive->mode, topology))
+    std::unique_ptr<IPrimitiveStateBuilder> stateBuilder = _modelStateBuilder->create(primitive);
+    if (!stateBuilder)
     {
-        vsg::warn(name, ": Can't map glTF mode ", primitive->mode, " to Vulkan topology");
-        return {};
+      return {};
     }
-    auto csMaterial = loadMaterial(primitive->material, topology);
-    auto descConf = csMaterial->descriptorConfig;
-    std::unique_ptr<IPrimitiveStateBuilder> stateBuilder
-        = std::make_unique<PrimitiveStateBuilder>(descConf, topology, _genv);
-    bool generateTangents = csMaterial->texInfo.contains("normalMap")
+    bool generateTangents = stateBuilder->getMaterial()->hasMap("normalMap")
         && !primitive->attributes.contains("TANGENT");
     const Accessor* indicesAccessor = Model::getSafe(&_model->accessors, primitive->indices);
     const Accessor* normalAccessor = getAccessor(_model, primitive, "NORMAL");
@@ -917,6 +945,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     }
     auto positions = createData(_model, pPositionAccessor, expansionIndices);
     stateBuilder->assignArray("vsg_Vertex", positions);
+    VkPrimitiveTopology topology = stateBuilder->getTopology();
     if (normalAccessor)
     {
         stateBuilder->assignArray("vsg_Normal",
@@ -1010,15 +1039,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     // XXX The vertex shader assumes that the overlay texture coordinates exist, so we kinda need to
     // bind something.
     assignTexCoord("_CESIUMOVERLAY_", 2);
-    uint32_t instanceCount = 1;
-    if (instanceData)
-    {
-        instanceCount = static_cast<uint32_t>((*instanceData)[0]->size());
-        stateBuilder->addShaderDefine("VSGCS_INSTANCES");
-        stateBuilder->assignArray("vsg_instance0", (*instanceData)[0], VK_VERTEX_INPUT_RATE_INSTANCE);
-        stateBuilder->assignArray("vsg_instance1", (*instanceData)[1], VK_VERTEX_INPUT_RATE_INSTANCE);
-        stateBuilder->assignArray("vsg_instance2", (*instanceData)[2],VK_VERTEX_INPUT_RATE_INSTANCE);
-    }
+    uint32_t instanceCount = addInstanceData(*stateBuilder, instanceData);
     vsg::ref_ptr<vsg::Command> drawCommand;
     if (indicesAccessor && !expansionIndices)
     {
@@ -1044,7 +1065,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     auto stateGroup = stateBuilder->getFinalStateGroup();
     stateGroup->addChild(drawCommand);
     vsg::dsphere boundingSphere = computeBoundsFromGltf(pPositionAccessor, instanceData);
-    if (descConf->blending)
+    if (stateBuilder->getMaterial()->doesBlending())
     {
         // XXX Not sure what to do if the boundingSphere isn't valid; emit a warning?
         return vsg::DepthSorted::create(10, boundingSphere, stateGroup);
@@ -1057,7 +1078,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     return stateGroup;
 }
 
-vsg::ref_ptr<ModelBuilder::CsMaterial>
+vsg::ref_ptr<CsMaterial>
 ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopology topology)
 {
     auto csMat = CsMaterial::create();
@@ -1114,7 +1135,7 @@ ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopo
     return csMat;
 }
 
-vsg::ref_ptr<ModelBuilder::CsMaterial>
+vsg::ref_ptr<CsMaterial>
 ModelBuilder::loadMaterial(int i, VkPrimitiveTopology topology)
 {
     int topoIndex = topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST ? 1 : 0;

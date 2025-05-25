@@ -100,6 +100,35 @@ namespace vsgCs
         vsg::ref_ptr<Styling> styling;
     };
 
+    struct TexInfo
+    {
+        int coordSet = 0;
+    };
+    // The VSG objects needed to define a material. So far that is a ShaderSet and the
+    // descriptors for one descriptor set. This also includes support for matching glTF textures
+    // to specific texture coordinate attributes.
+    struct CsMaterial : public vsg::Inherit<vsg::Object, CsMaterial>
+    {
+        vsg::ref_ptr<vsg::DescriptorConfigurator> descriptorConfig;
+        std::map<std::string, TexInfo> texInfo;
+        // ModelBuilder needs access to some data from CsMaterial, but
+        // not much.
+        virtual bool hasMap(const std::string &name) const
+        {
+            return texInfo.contains(name);
+        }
+
+        virtual bool doesBlending() const
+        {
+            return descriptorConfig->blending;
+        }
+
+        virtual bool isTwoSided() const
+        {
+            return descriptorConfig->two_sided;
+        }
+    };
+
     // For a model, build all the state necessary to render a glTF
     // primitve. This includes the Vulkan pipeline and a descriptor set
     // (probably). Part of the pipeline state depends on the vertex
@@ -124,7 +153,8 @@ namespace vsgCs
     // graph. It might cache state data per glTF material, for example.
     class IModelStateBuilder {
     public:
-        virtual std::unique_ptr<IPrimitiveStateBuilder> create(int32_t primitiveIndex) = 0;
+        virtual ~IModelStateBuilder() = default;
+        virtual std::unique_ptr<IPrimitiveStateBuilder> create(const CesiumGltf::MeshPrimitive* primitive) = 0;
     };
 
     // State builder for rendering an individual primitive.
@@ -143,14 +173,24 @@ namespace vsgCs
         virtual void finalizeState() = 0;
         virtual vsg::DataList &getVertexArrays() = 0;
         virtual vsg::ref_ptr<vsg::StateGroup> getFinalStateGroup() = 0;
+        virtual VkPrimitiveTopology getTopology() = 0;
+        virtual vsg::ref_ptr<CsMaterial> getMaterial() = 0;
 
     };
 
     class PrimitiveStateBuilder;
+    class ModelBuilder;
 
     class ModelStateBuilder : public IModelStateBuilder
     {
+    public:
+        ModelStateBuilder(ModelBuilder* in_modelBuilder, vsg::ref_ptr<vsgCs::GraphicsEnvironment> in_genv);
+        std::unique_ptr<IPrimitiveStateBuilder> create(const CesiumGltf::MeshPrimitive* primitive) override;
+        std::vector<std::array<vsg::ref_ptr<CsMaterial>, 2>> _csMaterials;
 
+      protected:
+        ModelBuilder *modelBuilder;
+        vsg::ref_ptr<vsgCs::GraphicsEnvironment> genv;
     };
 
     class PrimitiveStateBuilder : public IPrimitiveStateBuilder
@@ -158,7 +198,7 @@ namespace vsgCs
     public:
         // WIP constructor until ModelStateBuilder is fleshed out
         PrimitiveStateBuilder(
-            const vsg::ref_ptr<vsg::DescriptorConfigurator> &in_descConf,
+            vsg::ref_ptr<CsMaterial> in_material,
             VkPrimitiveTopology topology,
             vsg::ref_ptr<vsgCs::GraphicsEnvironment> in_genv);
 
@@ -173,11 +213,23 @@ namespace vsgCs
             return vertexArrays;
         }
 
+        VkPrimitiveTopology getTopology() override
+        {
+            return _topology;
+        }
+
+        vsg::ref_ptr<CsMaterial> getMaterial() override
+        {
+            return material;
+        }
         vsg::ref_ptr<vsg::StateGroup> getFinalStateGroup() override;
 
+        vsg::ref_ptr<CsMaterial> material;
         vsg::DataList vertexArrays;
         vsg::ref_ptr<vsg::GraphicsPipelineConfigurator> pipelineConf;
         vsg::ref_ptr<vsgCs::GraphicsEnvironment> genv;
+    protected:
+        VkPrimitiveTopology _topology;
     };
 
     // This class should load a standard glTF model, without having builtin support for extensions
@@ -200,7 +252,6 @@ namespace vsgCs
         vsg::ref_ptr<vsg::Node> loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
                                               const CesiumGltf::Mesh* mesh = nullptr,
                                               const InstanceData* instanceData = nullptr);
-        struct CsMaterial;
         vsg::ref_ptr<CsMaterial> loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopology topology);
         vsg::ref_ptr<CsMaterial> loadMaterial(int i, VkPrimitiveTopology topology);
         vsg::ref_ptr<vsg::Data> loadImage(int i, bool useMipMaps, bool sRGB);
@@ -237,18 +288,6 @@ namespace vsgCs
         CesiumGltf::Model* _model;
         std::string _name;
         CreateModelOptions _options;
-        struct TexInfo
-        {
-            int coordSet = 0;
-        };
-        // The VSG objects needed to define a material. So far that is a ShaderSet and the
-        // descriptors for one descriptor set. This also includes support for matching glTF textures
-        // to specific texture coordinate attributes.
-        struct CsMaterial : public vsg::Inherit<vsg::Object, CsMaterial>
-        {
-            vsg::ref_ptr<vsg::DescriptorConfigurator> descriptorConfig;
-            std::map<std::string, TexInfo> texInfo;
-        };
         std::vector<std::array<vsg::ref_ptr<CsMaterial>, 2>> _csMaterials;
         struct ImageData
         {
@@ -271,7 +310,7 @@ namespace vsgCs
         vsg::ref_ptr<Stylist> _stylist;
 
       protected:
-      std::shared_ptr<ModelStateBuilder> _modelStateBuilder;
+      std::shared_ptr<IModelStateBuilder> _modelStateBuilder;
     };
 
     // Helper function for getting an attribute accessor by name.
