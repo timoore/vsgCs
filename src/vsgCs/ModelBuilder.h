@@ -185,9 +185,11 @@ namespace vsgCs
     {
     public:
         ModelStateBuilder(ModelBuilder* in_modelBuilder, vsg::ref_ptr<vsgCs::GraphicsEnvironment> in_genv);
-        std::unique_ptr<IPrimitiveStateBuilder> create(const CesiumGltf::MeshPrimitive* primitive) override;
-        std::vector<std::array<vsg::ref_ptr<CsMaterial>, 2>> _csMaterials;
+        std::unique_ptr<IPrimitiveStateBuilder> create(const CesiumGltf::MeshPrimitive *primitive) override;
+        vsg::ref_ptr<CsMaterial> loadMaterial(int i, VkPrimitiveTopology topology);
 
+        std::vector<std::array<vsg::ref_ptr<CsMaterial>, 2>> csMaterials;
+        vsg::ref_ptr<CsMaterial> baseMaterial[2];
       protected:
         ModelBuilder *modelBuilder;
         vsg::ref_ptr<vsgCs::GraphicsEnvironment> genv;
@@ -253,7 +255,6 @@ namespace vsgCs
                                               const CesiumGltf::Mesh* mesh = nullptr,
                                               const InstanceData* instanceData = nullptr);
         vsg::ref_ptr<CsMaterial> loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopology topology);
-        vsg::ref_ptr<CsMaterial> loadMaterial(int i, VkPrimitiveTopology topology);
         vsg::ref_ptr<vsg::Data> loadImage(int i, bool useMipMaps, bool sRGB);
         vsg::ref_ptr<vsg::ImageInfo> loadTexture(const CesiumGltf::Texture& texture, bool sRGB);
         bool loadMaterialTexture(const vsg::ref_ptr<CsMaterial>& cmat,
@@ -266,7 +267,6 @@ namespace vsgCs
         CesiumGltf::Model* _model;
         std::string _name;
         CreateModelOptions _options;
-        std::vector<std::array<vsg::ref_ptr<CsMaterial>, 2>> _csMaterials;
         struct ImageData
         {
             vsg::ref_ptr<vsg::Data> image;
@@ -274,7 +274,6 @@ namespace vsgCs
             bool sRGB = false;
         };
         std::vector<ImageData> _loadedImages;
-        vsg::ref_ptr<CsMaterial> _baseMaterial[2];
         template<typename TExtension>
         bool isEnabled() const
         {

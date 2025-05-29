@@ -35,11 +35,15 @@ SOFTWARE.
 #include <CesiumGltf/ExtensionExtMeshGpuInstancing.h>
 #include <CesiumGltf/ExtensionTextureWebp.h>
 
+#include <CesiumGltf/Sampler.h>
+#include <cstdint>
 #include <memory>
+#include <vsg/core/ref_ptr.h>
 #include <vsg/maths/transform.h>
 
 #include <algorithm>
 #include <utility>
+#include <vsg/state/Sampler.h>
 #include <vulkan/vulkan_core.h>
 
 using namespace vsgCs;
@@ -197,7 +201,6 @@ ModelBuilder::ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, Cesium
                            ExtensionList enabledExtensions
     )
     : _genv(genv), _model(model), _options(options),
-      _csMaterials(model->materials.size()),
       _loadedImages(model->images.size()),
       _activeExtensions(std::move(enabledExtensions))
 {
@@ -824,6 +827,7 @@ namespace
 ModelStateBuilder::ModelStateBuilder(ModelBuilder *in_modelBuilder, vsg::ref_ptr<vsgCs::GraphicsEnvironment> in_genv)
     : modelBuilder(in_modelBuilder), genv(std::move(in_genv))
 {
+    csMaterials.resize(modelBuilder->_model->materials.size());
 }
 
 std::unique_ptr<IPrimitiveStateBuilder>
@@ -834,7 +838,7 @@ ModelStateBuilder::create(const CesiumGltf::MeshPrimitive *primitive) {
         vsg::warn(": Can't map glTF mode ", primitive->mode, " to Vulkan topology");
         return {};
     }
-    auto csMaterial = modelBuilder->loadMaterial(primitive->material, topology);
+    auto csMaterial = loadMaterial(primitive->material, topology);
     return std::make_unique<PrimitiveStateBuilder>(csMaterial, topology, genv);
 }
 
@@ -1135,31 +1139,6 @@ ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopo
     return csMat;
 }
 
-vsg::ref_ptr<CsMaterial>
-ModelBuilder::loadMaterial(int i, VkPrimitiveTopology topology)
-{
-    int topoIndex = topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST ? 1 : 0;
-
-    if (i < 0 || static_cast<unsigned>(i) >= _model->materials.size())
-    {
-        if (!_baseMaterial[topoIndex])
-        {
-            _baseMaterial[topoIndex] = CsMaterial::create();
-            _baseMaterial[topoIndex]->descriptorConfig = vsg::DescriptorConfigurator::create();
-            _baseMaterial[topoIndex]->descriptorConfig->shaderSet = _genv->shaderFactory->getShaderSet(topology);
-            vsg::PbrMaterial pbr;
-            _baseMaterial[topoIndex]->descriptorConfig->assignDescriptor("material",
-                                                                         vsg::PbrMaterialValue::create(pbr));
-        }
-        return _baseMaterial[topoIndex];
-    }
-    if (!_csMaterials[i][topoIndex])
-    {
-        _csMaterials[i][topoIndex] = loadMaterial(&_model->materials[i], topology);
-    }
-    return _csMaterials[i][topoIndex];
-}
-
 vsg::ref_ptr<vsg::Group>
 ModelBuilder::operator()()
 {
@@ -1409,3 +1388,30 @@ bool ModelBuilder::loadMaterialTexture(const vsg::ref_ptr<CsMaterial>& cmat,
     }
     return false;
 }
+
+
+vsg::ref_ptr<CsMaterial>
+ModelStateBuilder::loadMaterial(int i, VkPrimitiveTopology topology)
+{
+    int topoIndex = topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST ? 1 : 0;
+
+    if (i < 0 || static_cast<unsigned>(i) >= modelBuilder->_model->materials.size())
+    {
+        if (!baseMaterial[topoIndex])
+        {
+            baseMaterial[topoIndex] = CsMaterial::create();
+            baseMaterial[topoIndex]->descriptorConfig = vsg::DescriptorConfigurator::create();
+            baseMaterial[topoIndex]->descriptorConfig->shaderSet = genv->shaderFactory->getShaderSet(topology);
+            vsg::PbrMaterial pbr;
+            baseMaterial[topoIndex]->descriptorConfig->assignDescriptor("material",
+                                                                         vsg::PbrMaterialValue::create(pbr));
+        }
+        return baseMaterial[topoIndex];
+    }
+    if (!csMaterials[i][topoIndex])
+    {
+        csMaterials[i][topoIndex] = modelBuilder->loadMaterial(&modelBuilder->_model->materials[i], topology);
+    }
+    return csMaterials[i][topoIndex];
+}
+
