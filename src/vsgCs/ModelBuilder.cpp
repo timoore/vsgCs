@@ -1220,6 +1220,102 @@ vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRG
     return imageData.image = data;
  }
 
+namespace
+{
+// glTF spec: "When undefined, a sampler with repeat wrapping and auto
+// filtering should be used."
+
+auto constexpr csWrap2Vk(int32_t wrapS, int32_t wrapT) {
+  VkSamplerAddressMode addressX = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  VkSamplerAddressMode addressY = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    switch (wrapS)
+    {
+    case CesiumGltf::Sampler::WrapS::CLAMP_TO_EDGE:
+        addressX = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        break;
+    case CesiumGltf::Sampler::WrapS::MIRRORED_REPEAT:
+        addressX = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        break;
+    case CesiumGltf::Sampler::WrapS::REPEAT:
+        addressX = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        break;
+    }
+    switch (wrapT)
+    {
+    case CesiumGltf::Sampler::WrapT::CLAMP_TO_EDGE:
+        addressY = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        break;
+    case CesiumGltf::Sampler::WrapT::MIRRORED_REPEAT:
+        addressY = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        break;
+    case CesiumGltf::Sampler::WrapT::REPEAT:
+        addressY = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        break;
+    }
+    return std::make_pair(addressX, addressY);
+}
+
+auto csWrap2Vk(const CesiumGltf::Sampler *pSampler)
+{
+  if (pSampler)
+  {
+      return csWrap2Vk(pSampler->wrapS, pSampler->wrapT);
+  }
+  return csWrap2Vk(CesiumGltf::Sampler::WrapS::REPEAT, CesiumGltf::Sampler::WrapT::REPEAT);
+}
+
+VkFilter csMagFilter2Vk(const CesiumGltf::Sampler *pSampler)
+{
+    if (!pSampler)
+    {
+        return VK_FILTER_LINEAR;
+    }
+    if (pSampler->magFilter
+        && *pSampler->magFilter == CesiumGltf::Sampler::MagFilter::NEAREST)
+    {
+        return VK_FILTER_NEAREST;
+    }
+    return VK_FILTER_LINEAR;
+}
+
+VkFilter csMinFilter2Vk(const CesiumGltf::Sampler *pSampler)
+{
+    if (!pSampler)
+    {
+        return VK_FILTER_LINEAR;
+    }
+    if (pSampler->minFilter)
+    {
+        switch (*pSampler->minFilter)
+        {
+        case CesiumGltf::Sampler::MinFilter::NEAREST:
+        case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_NEAREST:
+            return VK_FILTER_NEAREST;
+        }
+    }
+    return VK_FILTER_LINEAR;
+}
+
+bool useVkMipmap(const CesiumGltf::Sampler *pSampler)
+{
+    if (!pSampler)
+    {
+        return false;
+    }
+    switch (pSampler->minFilter.value_or(
+                CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR))
+    {
+    case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR:
+    case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_NEAREST:
+    case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_LINEAR:
+    case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_NEAREST:
+        return true;
+    default: // LINEAR and NEAREST
+        return false;
+    }
+}
+} // namespace
+
 vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture& texture,
                                       bool sRGB)
 {
@@ -1275,78 +1371,18 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
 
     const CesiumGltf::Sampler* pSampler =
         CesiumGltf::Model::getSafe(&_model->samplers, texture.sampler);
-    // glTF spec: "When undefined, a sampler with repeat wrapping and auto
-    // filtering should be used."
-    VkSamplerAddressMode addressX = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    VkSamplerAddressMode addressY = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    VkFilter minFilter = VK_FILTER_LINEAR;
-    VkFilter magFilter = VK_FILTER_LINEAR;
-    bool useMipMaps = false;
-
-    if (pSampler)
-    {
-        switch (pSampler->wrapS)
-        {
-        case CesiumGltf::Sampler::WrapS::CLAMP_TO_EDGE:
-            addressX = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            break;
-        case CesiumGltf::Sampler::WrapS::MIRRORED_REPEAT:
-            addressX = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-            break;
-        case CesiumGltf::Sampler::WrapS::REPEAT:
-            addressX = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            break;
-        }
-        switch (pSampler->wrapT)
-        {
-        case CesiumGltf::Sampler::WrapT::CLAMP_TO_EDGE:
-            addressY = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            break;
-        case CesiumGltf::Sampler::WrapT::MIRRORED_REPEAT:
-            addressY = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-            break;
-        case CesiumGltf::Sampler::WrapT::REPEAT:
-            addressY = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            break;
-        }
-        if (pSampler->magFilter
-            && pSampler->magFilter.value() == CesiumGltf::Sampler::MagFilter::NEAREST)
-        {
-            magFilter = VK_FILTER_NEAREST;
-        }
-        if (pSampler->minFilter)
-        {
-            switch (pSampler->minFilter.value()) {
-            case CesiumGltf::Sampler::MinFilter::NEAREST:
-            case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_NEAREST:
-                minFilter = VK_FILTER_NEAREST;
-                break;
-            case CesiumGltf::Sampler::MinFilter::LINEAR:
-            case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_NEAREST:
-            default:
-                break;
-            }
-        }
-        switch (pSampler->minFilter.value_or(
-                    CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR))
-        {
-        case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR:
-        case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_NEAREST:
-        case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_LINEAR:
-        case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_NEAREST:
-            useMipMaps = true;
-            break;
-        default: // LINEAR and NEAREST
-            useMipMaps = false;
-            break;
-        }
-    }
+    auto [addressX, addressY] = csWrap2Vk(pSampler);
+    VkFilter minFilter = csMinFilter2Vk(pSampler);
+    VkFilter magFilter = csMagFilter2Vk(pSampler);
+    bool useMipMaps = useVkMipmap(pSampler);
     auto data = loadImage(source, useMipMaps, sRGB);
     auto sampler = makeSampler(addressX, addressY, minFilter, magFilter,
                                samplerLOD(data, useMipMaps));
+
     _genv->sharedObjects->share(sampler);
     return vsg::ImageInfo::create(sampler, data);
 }
+
 bool ModelBuilder::loadMaterialTexture(const vsg::ref_ptr<CsMaterial>& cmat,
                                        const std::string& name,
                                        const std::optional<CesiumGltf::TextureInfo>& texInfo,
