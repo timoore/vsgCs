@@ -35,10 +35,16 @@ SOFTWARE.
 #include <CesiumGltf/ExtensionExtMeshGpuInstancing.h>
 #include <CesiumGltf/ExtensionTextureWebp.h>
 
+#include <CesiumGltf/Sampler.h>
+#include <cstdint>
+#include <memory>
+#include <vsg/core/ref_ptr.h>
 #include <vsg/maths/transform.h>
 
 #include <algorithm>
-#include <iterator>
+#include <utility>
+#include <vsg/state/Sampler.h>
+#include <vulkan/vulkan_core.h>
 
 using namespace vsgCs;
 using namespace CesiumGltf;
@@ -195,7 +201,6 @@ ModelBuilder::ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, Cesium
                            ExtensionList enabledExtensions
     )
     : _genv(genv), _model(model), _options(options),
-      _csMaterials(model->materials.size()),
       _loadedImages(model->images.size()),
       _activeExtensions(std::move(enabledExtensions))
 {
@@ -210,6 +215,7 @@ ModelBuilder::ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, Cesium
     {
         _stylist = options.styling->getStylist(this);
     }
+    _modelStateBuilder = std::make_shared<ModelStateBuilder>(this, genv);
 }
 
 // The default constructor is defined in order to avoid circular dependencies in the header file
@@ -818,6 +824,94 @@ namespace
     }
 }
 
+ModelStateBuilder::ModelStateBuilder(ModelBuilder *in_modelBuilder, vsg::ref_ptr<vsgCs::GraphicsEnvironment> in_genv)
+    : modelBuilder(in_modelBuilder), genv(std::move(in_genv))
+{
+    csMaterials.resize(modelBuilder->_model->materials.size());
+}
+
+std::unique_ptr<IPrimitiveStateBuilder>
+ModelStateBuilder::create(const CesiumGltf::MeshPrimitive *primitive) {
+    VkPrimitiveTopology topology;
+    if (!gltfToVk(primitive->mode, topology))
+    {
+        vsg::warn(": Can't map glTF mode ", primitive->mode, " to Vulkan topology");
+        return {};
+    }
+    auto csMaterial = loadMaterial(primitive->material, topology);
+    return std::make_unique<PrimitiveStateBuilder>(csMaterial, topology, genv);
+}
+
+PrimitiveStateBuilder::PrimitiveStateBuilder(
+    vsg::ref_ptr<CsMaterial> in_material, VkPrimitiveTopology topology,
+    vsg::ref_ptr<vsgCs::GraphicsEnvironment> in_genv)
+    : material(std::move(in_material)), genv(std::move(in_genv)), _topology(topology)
+{
+    const auto& descConf = material->descriptorConfig;
+    pipelineConf = vsg::GraphicsPipelineConfigurator::create(descConf->shaderSet);
+    pipelineConf->descriptorConfigurator = descConf;
+    SetPipelineStates  sps(topology, descConf->blending, descConf->two_sided,
+                           genv->features.depthClamp);
+    pipelineConf->accept(sps);
+    if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
+    {
+        pipelineConf->shaderHints->defines.insert("VSGCS_SIZE_TO_ERROR");
+    }
+}
+
+void PrimitiveStateBuilder::assignArray(const std::string& name,
+                                        const vsg::ref_ptr<vsg::Data> &array,
+                                        VkVertexInputRate vertexInputRate) {
+    pipelineConf->assignArray(vertexArrays, name, vertexInputRate, array);
+}
+
+void PrimitiveStateBuilder::addShaderDefine(std::string symbol)
+{
+    pipelineConf->shaderHints->defines.insert(std::move(symbol));
+}
+
+void PrimitiveStateBuilder::finalizeState()
+{
+  pipelineConf->init();
+  // XXX Need to think hard about sharing the graphics pipeline at
+  // this level.
+  genv->sharedObjects->share(pipelineConf->bindGraphicsPipeline);
+}
+
+vsg::ref_ptr<vsg::StateGroup> PrimitiveStateBuilder::getFinalStateGroup()
+{
+    auto stateGroup = vsg::StateGroup::create();
+    stateGroup->add(pipelineConf->bindGraphicsPipeline);
+
+    if (auto descSet = getDescriptorSet(pipelineConf->descriptorConfigurator, pbr::PRIMITIVE_DESCRIPTOR_SET))
+    {
+        auto bindDescriptorSet
+            = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineConf->layout,
+                                             pbr::PRIMITIVE_DESCRIPTOR_SET,
+                                             descSet);
+        stateGroup->add(bindDescriptorSet);
+    }
+    // assign any custom ArrayState that may be required.
+    stateGroup->prototypeArrayState
+        = pipelineConf->shaderSet->getSuitableArrayState(pipelineConf->shaderHints->defines);
+    return stateGroup;
+}
+
+uint32_t addInstanceData(IPrimitiveStateBuilder &stateBuilder,
+                         const ModelBuilder::InstanceData *instanceData)
+{
+    uint32_t instanceCount = 1;
+    if (instanceData)
+    {
+        instanceCount = static_cast<uint32_t>((*instanceData)[0]->size());
+        stateBuilder.addShaderDefine("VSGCS_INSTANCES");
+        stateBuilder.assignArray("vsg_instance0", (*instanceData)[0], VK_VERTEX_INPUT_RATE_INSTANCE);
+        stateBuilder.assignArray("vsg_instance1", (*instanceData)[1], VK_VERTEX_INPUT_RATE_INSTANCE);
+        stateBuilder.assignArray("vsg_instance2", (*instanceData)[2],VK_VERTEX_INPUT_RATE_INSTANCE);
+    }
+    return instanceCount;
+}
+
 vsg::ref_ptr<vsg::Node>
 ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
                             const CesiumGltf::Mesh* mesh,
@@ -831,25 +925,13 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     }
 
     std::string name = makeName(mesh, primitive);
-    VkPrimitiveTopology topology;
-    if (!gltfToVk(primitive->mode, topology))
+    std::unique_ptr<IPrimitiveStateBuilder> stateBuilder = _modelStateBuilder->create(primitive);
+    if (!stateBuilder)
     {
-        vsg::warn(name, ": Can't map glTF mode ", primitive->mode, " to Vulkan topology");
-        return {};
+      return {};
     }
-    auto csMaterial = loadMaterial(primitive->material, topology);
-    auto descConf = csMaterial->descriptorConfig;
-    auto pipelineConf = vsg::GraphicsPipelineConfigurator::create(descConf->shaderSet);
-    pipelineConf->descriptorConfigurator = descConf;
-    SetPipelineStates  sps(topology, descConf->blending, descConf->two_sided,
-                           _genv->features.depthClamp);
-    pipelineConf->accept(sps);
-    if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
-    {
-        pipelineConf->shaderHints->defines.insert("VSGCS_SIZE_TO_ERROR");
-    }
-    bool generateTangents = csMaterial->texInfo.count("normalMap") != 0
-        && primitive->attributes.count("TANGENT") == 0;
+    bool generateTangents = stateBuilder->getMaterial()->hasMap("normalMap")
+        && !primitive->attributes.contains("TANGENT");
     const Accessor* indicesAccessor = Model::getSafe(&_model->accessors, primitive->indices);
     const Accessor* normalAccessor = getAccessor(_model, primitive, "NORMAL");
     bool hasNormals = normalAccessor != nullptr;
@@ -865,30 +947,30 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     {
         return {};
     }
-    vsg::DataList vertexArrays;
     auto positions = createData(_model, pPositionAccessor, expansionIndices);
-    pipelineConf->assignArray(vertexArrays, "vsg_Vertex", VK_VERTEX_INPUT_RATE_VERTEX, positions);
+    stateBuilder->assignArray("vsg_Vertex", positions);
+    VkPrimitiveTopology topology = stateBuilder->getTopology();
     if (normalAccessor)
     {
-        pipelineConf->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX,
+        stateBuilder->assignArray("vsg_Normal",
                             ref_ptr_cast<vsg::vec3Array>(createData(_model, normalAccessor, expansionIndices)));
     }
     else if (!isTriangleTopology(topology)) // Can not make normals
     {
         if (topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST)
         {
-            pipelineConf->shaderHints->defines.insert("VSGCS_BILLBOARD_NORMAL");
+            stateBuilder->addShaderDefine("VSGCS_BILLBOARD_NORMAL");
         }
         auto normal = vsg::vec3Value::create(vsg::vec3(0.0f, 1.0f, 0.0f));
-        pipelineConf->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_INSTANCE, normal);
+        stateBuilder->assignArray("vsg_Normal", normal);
     }
     else
     {
         auto posArray = ref_ptr_cast<vsg::vec3Array>(positions);
         auto normals = vsg::vec3Array::create(posArray->size());
         generateNormals(posArray, normals, topology);
-        pipelineConf->shaderHints->defines.insert("VSGCS_FLAT_SHADING");
-        pipelineConf->assignArray(vertexArrays, "vsg_Normal", VK_VERTEX_INPUT_RATE_VERTEX, normals);
+        stateBuilder->addShaderDefine("VSGCS_FLAT_SHADING");
+        stateBuilder->assignArray("vsg_Normal", normals);
     }
 
     // XXX
@@ -909,7 +991,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         {
             styledColors = expandArray(_model, primStyling.colors, expansionIndices);
         }
-        pipelineConf->assignArray(vertexArrays, "vsg_Color", primStyling.vertexRate, styledColors);
+        stateBuilder->assignArray("vsg_Color",  styledColors, primStyling.vertexRate);
     }
     else
     {
@@ -922,11 +1004,11 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
         if (!colorData)
         {
             auto color = vsg::vec4Value::create(colorWhite);
-            pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_INSTANCE, color);
+            stateBuilder->assignArray("vsg_Color", color, VK_VERTEX_INPUT_RATE_INSTANCE);
         }
         else
         {
-            pipelineConf->assignArray(vertexArrays, "vsg_Color", VK_VERTEX_INPUT_RATE_VERTEX, colorData);
+            stateBuilder->assignArray("vsg_Color", colorData);
         }
     }
     // Textures...
@@ -948,12 +1030,12 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
             }
             if (texdata.valid())
             {
-                pipelineConf->assignArray(vertexArrays, arrayName, VK_VERTEX_INPUT_RATE_VERTEX, texdata);
+                stateBuilder->assignArray(arrayName, texdata);
             }
             else
             {
                 auto texcoord = vsg::vec2Value::create(vsg::vec2(0.0f, 0.0f));
-                pipelineConf->assignArray(vertexArrays, arrayName, VK_VERTEX_INPUT_RATE_INSTANCE, texcoord);
+                stateBuilder->assignArray(arrayName, texcoord, VK_VERTEX_INPUT_RATE_INSTANCE);
             }
         }
     };
@@ -961,24 +1043,13 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     // XXX The vertex shader assumes that the overlay texture coordinates exist, so we kinda need to
     // bind something.
     assignTexCoord("_CESIUMOVERLAY_", 2);
-    uint32_t instanceCount = 1;
-    if (instanceData)
-    {
-        instanceCount = static_cast<uint32_t>((*instanceData)[0]->size());
-        pipelineConf->shaderHints->defines.insert("VSGCS_INSTANCES");
-        pipelineConf->assignArray(vertexArrays, "vsg_instance0", VK_VERTEX_INPUT_RATE_INSTANCE,
-                                  (*instanceData)[0]);
-        pipelineConf->assignArray(vertexArrays, "vsg_instance1", VK_VERTEX_INPUT_RATE_INSTANCE,
-                                  (*instanceData)[1]);
-        pipelineConf->assignArray(vertexArrays, "vsg_instance2", VK_VERTEX_INPUT_RATE_INSTANCE,
-                                  (*instanceData)[2]);
-    }
+    uint32_t instanceCount = addInstanceData(*stateBuilder, instanceData);
     vsg::ref_ptr<vsg::Command> drawCommand;
     if (indicesAccessor && !expansionIndices)
     {
         vsg::ref_ptr<vsg::Data> indices = createAccessorView(*_model, *indicesAccessor, IndexVisitor());
         auto vid = vsg::VertexIndexDraw::create();
-        vid->assignArrays(vertexArrays);
+        vid->assignArrays(stateBuilder->getVertexArrays());
         vid->assignIndices(indices);
         vid->indexCount = static_cast<uint32_t>(indices->valueCount());
         vid->instanceCount = instanceCount;
@@ -987,33 +1058,18 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     else
     {
         auto vd = vsg::VertexDraw::create();
-        vd->assignArrays(vertexArrays);
+        vd->assignArrays(stateBuilder->getVertexArrays());
         vd->vertexCount = static_cast<uint32_t>(positions->valueCount());
         vd->instanceCount = instanceCount;
         drawCommand = vd;
     }
     drawCommand->setValue("name", name);
-    pipelineConf->init();
-    _genv->sharedObjects->share(pipelineConf->bindGraphicsPipeline);
+    stateBuilder->finalizeState();
 
-    auto stateGroup = vsg::StateGroup::create();
-    stateGroup->add(pipelineConf->bindGraphicsPipeline);
-
-    if (auto descSet = getDescriptorSet(descConf, pbr::PRIMITIVE_DESCRIPTOR_SET); descSet)
-    {
-        auto bindDescriptorSet
-            = vsg::BindDescriptorSet::create(VK_PIPELINE_BIND_POINT_GRAPHICS, pipelineConf->layout,
-                                             pbr::PRIMITIVE_DESCRIPTOR_SET,
-                                             descSet);
-        stateGroup->add(bindDescriptorSet);
-    }
-    // assign any custom ArrayState that may be required.
-    stateGroup->prototypeArrayState
-        = pipelineConf->shaderSet->getSuitableArrayState(pipelineConf->shaderHints->defines);
-
+    auto stateGroup = stateBuilder->getFinalStateGroup();
     stateGroup->addChild(drawCommand);
     vsg::dsphere boundingSphere = computeBoundsFromGltf(pPositionAccessor, instanceData);
-    if (descConf->blending)
+    if (stateBuilder->getMaterial()->doesBlending())
     {
         // XXX Not sure what to do if the boundingSphere isn't valid; emit a warning?
         return vsg::DepthSorted::create(10, boundingSphere, stateGroup);
@@ -1026,7 +1082,7 @@ ModelBuilder::loadPrimitive(const CesiumGltf::MeshPrimitive* primitive,
     return stateGroup;
 }
 
-vsg::ref_ptr<ModelBuilder::CsMaterial>
+vsg::ref_ptr<CsMaterial>
 ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopology topology)
 {
     auto csMat = CsMaterial::create();
@@ -1081,31 +1137,6 @@ ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopo
     loadMaterialTexture(csMat, "emissiveMap", material->emissiveTexture, true);
     csMat->descriptorConfig->assignDescriptor("material", vsg::PbrMaterialValue::create(pbr));
     return csMat;
-}
-
-vsg::ref_ptr<ModelBuilder::CsMaterial>
-ModelBuilder::loadMaterial(int i, VkPrimitiveTopology topology)
-{
-    int topoIndex = topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST ? 1 : 0;
-
-    if (i < 0 || static_cast<unsigned>(i) >= _model->materials.size())
-    {
-        if (!_baseMaterial[topoIndex])
-        {
-            _baseMaterial[topoIndex] = CsMaterial::create();
-            _baseMaterial[topoIndex]->descriptorConfig = vsg::DescriptorConfigurator::create();
-            _baseMaterial[topoIndex]->descriptorConfig->shaderSet = _genv->shaderFactory->getShaderSet(topology);
-            vsg::PbrMaterial pbr;
-            _baseMaterial[topoIndex]->descriptorConfig->assignDescriptor("material",
-                                                                         vsg::PbrMaterialValue::create(pbr));
-        }
-        return _baseMaterial[topoIndex];
-    }
-    if (!_csMaterials[i][topoIndex])
-    {
-        _csMaterials[i][topoIndex] = loadMaterial(&_model->materials[i], topology);
-    }
-    return _csMaterials[i][topoIndex];
 }
 
 vsg::ref_ptr<vsg::Group>
@@ -1168,6 +1199,102 @@ vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRG
     return imageData.image = data;
  }
 
+namespace
+{
+// glTF spec: "When undefined, a sampler with repeat wrapping and auto
+// filtering should be used."
+
+auto constexpr csWrap2Vk(int32_t wrapS, int32_t wrapT) {
+  VkSamplerAddressMode addressX = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+  VkSamplerAddressMode addressY = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+    switch (wrapS)
+    {
+    case CesiumGltf::Sampler::WrapS::CLAMP_TO_EDGE:
+        addressX = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        break;
+    case CesiumGltf::Sampler::WrapS::MIRRORED_REPEAT:
+        addressX = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        break;
+    case CesiumGltf::Sampler::WrapS::REPEAT:
+        addressX = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        break;
+    }
+    switch (wrapT)
+    {
+    case CesiumGltf::Sampler::WrapT::CLAMP_TO_EDGE:
+        addressY = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
+        break;
+    case CesiumGltf::Sampler::WrapT::MIRRORED_REPEAT:
+        addressY = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
+        break;
+    case CesiumGltf::Sampler::WrapT::REPEAT:
+        addressY = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+        break;
+    }
+    return std::make_pair(addressX, addressY);
+}
+
+auto csWrap2Vk(const CesiumGltf::Sampler *pSampler)
+{
+  if (pSampler)
+  {
+      return csWrap2Vk(pSampler->wrapS, pSampler->wrapT);
+  }
+  return csWrap2Vk(CesiumGltf::Sampler::WrapS::REPEAT, CesiumGltf::Sampler::WrapT::REPEAT);
+}
+
+VkFilter csMagFilter2Vk(const CesiumGltf::Sampler *pSampler)
+{
+    if (!pSampler)
+    {
+        return VK_FILTER_LINEAR;
+    }
+    if (pSampler->magFilter
+        && *pSampler->magFilter == CesiumGltf::Sampler::MagFilter::NEAREST)
+    {
+        return VK_FILTER_NEAREST;
+    }
+    return VK_FILTER_LINEAR;
+}
+
+VkFilter csMinFilter2Vk(const CesiumGltf::Sampler *pSampler)
+{
+    if (!pSampler)
+    {
+        return VK_FILTER_LINEAR;
+    }
+    if (pSampler->minFilter)
+    {
+        switch (*pSampler->minFilter)
+        {
+        case CesiumGltf::Sampler::MinFilter::NEAREST:
+        case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_NEAREST:
+            return VK_FILTER_NEAREST;
+        }
+    }
+    return VK_FILTER_LINEAR;
+}
+
+bool useVkMipmap(const CesiumGltf::Sampler *pSampler)
+{
+    if (!pSampler)
+    {
+        return false;
+    }
+    switch (pSampler->minFilter.value_or(
+                CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR))
+    {
+    case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR:
+    case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_NEAREST:
+    case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_LINEAR:
+    case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_NEAREST:
+        return true;
+    default: // LINEAR and NEAREST
+        return false;
+    }
+}
+} // namespace
+
 vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture& texture,
                                       bool sRGB)
 {
@@ -1223,75 +1350,68 @@ vsg::ref_ptr<vsg::ImageInfo> ModelBuilder::loadTexture(const CesiumGltf::Texture
 
     const CesiumGltf::Sampler* pSampler =
         CesiumGltf::Model::getSafe(&_model->samplers, texture.sampler);
-    // glTF spec: "When undefined, a sampler with repeat wrapping and auto
-    // filtering should be used."
-    VkSamplerAddressMode addressX = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    VkSamplerAddressMode addressY = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-    VkFilter minFilter = VK_FILTER_LINEAR;
-    VkFilter magFilter = VK_FILTER_LINEAR;
-    bool useMipMaps = false;
-
-    if (pSampler)
-    {
-        switch (pSampler->wrapS)
-        {
-        case CesiumGltf::Sampler::WrapS::CLAMP_TO_EDGE:
-            addressX = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            break;
-        case CesiumGltf::Sampler::WrapS::MIRRORED_REPEAT:
-            addressX = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-            break;
-        case CesiumGltf::Sampler::WrapS::REPEAT:
-            addressX = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            break;
-        }
-        switch (pSampler->wrapT)
-        {
-        case CesiumGltf::Sampler::WrapT::CLAMP_TO_EDGE:
-            addressY = VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE;
-            break;
-        case CesiumGltf::Sampler::WrapT::MIRRORED_REPEAT:
-            addressY = VK_SAMPLER_ADDRESS_MODE_MIRRORED_REPEAT;
-            break;
-        case CesiumGltf::Sampler::WrapT::REPEAT:
-            addressY = VK_SAMPLER_ADDRESS_MODE_REPEAT;
-            break;
-        }
-        if (pSampler->magFilter
-            && pSampler->magFilter.value() == CesiumGltf::Sampler::MagFilter::NEAREST)
-        {
-            magFilter = VK_FILTER_NEAREST;
-        }
-        if (pSampler->minFilter)
-        {
-            switch (pSampler->minFilter.value()) {
-            case CesiumGltf::Sampler::MinFilter::NEAREST:
-            case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_NEAREST:
-                minFilter = VK_FILTER_NEAREST;
-                break;
-            case CesiumGltf::Sampler::MinFilter::LINEAR:
-            case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_NEAREST:
-            default:
-                break;
-            }
-        }
-        switch (pSampler->minFilter.value_or(
-                    CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR))
-        {
-        case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_LINEAR:
-        case CesiumGltf::Sampler::MinFilter::LINEAR_MIPMAP_NEAREST:
-        case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_LINEAR:
-        case CesiumGltf::Sampler::MinFilter::NEAREST_MIPMAP_NEAREST:
-            useMipMaps = true;
-            break;
-        default: // LINEAR and NEAREST
-            useMipMaps = false;
-            break;
-        }
-    }
+    auto [addressX, addressY] = csWrap2Vk(pSampler);
+    VkFilter minFilter = csMinFilter2Vk(pSampler);
+    VkFilter magFilter = csMagFilter2Vk(pSampler);
+    bool useMipMaps = useVkMipmap(pSampler);
     auto data = loadImage(source, useMipMaps, sRGB);
     auto sampler = makeSampler(addressX, addressY, minFilter, magFilter,
                                samplerLOD(data, useMipMaps));
+
     _genv->sharedObjects->share(sampler);
     return vsg::ImageInfo::create(sampler, data);
 }
+
+bool ModelBuilder::loadMaterialTexture(const vsg::ref_ptr<CsMaterial>& cmat,
+                                       const std::string& name,
+                                       const std::optional<CesiumGltf::TextureInfo>& texInfo,
+                                       bool sRGB)
+{
+    using namespace CesiumGltf;
+    if (!texInfo || texInfo.value().index < 0
+        || static_cast<unsigned>(texInfo.value().index) >= _model->textures.size())
+    {
+        if (texInfo && texInfo.value().index >= 0)
+        {
+            vsg::warn("Texture index must be less than ", _model->textures.size(),
+                      " but is ", texInfo.value().index);
+        }
+        return false;
+    }
+    const Texture& texture = _model->textures[texInfo.value().index];
+    auto imageInfo = loadTexture(texture, sRGB);
+    if (imageInfo)
+    {
+        cmat->descriptorConfig->assignTexture(name, imageInfo->imageView->image->data, imageInfo->sampler);
+        cmat->texInfo.insert({name, TexInfo{static_cast<int>(texInfo.value().texCoord)}});
+        return true;
+    }
+    return false;
+}
+
+
+vsg::ref_ptr<CsMaterial>
+ModelStateBuilder::loadMaterial(int i, VkPrimitiveTopology topology)
+{
+    int topoIndex = topology == VK_PRIMITIVE_TOPOLOGY_POINT_LIST ? 1 : 0;
+
+    if (i < 0 || static_cast<unsigned>(i) >= modelBuilder->_model->materials.size())
+    {
+        if (!baseMaterial[topoIndex])
+        {
+            baseMaterial[topoIndex] = CsMaterial::create();
+            baseMaterial[topoIndex]->descriptorConfig = vsg::DescriptorConfigurator::create();
+            baseMaterial[topoIndex]->descriptorConfig->shaderSet = genv->shaderFactory->getShaderSet(topology);
+            vsg::PbrMaterial pbr;
+            baseMaterial[topoIndex]->descriptorConfig->assignDescriptor("material",
+                                                                         vsg::PbrMaterialValue::create(pbr));
+        }
+        return baseMaterial[topoIndex];
+    }
+    if (!csMaterials[i][topoIndex])
+    {
+        csMaterials[i][topoIndex] = modelBuilder->loadMaterial(&modelBuilder->_model->materials[i], topology);
+    }
+    return csMaterials[i][topoIndex];
+}
+

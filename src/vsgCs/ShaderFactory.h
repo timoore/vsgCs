@@ -28,6 +28,7 @@ SOFTWARE.
 #include <vsg/utils/ShaderSet.h>
 
 #include <map>
+#include <mutex>
 
 
 namespace vsgCs
@@ -50,5 +51,6 @@ namespace vsgCs
     protected:
         vsg::ref_ptr<vsg::Options> _vsgOptions;
         std::map<std::pair<ShaderDomain, VkPrimitiveTopology>, vsg::ref_ptr<vsg::ShaderSet>> _shaderSetMap;
+        std::mutex _mapMutex;
     };
 }
