@@ -12,7 +12,7 @@ if(VSGCS_USE_SYSTEM_OPENSSL)
 endif()
 
 project(vsgCs
-    VERSION 1.0.0
+    VERSION 1.1.0
     DESCRIPTION "VSG library for rendering 3D Tiles and Cesium ion assets"
     LANGUAGES CXX C
 )
