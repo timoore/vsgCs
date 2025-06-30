@@ -1,10 +1,10 @@
 # Change Log
 
-### v1.1.0 - 2025-06-30
+### v1.1.1 - 2025-06-30
 
 ##### Additions
 
-- vsgCs now uses Cesium Native v0.47.0.
+- vsgCs now uses Cesium Native v0.48.0.
 - Many more raster overlay sources are supported: TMS, WMS, WMTS, and generic URLs with templates. Contributed by @chengdz.
 
 ### v1.0.0 - 2025-05-11
