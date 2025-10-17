@@ -34,17 +34,20 @@ SOFTWARE.
 #include <CesiumGltf/ExtensionKhrTextureBasisu.h>
 #include <CesiumGltf/ExtensionExtMeshGpuInstancing.h>
 #include <CesiumGltf/ExtensionTextureWebp.h>
-
 #include <CesiumGltf/Sampler.h>
-#include <cstdint>
-#include <memory>
+
 #include <vsg/core/ref_ptr.h>
 #include <vsg/maths/transform.h>
+#include <vsg/state/Sampler.h>
+
+#include <vulkan/vulkan_core.h>
 
 #include <algorithm>
+#include <cstdint>
+#include <map>
+#include <memory>
 #include <utility>
-#include <vsg/state/Sampler.h>
-#include <vulkan/vulkan_core.h>
+
 
 using namespace vsgCs;
 using namespace CesiumGltf;
@@ -186,23 +189,19 @@ namespace
     }
 }
 
-CreateModelOptions::CreateModelOptions(bool in_renderOverlays, const vsg::ref_ptr<Styling>& in_styling)
-    : renderOverlays(in_renderOverlays), lodFade(true), styling(in_styling)
-{
-}
-
 // The default constructor is defined in order to avoid circular dependencies in the header file
 CreateModelOptions::~CreateModelOptions() // NOLINT
 {
 }
 
-ModelBuilder::ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment>& genv, CesiumGltf::Model* model,
-                           const CreateModelOptions& options,
-                           ExtensionList enabledExtensions
-    )
+ModelBuilder::ModelBuilder(const vsg::ref_ptr<GraphicsEnvironment> &genv,
+                           CesiumGltf::Model *model,
+                           const CreateModelOptions &options,
+                           ExtensionList enabledExtensions)
     : _genv(genv), _model(model), _options(options),
       _loadedImages(model->images.size()),
-      _activeExtensions(std::move(enabledExtensions))
+      _activeExtensions(std::move(enabledExtensions)),
+      _vsgNodeMap(model->nodes.size())
 {
     _name = "glTF";
     auto urlIt = _model->extras.find("Cesium3DTiles_TileUrl");
@@ -223,11 +222,24 @@ ModelBuilder::~ModelBuilder()   // NOLINT
 {
 }
 
-vsg::ref_ptr<vsg::Group>
+vsg::ref_ptr<vsg::MatrixTransform> ModelBuilder::loadNode(int32_t nodeIndex)
+{
+    if (safeIndex(_model->nodes, nodeIndex))
+    {
+        if (auto result = loadNode(&_model->nodes[nodeIndex]))
+        {
+            _vsgNodeMap[nodeIndex] = result;
+            return result;
+        }
+    }
+    return {};
+}
+
+vsg::ref_ptr<vsg::MatrixTransform>
 ModelBuilder::loadNode(const CesiumGltf::Node* node)
 {
     const std::vector<double>& matrix = node->matrix;
-    vsg::ref_ptr<vsg::Group> result;
+    vsg::ref_ptr<vsg::MatrixTransform> result;
     vsg::dmat4 transformMatrix;
     if (matrix.size() == 16 && !isGltfIdentity(matrix))
     {
@@ -273,9 +285,9 @@ ModelBuilder::loadNode(const CesiumGltf::Node* node)
     }
     for (int childNodeId : node->children)
     {
-        if (safeIndex(_model->nodes, childNodeId))
+        if (auto childNode = loadNode(childNodeId))
         {
-            result->addChild(loadNode(&_model->nodes[childNodeId]));
+            result->addChild(childNode);
         }
     }
     return result;
@@ -1142,7 +1154,7 @@ ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopo
 vsg::ref_ptr<vsg::Group>
 ModelBuilder::operator()()
 {
-    vsg::ref_ptr<vsg::Group> resultNode = vsg::Group::create();
+    vsg::ref_ptr<vsg::Group> resultNode;
 
     if (!_model->scenes.empty())
     {
@@ -1152,15 +1164,16 @@ ModelBuilder::operator()()
         {
             scene = _model->scene;
         }
+        resultNode = vsg::Group::create();
         transform_append(_model->scenes[scene].nodes, resultNode->children, [this](int nodeId)
         {
-            return loadNode(&_model->nodes[nodeId]);
+            return loadNode(nodeId);
         });
     }
     else if (!_model->nodes.empty())
     {
         // No scenes at all, use the first node as the root node.
-        resultNode = loadNode(_model->nodes.data());
+        resultNode = loadNode(0);
     }
     else if (!_model->meshes.empty())
     {
@@ -1170,7 +1183,11 @@ ModelBuilder::operator()()
             return loadMesh(&mesh);
         });
     }
-    return resultNode;
+    if (!_options.parseAnimations || _model->animations.empty())
+    {
+        return resultNode;
+    }
+    return processAnimations(resultNode);
 }
 
 vsg::ref_ptr<vsg::Data> ModelBuilder::loadImage(int i, bool useMipMaps, bool sRGB)
@@ -1389,6 +1406,154 @@ bool ModelBuilder::loadMaterialTexture(const vsg::ref_ptr<CsMaterial>& cmat,
     return false;
 }
 
+namespace
+{
+template <typename V, typename C>
+V toVsg(const C &val)
+{
+    V result;
+    for (unsigned i = 0; i < std::size(result.value); ++i)
+    {
+        result.value[i] = val.value[i];
+    }
+    return result;
+}
+
+std::vector<vsg::VectorKey>
+makeVectorKeyframes(const CesiumGltf::Model &model, int32_t inputs,
+                    int32_t outputs, const std::string & /* algorithm */)
+{
+    AccessorView<AccessorTypes::SCALAR<float>> timeAccessorView(model, inputs);
+    AccessorView<AccessorTypes::VEC3<float>> outputAccessorView(model, outputs);
+
+    std::vector<vsg::VectorKey> result;
+    if (timeAccessorView.status() != AccessorViewStatus::Valid ||
+        outputAccessorView.status() != AccessorViewStatus::Valid)
+    {
+        return result;
+    }
+    int32_t count = std::min(timeAccessorView.size(), outputAccessorView.size());
+    result.reserve(count);
+    for (int32_t i = 0; i < count; ++i)
+    {
+        result.push_back({timeAccessorView[i].value[0], toVsg<vsg::dvec3>(outputAccessorView[i])});
+    }
+    return result;
+}
+
+std::vector<vsg::QuatKey>
+makeQuatKeyframes(const CesiumGltf::Model &model, int32_t inputs,
+                  int32_t outputs, const std::string & /* algorithm */)
+{
+    std::vector<vsg::QuatKey> result;
+    AccessorView<AccessorTypes::SCALAR<float>> timeAccessorView(model, inputs);
+    const Accessor *quatAccessor = Model::getSafe(&model.accessors, outputs);
+    if (timeAccessorView.status() != AccessorViewStatus::Valid || !quatAccessor)
+    {
+        return result;
+    }
+    int32_t count = std::min(timeAccessorView.size(), quatAccessor->count);
+    result.reserve(count);
+    createAccessorView(model, *quatAccessor, [&](auto &&quatView) -> void {
+      using QuatType = decltype(quatView[0]);
+      using ValueType = std::decay_t<QuatType>;
+      if constexpr (is_float_quat_v<ValueType>) {
+        for (int i = 0; i < count; ++i) {
+          result.push_back(
+              {timeAccessorView[i].value[0], toVsg<vsg::dquat>(quatView[i])});
+        }
+      } else if constexpr (is_int_quat_v<ValueType>) {
+        for (int i = 0; i < count; ++i) {
+          vsg::dquat quatVal;
+          for (int j = 0; j < 4; ++j) {
+            quatVal.value[j] = normalize<float>(quatView[i].value[j]);
+          }
+          result.push_back({timeAccessorView[i].value[0], quatVal});
+        }
+      }
+    });
+    return result;
+}
+} // namespace
+
+vsg::ref_ptr<vsg::TransformSampler> ModelBuilder::createTransformSampler(const vsg::ref_ptr<vsg::Node>& obj)
+{
+    auto matrixTransform = ref_ptr_cast<vsg::MatrixTransform>(obj);
+    if (!matrixTransform)
+    {
+        return {};
+    }
+    auto transSampler = vsg::TransformSampler::create();
+    transSampler->keyframes = vsg::TransformKeyframes::create();
+    transSampler->object = matrixTransform;
+    vsg::decompose(matrixTransform->matrix, transSampler->position, transSampler->rotation, transSampler->scale);
+    return transSampler;
+}
+
+vsg::ref_ptr<vsg::AnimationGroup> ModelBuilder::processAnimations(
+    const vsg::ref_ptr<vsg::Group>& modelRoot)
+{
+    auto result = vsg::AnimationGroup::create();
+    result->addChild(modelRoot);
+    for (const auto &animation : _model->animations)
+    {
+        auto vsgAnimation = vsg::Animation::create();
+        std::map<int32_t, vsg::ref_ptr<vsg::TransformSampler>> transSamplers;
+        for (const auto &channel : animation.channels)
+        {
+            if (channel.target.path ==
+                CesiumGltf::AnimationChannelTarget::Path::translation ||
+                channel.target.path ==
+                CesiumGltf::AnimationChannelTarget::Path::rotation ||
+                channel.target.path ==
+                CesiumGltf::AnimationChannelTarget::Path::scale)
+            {
+                vsg::ref_ptr<vsg::TransformSampler> transSampler;
+                auto transIt = transSamplers.find(channel.target.node);
+                if (transIt == transSamplers.end())
+                {
+                    if (!_vsgNodeMap[channel.target.node])
+                    {
+                        // This can happen if a node is not part of the
+                        // model's hierarchy, but does appear in an
+                        // animation... I guess?
+                        _vsgNodeMap[channel.target.node] = loadNode(channel.target.node);
+                    }
+                    transSampler = createTransformSampler(_vsgNodeMap[channel.target.node]);
+                    transSamplers.insert({channel.target.node, transSampler});
+                }
+                else
+                {
+                    transSampler = transIt->second;
+                }
+                const auto& sampler = animation.samplers[channel.sampler];
+                if (channel.target.path == CesiumGltf::AnimationChannelTarget::Path::translation)
+                {
+                    transSampler->keyframes->positions =
+                        makeVectorKeyframes(*_model, sampler.input,
+                                            sampler.output, sampler.interpolation);
+                } else if (channel.target.path ==
+                           CesiumGltf::AnimationChannelTarget::Path::scale)
+                {
+                    transSampler->keyframes->scales =
+                        makeVectorKeyframes(*_model, sampler.input,
+                                            sampler.output, sampler.interpolation);
+                }
+                else
+                {
+                    transSampler->keyframes->rotations
+                        = makeQuatKeyframes(*_model, sampler.input, sampler.output, sampler.interpolation);
+                }
+            }
+        }
+        for (const auto& [nodeIdx, sampler] : transSamplers)
+        {
+            vsgAnimation->samplers.emplace_back(sampler);
+        }
+        result->animations.emplace_back(vsgAnimation);
+    }
+    return result;
+}
 
 vsg::ref_ptr<CsMaterial>
 ModelStateBuilder::loadMaterial(int i, VkPrimitiveTopology topology)

@@ -77,18 +77,24 @@ CesiumAsync::Future<GltfLoader::ReadGltfResult> GltfLoader::loadGltfNode(const s
                            readerOptions)
         .thenInWorkerThread([this](CesiumGltfReader::GltfReaderResult&& gltfResult)
         {
-            CreateModelOptions modelOptions{};
+            CreateModelOptions modelOptions{.renderOverlays = false, .lodFade = false, .parseAnimations = true, .styling = {}};
             ModelBuilder modelBuilder(env->genv, &*gltfResult.model, modelOptions);
             glm::dmat4 yUp(1.0);
             yUp = CesiumGltfContent::GltfUtilities::applyGltfUpAxisTransform(*gltfResult.model, yUp);
             auto modelNode = modelBuilder();
             if (isIdentity(yUp))
             {
-                return ReadGltfResult{modelNode, {}};
+                return ReadGltfResult{.node=modelNode, .errors={}};
             }
             auto transformNode = vsg::MatrixTransform::create(glm2vsg(yUp));
+            if (auto animationGroup = ref_ptr_cast<vsg::AnimationGroup>(modelNode))
+            {
+                transformNode->children.swap(animationGroup->children);
+                animationGroup->addChild(transformNode);
+                return ReadGltfResult{.node = animationGroup, .errors = {}};
+            }
             transformNode->addChild(modelNode);
-            return ReadGltfResult{transformNode, {}};
+            return ReadGltfResult{.node=transformNode, .errors={}};
         });
 }
 

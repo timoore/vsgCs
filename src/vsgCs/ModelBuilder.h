@@ -29,16 +29,19 @@ SOFTWARE.
 #include "runtimeSupport.h"
 
 #include <CesiumGltf/TextureInfo.h>
+#include <vsg/animation/Animation.h>
+#include <vsg/animation/AnimationGroup.h>
 #include <vsg/core/Inherit.h>
 #include <vsg/core/ref_ptr.h>
 #include <vsg/io/Logger.h>
+#include <vsg/nodes/MatrixTransform.h>
 #include <vsg/nodes/StateGroup.h>
 #include <vsg/utils/GraphicsPipelineConfigurator.h>
 
 #include <array>
 #include <memory>
-#include <utility>
 #include <string>
+#include <vector>
 
 namespace vsgCs
 {
@@ -93,10 +96,10 @@ namespace vsgCs
      */
     struct CreateModelOptions
     {
-        CreateModelOptions(bool in_renderOverlays = false, const vsg::ref_ptr<Styling>& styling = {});
         ~CreateModelOptions();
-        bool renderOverlays;
-        bool lodFade;
+        bool renderOverlays = false;
+        bool lodFade = true;
+        bool parseAnimations = false;
         vsg::ref_ptr<Styling> styling;
     };
 
@@ -247,7 +250,8 @@ namespace vsgCs
                      ExtensionList enabledExtensions = {});
         ~ModelBuilder();
         vsg::ref_ptr<vsg::Group> operator()();
-        vsg::ref_ptr<vsg::Group> loadNode(const CesiumGltf::Node* node);
+        vsg::ref_ptr<vsg::MatrixTransform> loadNode(int32_t nodeIndex);
+        vsg::ref_ptr<vsg::MatrixTransform> loadNode(const CesiumGltf::Node* node);
         using InstanceData = std::array<vsg::ref_ptr<vsg::vec4Array>, 3>;
         vsg::ref_ptr<vsg::Group> loadMesh(const CesiumGltf::Mesh* mesh,
                                           const InstanceData* instanceData = nullptr);
@@ -286,8 +290,11 @@ namespace vsgCs
         ExtensionList _activeExtensions;
         vsg::ref_ptr<Stylist> _stylist;
 
-      protected:
-      std::shared_ptr<IModelStateBuilder> _modelStateBuilder;
+    protected:
+        std::shared_ptr<IModelStateBuilder> _modelStateBuilder;
+        std::vector<vsg::ref_ptr<vsg::MatrixTransform>> _vsgNodeMap;
+        vsg::ref_ptr<vsg::AnimationGroup> processAnimations(const vsg::ref_ptr<vsg::Group>& modelRoot);
+        vsg::ref_ptr<vsg::TransformSampler> createTransformSampler(const vsg::ref_ptr<vsg::Node>& obj);
     };
 
     // Helper function for getting an attribute accessor by name.

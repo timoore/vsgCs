@@ -36,11 +36,11 @@ int main(int argc, char** argv)
                                               vsgCs::pbr::VIEW_DESCRIPTOR_SET);
     scene->add(bindViewDescriptorSets);
     auto loader = vsgCs::GltfLoader::create();
-    
+    vsg::ref_ptr<vsg::Node> model;
     if (argc>1)
     {
         vsg::Path filename = argv[1];
-        auto model = vsgCs::ref_ptr_cast<vsg::Node>(loader->read(filename, vsgCs::RuntimeEnvironment::get()->options));
+        model = vsgCs::ref_ptr_cast<vsg::Node>(loader->read(filename, vsgCs::RuntimeEnvironment::get()->options));
         if (!model)
         {
             std::cout<<"Faled to load "<<filename<<'\n';
@@ -48,7 +48,9 @@ int main(int argc, char** argv)
         }
         scene->addChild(model);
     }
-    
+
+    vsg::ref_ptr<vsg::AnimationGroup> animationGroup = vsgCs::ref_ptr_cast<vsg::AnimationGroup>(model);
+
     // compute the bounds of the scene graph to help position camera
     auto bounds = vsg::visit<vsg::ComputeBounds>(scene).bounds;
 
@@ -183,6 +185,14 @@ int main(int argc, char** argv)
     viewer->assignRecordAndSubmitTaskAndPresentation({commandGraph});
 
     viewer->compile();
+
+    if (animationGroup)
+    {
+        for (auto& anim : animationGroup->animations)
+        {
+            viewer->animationManager->play(anim);
+        }
+    }
 
     auto startTime = vsg::clock::now();
     double numFramesCompleted = 0.0;
