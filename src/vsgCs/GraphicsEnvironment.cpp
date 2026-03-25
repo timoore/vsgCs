@@ -35,7 +35,7 @@ namespace
         vsg::ubvec4 pixel(255, 255, 255, 255); // NOLINT: it's white
         vsg::Data::Properties props;
         props.format = VK_FORMAT_R8G8B8A8_SRGB;
-        props.maxNumMipmaps = 1;
+        props.mipLevels = 1;
         auto arrayData = vsg::ubvec4Array2D::create(1, 1, &pixel, props);
         auto sampler = makeSampler(VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE,
                                    VK_SAMPLER_ADDRESS_MODE_CLAMP_TO_EDGE, VK_FILTER_NEAREST, VK_FILTER_NEAREST, 1);
