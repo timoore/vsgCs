@@ -1,6 +1,6 @@
 {
   "name": "cesium-native",
-  "version-string": "0.50.0",
+  "version-string": "0.58.0",
   "features": {
     "dependencies-only": {
       "description": "install port's dependencies without the port"
@@ -37,7 +37,6 @@
     "earcut-hpp",
     "cpp-httplib",
     "libmorton",
-    "zstd",
     {
       "name": "blend2d",
       "default-features": false,
@@ -51,7 +50,10 @@
     {
       "name": "asmjit",
       "platform": "!ios"
-    }
+    },
+    "spz",
+    "zstd"
+
   ]
 }
 

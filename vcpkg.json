@@ -48,7 +48,13 @@
     "openssl",
     "spdlog",
     "tinyxml2",
-    "vsg",
+    {
+      "name": "vsg",
+      "features": [
+        "shader-optimizer",
+        "windowing"
+      ]
+    },
     {
       "name": "vsgxchange",
       "features": [
