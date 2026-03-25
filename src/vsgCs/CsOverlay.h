@@ -35,6 +35,7 @@ namespace vsgCs
     class VSGCS_EXPORT CsOverlay : public vsg::Inherit<vsg::Object, CsOverlay>
     {
     public:
+        using PointerType = CesiumUtility::IntrusivePointer<CesiumRasterOverlays::RasterOverlay>;
         std::string MaterialLayerKey = "Overlay0";
         float MaximumScreenSpaceError = 2.0;
         int32_t MaximumTextureSize = 2048;
@@ -52,18 +53,18 @@ namespace vsgCs
         // have TilesetNode do this?
         void addToTileset(const vsg::ref_ptr<TilesetNode>& tilesetNode);
         void removeFromTileset(const vsg::ref_ptr<TilesetNode>& tilesetNode);
-        virtual CesiumRasterOverlays::RasterOverlay* createOverlay(
+        virtual PointerType createOverlay(
             const CesiumRasterOverlays::RasterOverlayOptions& options = {}) = 0;
-        CesiumRasterOverlays::RasterOverlay* getOverlay()
+        PointerType getOverlay()
         {
             return _rasterOverlay;
         }
-        const  CesiumRasterOverlays::RasterOverlay* getOverlay() const
+        const  PointerType getOverlay() const
         {
             return _rasterOverlay;
         }
     protected:
-        CesiumRasterOverlays::RasterOverlay* _rasterOverlay;
+        PointerType _rasterOverlay;
         int32_t _overlaysBeingDestroyed = 0;
     };
 
@@ -76,7 +77,6 @@ namespace vsgCs
         {}
         int64_t IonAssetID;
         std::string IonAccessToken;
-        CesiumRasterOverlays::RasterOverlay* createOverlay(
-            const CesiumRasterOverlays::RasterOverlayOptions& options) override;
+        PointerType createOverlay(const CesiumRasterOverlays::RasterOverlayOptions& options) override;
     };
 }

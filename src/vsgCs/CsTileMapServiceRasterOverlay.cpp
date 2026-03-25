@@ -30,7 +30,7 @@ SOFTWARE.
 
 using namespace vsgCs;
 
-CesiumRasterOverlays::RasterOverlay* CsTileMapServiceRasterOverlay::createOverlay(
+CsOverlay::PointerType CsTileMapServiceRasterOverlay::createOverlay(
     const CesiumRasterOverlays::RasterOverlayOptions& options)
 {
     if (url.empty())
@@ -55,12 +55,12 @@ CesiumRasterOverlays::RasterOverlay* CsTileMapServiceRasterOverlay::createOverla
             Value });
     }
 
-    return new CesiumRasterOverlays::TileMapServiceRasterOverlay(
+    return PointerType(new CesiumRasterOverlays::TileMapServiceRasterOverlay(
         MaterialLayerKey,
         url,
         headers,
         tmsOptions,
-        options);
+        options));
 }
 
 namespace vsgCs

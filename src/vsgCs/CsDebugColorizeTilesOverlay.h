@@ -32,7 +32,7 @@ namespace vsgCs
                                                                          CsDebugColorizeTilesOverlay>
     {
     public:
-        CesiumRasterOverlays::RasterOverlay* createOverlay(
+        CsOverlay::PointerType createOverlay(
             const CesiumRasterOverlays::RasterOverlayOptions& options) override;
     };
 }

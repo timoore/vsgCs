@@ -30,10 +30,10 @@ SOFTWARE.
 
 using namespace vsgCs;
 
-CesiumRasterOverlays::RasterOverlay* CsDebugColorizeTilesOverlay::createOverlay(
+CsOverlay::PointerType CsDebugColorizeTilesOverlay::createOverlay(
     const CesiumRasterOverlays::RasterOverlayOptions& options)
 {
-    return new CesiumRasterOverlays::DebugColorizeTilesRasterOverlay(MaterialLayerKey, options);
+    return PointerType(new CesiumRasterOverlays::DebugColorizeTilesRasterOverlay(MaterialLayerKey, options));
 }
 
 namespace vsgCs
