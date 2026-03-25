@@ -376,6 +376,7 @@ void TilesetNode::UpdateTileset::run()
                           viewStates.push_back(viewState.value());
                       }
                   });
+    getAsyncSystem().dispatchMainThreadTasks();
     ref_tileset->_viewUpdateResult = &tileset.updateViewGroup(tileset.getDefaultViewGroup(), viewStates, deltaTime);
     for (const auto& tile : ref_tileset->_viewUpdateResult->tilesToRenderThisFrame)
     {
