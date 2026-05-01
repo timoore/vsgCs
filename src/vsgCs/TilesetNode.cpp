@@ -33,6 +33,7 @@ SOFTWARE.
 #include "UrlAssetAccessor.h"
 
 #include <CesiumUtility/JsonHelpers.h>
+#include <Cesium3DTilesSelection/EllipsoidTilesetLoader.h>
 #include <Cesium3DTilesSelection/TilesetMetadata.h>
 
 #include <glm/vec2.hpp>
@@ -102,8 +103,11 @@ TilesetNode::TilesetNode(const DeviceFeatures& deviceFeatures, const TilesetSour
     options.lodTransitionLength = 1.0f;
     auto externals = env->getTilesetExternals();
     options.contentOptions.ktx2TranscodeTargets = deviceFeatures.ktx2TranscodeTargets;
-
-    if (source.url)
+    if (source.ellipsoid)
+    {
+        _tileset = Cesium3DTilesSelection::EllipsoidTilesetLoader::createTileset(*externals, options);
+    }
+    else if (source.url)
     {
         _tileset = std::make_unique<Cesium3DTilesSelection::Tileset>(*externals, source.url.value(), options);
     }
@@ -437,18 +441,20 @@ namespace
         {
             if (ionAsset < 0)
             {
-                vsg::error("No valid Ion asset\n");
-                return {};
+                source.ellipsoid = true;
             }
-            source.ionAssetID = ionAsset;
-            if (ionAccessToken.empty())
+            else
             {
-                ionAccessToken = env->ionAccessToken;
-            }
-            source.ionAccessToken = ionAccessToken;
-            if (!ionEndpointUrl.empty())
-            {
-                source.ionAssetEndpointUrl = ionEndpointUrl;
+                source.ionAssetID = ionAsset;
+                if (ionAccessToken.empty())
+                {
+                    ionAccessToken = env->ionAccessToken;
+                }
+                source.ionAccessToken = ionAccessToken;
+                if (!ionEndpointUrl.empty())
+                {
+                    source.ionAssetEndpointUrl = ionEndpointUrl;
+                }
             }
         }
         Cesium3DTilesSelection::TilesetOptions tileOptions;

@@ -39,6 +39,7 @@ namespace vsgCs
         std::optional<int64_t> ionAssetID;
         std::optional<std::string> ionAccessToken;
         std::optional<std::string> ionAssetEndpointUrl;
+        bool ellipsoid = false;
     };
     
     class VSGCS_EXPORT TilesetNode : public vsg::Inherit<vsg::Node, TilesetNode>
