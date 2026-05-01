@@ -1,0 +1,13 @@
+{  "Type": "World",
+   "tilesets": [
+       {
+       "Type": "Tileset",
+       "overlays": [
+           {
+           "Type": "IonRasterOverlay",
+           "assetId": 2
+       }
+       ]
+   }
+   ]
+} 
