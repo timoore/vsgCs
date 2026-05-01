@@ -319,6 +319,7 @@ DeviceFeatures RuntimeEnvironment::prepareFeaturesAndExtensions(const vsg::ref_p
     // Large point sizes for scaling by distance
     if (physFeatures.largePoints)
     {
+        features.largePoints = true;
         traits->deviceFeatures->get().largePoints = 1;
         const auto& limits = window->getOrCreatePhysicalDevice()->getProperties().limits;
         std::copy(&limits.pointSizeRange[0], &limits.pointSizeRange[2], &features.pointSizeRange[0]);
@@ -327,6 +328,11 @@ DeviceFeatures RuntimeEnvironment::prepareFeaturesAndExtensions(const vsg::ref_p
     else
     {
         std::fill(&features.pointSizeRange[0], &features.pointSizeRange[2], 1.0f);
+    }
+    if (physFeatures.wideLines)
+    {
+        features.wideLines = true;
+        traits->deviceFeatures->get().wideLines = 1;
     }
 #ifdef TRACY_ENABLE
     for (VkExtensionProperties extension : extensionProperties)

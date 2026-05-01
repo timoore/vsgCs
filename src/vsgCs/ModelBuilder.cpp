@@ -621,6 +621,7 @@ namespace
             {
                 rs.depthClampEnable = VK_TRUE;
             }
+            rs.lineWidth = 2.0f;
         }
         void apply(vsg::InputAssemblyState& ias) override
         {
@@ -1105,6 +1106,10 @@ ModelBuilder::loadMaterial(const CesiumGltf::Material* material, VkPrimitiveTopo
         csMat->descriptorConfig->defines.insert("VSGCS_TILE");
     }
     vsg::PbrMaterial pbr;
+    for (int i = 0; i < 3; ++i)
+    {
+        pbr.emissiveFactor[i] = static_cast<float>(material->emissiveFactor[i]);
+    }
     if (material->alphaMode == CesiumGltf::Material::AlphaMode::BLEND)
     {
         csMat->descriptorConfig->blending = true;
