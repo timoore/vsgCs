@@ -75,8 +75,11 @@ CesiumAsync::Future<GltfLoader::ReadGltfResult> GltfLoader::loadGltfNode(const s
     auto accessor = env-> getAssetAccessor();
     return reader.loadGltf(getAsyncSystem(), uri, headers, accessor,
                            readerOptions)
-        .thenInWorkerThread([this](CesiumGltfReader::GltfReaderResult&& gltfResult)
-        {
+        .thenInWorkerThread([this](CesiumGltfReader::GltfReaderResult&& gltfResult) {
+            if (!gltfResult.model)
+            {
+                return ReadGltfResult{nullptr, std::move(gltfResult.errors)};
+            }
             CreateModelOptions modelOptions{};
             ModelBuilder modelBuilder(env->genv, &*gltfResult.model, modelOptions);
             glm::dmat4 yUp(1.0);
