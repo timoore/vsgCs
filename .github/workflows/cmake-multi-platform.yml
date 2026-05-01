@@ -37,6 +37,7 @@ jobs:
       shell: bash
       run: |
         echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
+    - name: Set up Linux libraries and environment
       if: startsWith(matrix.os, 'ubuntu')
       run: |
         sudo apt-get -qq update
