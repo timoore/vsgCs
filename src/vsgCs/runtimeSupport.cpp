@@ -145,7 +145,7 @@ namespace vsgCs
 
     int samplerLOD(const vsg::ref_ptr<vsg::Data>& data, bool generateMipMaps)
     {
-        int dataMipMaps = data->properties.maxNumMipmaps > 1;
+        int dataMipMaps = data->properties.mipLevels > 1;
         if (dataMipMaps > 1)
         {
             return dataMipMaps;
@@ -499,11 +499,11 @@ vsg::ref_ptr<vsg::Data> loadImage(CesiumUtility::IntrusivePointer<CesiumGltf::Im
     props.format = pixelFormat;
     if (useMipMaps)
     {
-        props.maxNumMipmaps = static_cast<uint8_t>(std::max(image->mipPositions.size(), static_cast<size_t>(1)));
+        props.mipLevels = static_cast<uint8_t>(std::max(image->mipPositions.size(), static_cast<size_t>(1)));
     }
     else
     {
-        props.maxNumMipmaps = 1;
+        props.mipLevels = 1;
     }
     std::tie(props.blockWidth, props.blockHeight) = getBlockSize(pixelFormat);
     props.origin = vsg::BOTTOM_LEFT;

@@ -79,7 +79,6 @@ namespace vsgCs
          */
         std::map<std::string, std::string> requestHeaders;
 
-        CesiumRasterOverlays::RasterOverlay* createOverlay(
-            const CesiumRasterOverlays::RasterOverlayOptions& options) override;
+        PointerType createOverlay(const CesiumRasterOverlays::RasterOverlayOptions& options) override;
     };
 }

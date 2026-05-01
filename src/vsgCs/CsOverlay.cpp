@@ -69,19 +69,19 @@ void CsOverlay::removeFromTileset(const vsg::ref_ptr<TilesetNode>& tilesetNode)
     _rasterOverlay = nullptr;
 }
 
-CesiumRasterOverlays::RasterOverlay* CsIonRasterOverlay::createOverlay(
-            const CesiumRasterOverlays::RasterOverlayOptions& options)
+CsOverlay::PointerType CsIonRasterOverlay::createOverlay(
+    const CesiumRasterOverlays::RasterOverlayOptions& options)
 {
       if (this->IonAssetID <= 0)
       {
           // Don't create an overlay for an invalid asset ID.
           return nullptr;
       }
-      return new CesiumRasterOverlays::IonRasterOverlay(
+      return PointerType(new CesiumRasterOverlays::IonRasterOverlay(
           MaterialLayerKey,
           IonAssetID,
           IonAccessToken,
-          options);
+          options));
 }
 
 namespace

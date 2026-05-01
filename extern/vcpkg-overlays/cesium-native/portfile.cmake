@@ -13,16 +13,15 @@ vcpkg_from_github(
   OUT_SOURCE_PATH SOURCE_PATH
   REPO CesiumGS/cesium-native
   REF "v${VERSION}"
-  SHA512 4e30389398ee50f1454e83d9733f575a8c97479d2d3ba7fd2996a6ddbb2625406af0a29a789f8a4936ce8bb419a6dc4d13df5237f3706792ea3273be1972c8bd
+  SHA512 cad6164bf81d83174be0a97ea5f626267d3ebe59f058957fd375215159903a3128a390471bdb4ee2fee6aa09ca3996904b409d30021d441b7416ffd8f16e1593
   HEAD_REF main
-  PATCHES
-  config.patch
         )
 
 vcpkg_cmake_configure(
         SOURCE_PATH "${SOURCE_PATH}"
         OPTIONS
                 -DCESIUM_USE_EZVCPKG=OFF
+                -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
         )
 
 vcpkg_cmake_install()
