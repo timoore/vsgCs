@@ -17,11 +17,15 @@ vcpkg_from_github(
   HEAD_REF main
         )
 
+# cesium-native doesn't provide a convenient way to turn off
+# warning-as-error, but compiling with clang can produce a spew of
+# errors
+
 vcpkg_cmake_configure(
         SOURCE_PATH "${SOURCE_PATH}"
         OPTIONS
                 -DCESIUM_USE_EZVCPKG=OFF
-                -DCMAKE_COMPILE_WARNING_AS_ERROR=OFF
+                --compile-no-warning-as-error
         )
 
 vcpkg_cmake_install()
