@@ -24,7 +24,7 @@ layout(location = 2) out vec4 vertexColor;
 layout(location = 3) out vec3 viewDir;
 layout(location = 4) out vec2 texCoord[4];
 
-layout(set = VIEW_DESCRIPTOR_SET, binding = 1) uniform ViewportParams
+layout(set = VIEW_DESCRIPTOR_SET, binding = 1) readonly buffer ViewportParams
 {
     vec4 viewportExtent;     // x, y, width, height
 #if 0

@@ -44,6 +44,7 @@ namespace vsgCs
     {
         bool indexTypeUint8 = false;
         bool largePoints = false;
+        bool wideLines = false;
         bool textureCompressionETC2 = false;
         bool textureCompressionASTC_LDR = false;
         bool textureCompressionBC = false;
